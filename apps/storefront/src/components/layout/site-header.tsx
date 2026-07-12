@@ -4,6 +4,8 @@ import type { NavigationSummary, SearchSuggestion } from "@ecom/types";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
+import { fetchCart } from "@/lib/cart";
+
 interface SiteHeaderProps {
   navigation: NavigationSummary;
 }
@@ -14,6 +16,23 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [trending, setTrending] = useState<string[]>([]);
+  const [cartCount, setCartCount] = useState(0);
+
+  const refreshCartCount = useCallback(async () => {
+    try {
+      const cart = await fetchCart();
+      setCartCount(cart.itemCount);
+    } catch {
+      setCartCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshCartCount();
+    const handler = () => void refreshCartCount();
+    window.addEventListener("cart-updated", handler);
+    return () => window.removeEventListener("cart-updated", handler);
+  }, [refreshCartCount]);
 
   const fetchSuggestions = useCallback(async (q: string) => {
     if (!q.trim()) {
@@ -99,8 +118,13 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             <Link href="/wishlist" aria-label="Wishlist" className="hidden sm:inline">
               Wishlist
             </Link>
-            <Link href="/cart" aria-label="Cart">
+            <Link href="/cart" aria-label="Cart" className="relative">
               Cart
+              {cartCount > 0 && (
+                <span className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-700 px-1 text-[10px] font-bold text-white">
+                  {cartCount}
+                </span>
+              )}
             </Link>
             <Link href="/account" aria-label="Account" className="hidden sm:inline">
               Account

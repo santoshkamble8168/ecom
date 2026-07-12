@@ -490,6 +490,43 @@ async function seedReviews() {
   }
 }
 
+async function seedCoupons() {
+  const coupons = [
+    { code: "WELCOME10", type: "percent" as const, value: "10", minCartValue: null },
+    { code: "FLAT100", type: "fixed" as const, value: "100", minCartValue: "500" },
+    { code: "FREESHIP", type: "free_shipping" as const, value: "0", minCartValue: null },
+    {
+      code: "EXPIRED",
+      type: "percent" as const,
+      value: "20",
+      minCartValue: null,
+      expiresAt: new Date("2020-01-01"),
+      isActive: true,
+    },
+  ];
+
+  for (const coupon of coupons) {
+    await prisma.coupon.upsert({
+      where: { code: coupon.code },
+      update: {
+        type: coupon.type,
+        value: coupon.value,
+        minCartValue: coupon.minCartValue,
+        expiresAt: coupon.expiresAt ?? null,
+        isActive: coupon.isActive ?? true,
+      },
+      create: {
+        code: coupon.code,
+        type: coupon.type,
+        value: coupon.value,
+        minCartValue: coupon.minCartValue,
+        expiresAt: coupon.expiresAt ?? null,
+        isActive: coupon.isActive ?? true,
+      },
+    });
+  }
+}
+
 async function main() {
   for (const permission of PERMISSIONS) {
     await prisma.permission.upsert({
@@ -552,6 +589,7 @@ async function main() {
   await seedProducts(categoryIds, collectionIds, valueMap);
   await seedStorefront();
   await seedReviews();
+  await seedCoupons();
 
   // eslint-disable-next-line no-console
   console.log("Seed complete: roles, permissions, catalog, storefront CMS, and sample products are ready.");

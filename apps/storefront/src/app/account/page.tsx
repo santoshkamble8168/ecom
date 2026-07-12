@@ -4,13 +4,8 @@ import type { CustomerAddress, UserProfile } from "@ecom/types";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
 import { useEffect, useState } from "react";
 
-import {
-  apiFetch,
-  clearToken,
-  getRefreshToken,
-  getToken,
-  setTokens,
-} from "@/lib/auth";
+import { apiFetch, clearToken, getRefreshToken, getToken, setTokens } from "@/lib/auth";
+import { mergeCartOnLogin } from "@/lib/cart";
 
 type Tab = "profile" | "addresses";
 
@@ -85,6 +80,7 @@ export default function AccountPage() {
         body: JSON.stringify({ channel: "email", destination: email, code }),
       });
       setTokens(tokens.accessToken, tokens.refreshToken);
+      await mergeCartOnLogin();
       await loadAccount();
       setStep("request");
       setCode("");

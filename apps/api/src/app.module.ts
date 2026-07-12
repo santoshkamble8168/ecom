@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AdminModule } from "./admin/admin.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
+import { CartModule } from "./cart/cart.module";
 import { CatalogModule } from "./catalog/catalog.module";
 import { DiscoveryModule } from "./discovery/discovery.module";
 import { ProductModule } from "./product/product.module";
@@ -35,6 +36,7 @@ import { RedisModule } from "./redis/redis.module";
     AuthModule,
     UsersModule,
     AdminModule,
+    CartModule,
     CatalogModule,
     DiscoveryModule,
     ProductModule,

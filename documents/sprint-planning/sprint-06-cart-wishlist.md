@@ -2,7 +2,16 @@
 
 Theme: Cart, save for later, guest cart, coupons  
 Primary source volumes: Volume 4, Volume 6, Volume 8, Volume 9, Volume 10, Volume 11  
-Status: Not Started
+Status: Done (functional — formal DoD deferred)
+
+## Deferred — revisit at end of sprint program
+
+- Mini-cart drawer, Storybook, E2E, accessibility audit
+- Redis cart caching, abandoned-cart jobs, cart TTL cleanup
+- Real inventory stock validation (stub until Sprint 10)
+- Guest wishlist → user merge on login (basic cart merge only for now)
+- OpenAPI docs, sprint summary, fraud/abuse review
+- Optimistic UI rollback (basic refresh-on-action for now)
 
 ## Sprint Goal
 

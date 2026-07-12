@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { apiFetch, getToken } from "@/lib/auth";
+import { addToCart } from "@/lib/cart";
 import { getSessionId } from "@/lib/session";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
@@ -31,6 +32,7 @@ export function PdpView({ product }: PdpViewProps) {
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [wishlisted, setWishlisted] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>("details");
 
   const images = product.media.length > 0 ? product.media : product.primaryImage ? [product.primaryImage] : [];
@@ -129,8 +131,17 @@ export function PdpView({ product }: PdpViewProps) {
     setWishlisted(true);
   }
 
-  function handleAddToCart() {
-    alert("Add to cart — coming in Sprint 6");
+  async function handleAddToCart() {
+    if (!selectedVariant) return;
+    setAddingToCart(true);
+    try {
+      await addToCart(product.slug, selectedVariant.sku, quantity);
+      window.dispatchEvent(new Event("cart-updated"));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to add to cart");
+    } finally {
+      setAddingToCart(false);
+    }
   }
 
   return (
@@ -233,11 +244,11 @@ export function PdpView({ product }: PdpViewProps) {
           <div className="mt-6 flex gap-3">
             <button
               type="button"
-              disabled={!product.inStock || !selectedVariant}
-              onClick={handleAddToCart}
+              disabled={!product.inStock || !selectedVariant || addingToCart}
+              onClick={() => void handleAddToCart()}
               className="flex-1 rounded-md bg-brand-700 px-6 py-3 text-sm font-semibold text-white disabled:opacity-50"
             >
-              Add to Bag
+              {addingToCart ? "Adding…" : "Add to Bag"}
             </button>
             <button
               type="button"
@@ -340,15 +351,15 @@ export function PdpView({ product }: PdpViewProps) {
         <div className="mx-auto flex max-w-7xl gap-2">
           <button
             type="button"
-            disabled={!product.inStock || !selectedVariant}
-            onClick={handleAddToCart}
+            disabled={!product.inStock || !selectedVariant || addingToCart}
+            onClick={() => void handleAddToCart()}
             className="flex-1 rounded-md bg-brand-700 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Add to Bag
+            {addingToCart ? "Adding…" : "Add to Bag"}
           </button>
           <button
             type="button"
-            onClick={handleAddToCart}
+            onClick={() => void handleAddToCart()}
             className="flex-1 rounded-md border border-brand-700 py-3 text-sm font-semibold text-brand-700"
           >
             Buy Now
