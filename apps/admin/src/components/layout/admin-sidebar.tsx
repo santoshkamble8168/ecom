@@ -10,6 +10,7 @@ const NAV_SECTIONS = [
     items: [
       { href: "/products", label: "Products" },
       { href: "/categories", label: "Categories" },
+      { href: "/collections", label: "Collections" },
       { href: "/inventory", label: "Inventory" },
     ],
   },

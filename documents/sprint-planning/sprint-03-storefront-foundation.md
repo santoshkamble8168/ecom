@@ -2,7 +2,7 @@
 
 Theme: Homepage, header, footer, navigation, search shell  
 Primary source volumes: Volume 2, Volume 3, Volume 4, Volume 7, Volume 10, Volume 11  
-Status: Not Started
+Status: In Progress
 
 ## Sprint Goal
 

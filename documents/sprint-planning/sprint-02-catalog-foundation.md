@@ -2,7 +2,7 @@
 
 Theme: Categories, products, variants, admin CRUD  
 Primary source volumes: Volume 3, Volume 5, Volume 6, Volume 8, Volume 9, Volume 10, Volume 11  
-Status: Not Started
+Status: Done
 
 ## Sprint Goal
 

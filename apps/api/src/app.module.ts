@@ -3,6 +3,8 @@ import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { AuthModule } from "./auth/auth.module";
+import { CatalogModule } from "./catalog/catalog.module";
+import { StorefrontModule } from "./storefront/storefront.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
 import { AppConfigModule } from "./config/config.module";
 import { HealthModule } from "./health/health.module";
@@ -24,6 +26,8 @@ import { RedisModule } from "./redis/redis.module";
     }),
     HealthModule,
     AuthModule,
+    CatalogModule,
+    StorefrontModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

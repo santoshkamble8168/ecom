@@ -33,3 +33,21 @@ export class UnauthorizedError extends DomainError {
     super(ERROR_CODES.UNAUTHORIZED, message, details);
   }
 }
+
+export class ForbiddenError extends DomainError {
+  constructor(message = "Forbidden", details?: unknown) {
+    super(ERROR_CODES.FORBIDDEN, message, details);
+  }
+}
+
+export class ConflictError extends DomainError {
+  constructor(message = "Conflict", details?: unknown) {
+    super(ERROR_CODES.CONFLICT, message, details);
+  }
+}
+
+export class ValidationError extends DomainError {
+  constructor(message = "Validation failed", details?: unknown) {
+    super(ERROR_CODES.VALIDATION_FAILED, message, details);
+  }
+}
