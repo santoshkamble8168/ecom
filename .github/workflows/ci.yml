@@ -5,19 +5,163 @@ on:
   push:
     branches: [main]
 
+env:
+  DATABASE_URL: postgresql://ecom:ecom@localhost:5432/ecom?schema=public
+  REDIS_HOST: localhost
+  REDIS_PORT: "6379"
+  JWT_ACCESS_SECRET: ci-access-secret-change-me-please
+  JWT_REFRESH_SECRET: ci-refresh-secret-change-me-please
+
 jobs:
-  validate:
+  install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
       - name: Install dependencies
-        run: npm install
-      - name: Lint
-        run: npm run lint --if-present
-      - name: Type check
-        run: npm run typecheck --if-present
-      - name: Test
-        run: npm test --if-present
+        run: pnpm install --frozen-lockfile
+
+  typecheck:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ecom/api prisma:generate
+      - run: pnpm turbo run typecheck
+
+  lint:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm turbo run lint
+
+  test:
+    needs: install
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ecom
+          POSTGRES_PASSWORD: ecom
+          POSTGRES_DB: ecom
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ecom"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ecom/api prisma:generate
+      - run: pnpm --filter @ecom/api prisma:deploy
+      - run: pnpm turbo run test
+      - run: pnpm turbo run test:e2e --filter=@ecom/api
+
+  e2e:
+    needs: install
+    runs-on: ubuntu-latest
+    env:
+      STOREFRONT_URL: http://localhost:3000
+      ADMIN_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ecom/e2e exec playwright install --with-deps chromium
+      - run: pnpm turbo run build --filter=@ecom/storefront --filter=@ecom/admin
+      - name: Start storefront and admin
+        run: |
+          pnpm --filter @ecom/storefront start &
+          pnpm --filter @ecom/admin start &
+          npx wait-on http://localhost:3000 http://localhost:3001 --timeout 60000
+      - run: pnpm turbo run test:e2e --filter=@ecom/e2e
+
+  build:
+    needs: [typecheck, lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @ecom/api prisma:generate
+      - run: pnpm turbo run build
+
+  security-scan:
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Fails the build only on critical advisories; high/moderate findings
+      # (currently all transitive, e.g. via @nestjs/*, next) are tracked in
+      # docs/security/sprint-00-security-review.md and reviewed each sprint
+      # instead of silently blocking merges on issues we cannot fix today.
+      - run: pnpm audit --audit-level=critical
+
+  ai-framework-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/validate_ai_framework.py

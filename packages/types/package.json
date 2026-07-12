@@ -1,0 +1,20 @@
+{
+  "name": "@ecom/types",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "clean": "rimraf dist .turbo node_modules"
+  },
+  "devDependencies": {
+    "@ecom/eslint-config": "workspace:*",
+    "@ecom/tsconfig": "workspace:*",
+    "eslint": "^8.57.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2"
+  }
+}

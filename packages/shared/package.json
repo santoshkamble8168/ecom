@@ -1,0 +1,27 @@
+{
+  "name": "@ecom/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "test": "jest",
+    "clean": "rimraf dist .turbo node_modules"
+  },
+  "dependencies": {
+    "@ecom/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@ecom/eslint-config": "workspace:*",
+    "@ecom/tsconfig": "workspace:*",
+    "@types/jest": "^29.5.14",
+    "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "rimraf": "^6.0.1",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2"
+  }
+}

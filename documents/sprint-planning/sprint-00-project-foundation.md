@@ -2,7 +2,7 @@
 
 Theme: Monorepo, CI/CD, Docker, design system, authentication skeleton  
 Primary source volumes: Volume 2, Volume 6, Volume 7, Volume 10, Volume 11, Volume 12  
-Status: Not Started
+Status: Done — see `docs/sprints/sprint-00-project-foundation-summary.md`
 
 ## Sprint Goal
 
@@ -125,6 +125,12 @@ scripts/
 
 ## Pending Decisions
 
-- Final package manager and build orchestrator selection.
-- Exact secret management approach for production.
-- Whether admin and storefront deploy as separate Next.js services from day one.
+- ~~Final package manager and build orchestrator selection.~~ Resolved:
+  pnpm workspaces + Turborepo (see `docs/decisions/decision-log.md`).
+- Exact secret management approach for production — deferred to
+  Sprint 17 (Production Readiness); local dev uses `.env` files
+  (gitignored) as documented in
+  `docs/security/sprint-00-security-review.md`.
+- ~~Whether admin and storefront deploy as separate Next.js services
+  from day one.~~ Resolved: yes, two independent apps — see
+  `docs/decisions/0002-nextjs-app-router-for-frontends.md`.

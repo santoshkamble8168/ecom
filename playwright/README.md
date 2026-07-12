@@ -1,39 +1,57 @@
-# Root Playwright Guide
+# End-to-End Tests (`@ecom/e2e`)
 
-## Purpose
-Reusable Playwright guidance for Page Object Model, fixtures, selectors, retries, screenshots, videos, traces, parallel execution, and accessibility checks.
+Playwright smoke suite for the storefront and admin app shells, following
+the Page Object Model.
 
-## Responsibilities
-- Keep E2E tests readable and resilient.
-- Centralize page objects, fixtures, and utilities.
-- Support debugging through screenshots, videos, traces, and clear failure messages.
+## Layout
 
-## Best Practices
-- Use role-based selectors and accessible names.
-- Model pages by user behavior, not DOM structure.
-- Keep tests independent and parallel-safe.
-- Capture traces on retry and artifacts on failure.
-- Include accessibility checks for critical journeys.
+- `pages/` — page objects that hide selector details behind user-facing
+  methods (`goto()`, `navLink(label)`, etc.).
+- `fixtures/` — a custom Playwright `test` that injects ready-to-use page
+  objects (`storefrontHome`, `adminDashboard`).
+- `utils/` — shared helpers, including an axe-core accessibility check
+  (`expectNoAccessibilityViolations`).
+- `tests/` — the actual specs, one file per app shell.
 
-## Checklist
-- [ ] Page objects hide selector details.
-- [ ] Fixtures create deterministic test state.
-- [ ] Tests can run in parallel.
-- [ ] Retries are configured only for flake diagnosis.
-- [ ] Screenshots, videos, and traces are documented.
-- [ ] Accessibility assertions cover critical flows.
+## Running locally
 
-## Examples
-- CheckoutPage.addItemToCart() uses getByRole selectors and waits for user-visible state.
-- Test fixtures create isolated users and clean data after execution.
+1. Start the infra + apps under test:
 
-## Common Mistakes
-- Using CSS selectors tied to layout.
-- Sharing state between tests.
-- Using fixed sleeps instead of web-first assertions.
-- Ignoring trace output during failures.
+   ```bash
+   pnpm docker:up
+   pnpm --filter @ecom/storefront dev   # http://localhost:3000
+   pnpm --filter @ecom/admin dev        # http://localhost:3001
+   ```
 
-## References
-- Playwright documentation
-- WCAG 2.2
-- docs/testing-strategy.md
+2. Install browsers once per machine:
+
+   ```bash
+   pnpm --filter @ecom/e2e exec playwright install --with-deps chromium
+   ```
+
+3. Run the suite:
+
+   ```bash
+   pnpm --filter @ecom/e2e test:e2e
+   pnpm --filter @ecom/e2e test:e2e:ui     # interactive mode
+   pnpm --filter @ecom/e2e test:e2e:report # open the last HTML report
+   ```
+
+`STOREFRONT_URL` and `ADMIN_URL` env vars override the default
+`localhost:3000` / `localhost:3001` base URLs (useful in CI or against a
+deployed preview).
+
+## Scope
+
+Sprint 0 covers app-shell smoke tests only (header, nav, footer, sidebar,
+dashboard cards) plus a baseline accessibility scan on each shell. Real
+commerce journeys (PLP, PDP, cart, checkout) get their own suites as those
+features land in later sprints.
+
+## Conventions
+
+- Use role-based, accessible-name selectors (`getByRole`), never CSS
+  selectors tied to layout.
+- Keep tests independent and parallel-safe; do not share state across
+  tests.
+- Every shell test includes an axe-core accessibility assertion.

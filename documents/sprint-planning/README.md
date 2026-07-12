@@ -23,7 +23,7 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 
 | Sprint | Theme | Plan File | Current Status | Primary Exit Gate |
 | --- | --- | --- | --- | --- |
-| 0 | Project Foundation | `sprint-00-project-foundation.md` | Not Started | Monorepo, CI, Docker, design system, auth skeleton ready |
+| 0 | Project Foundation | `sprint-00-project-foundation.md` | Done | Monorepo, CI, Docker, design system, auth skeleton ready |
 | 1 | Identity & User Management | `sprint-01-identity-user-management.md` | Not Started | OTP, Google Auth, profile, RBAC baseline working |
 | 2 | Catalog Foundation | `sprint-02-catalog-foundation.md` | Not Started | Category, product, variant, admin CRUD foundations complete |
 | 3 | Storefront Foundation | `sprint-03-storefront-foundation.md` | Not Started | Homepage, header, footer, navigation, search shell complete |
@@ -41,6 +41,15 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | 15 | Performance & SEO | `sprint-15-performance-seo.md` | Not Started | Core Web Vitals, accessibility, caching, SEO hardening complete |
 | 16 | AI Foundation | `sprint-16-ai-foundation.md` | Not Started | Recommendation, semantic search, personalization hooks ready |
 | 17 | Production Readiness | `sprint-17-production-readiness.md` | Not Started | Security hardening, monitoring, load testing, final QA complete |
+
+## Completed Sprint Artifacts
+
+For every sprint marked `Done` above, the following artifacts must
+exist before the status changes (see Definition of Done):
+
+| Sprint | Summary | Release Notes |
+| --- | --- | --- |
+| 0 | `docs/sprints/sprint-00-project-foundation-summary.md` | `docs/release-notes/v0.1.0-sprint-0.md` |
 
 ## Activity Tracking Model
 
