@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { logout } from "@/lib/api";
+
 const NAV_SECTIONS = [
   {
     title: "Overview",
@@ -20,6 +22,10 @@ const NAV_SECTIONS = [
       { href: "/orders", label: "Orders" },
       { href: "/customers", label: "Customers" },
     ],
+  },
+  {
+    title: "Administration",
+    items: [{ href: "/users", label: "Users & Roles" }],
   },
 ];
 
@@ -49,6 +55,13 @@ export function AdminSidebar() {
           </div>
         ))}
       </nav>
+      <button
+        type="button"
+        onClick={() => void logout().then(() => { window.location.href = "/login"; })}
+        className="mt-4 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+      >
+        Sign out
+      </button>
     </aside>
   );
 }

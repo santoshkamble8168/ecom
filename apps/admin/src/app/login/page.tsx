@@ -32,11 +32,11 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const tokens = await apiFetch<{ accessToken: string }>("/auth/otp/verify", {
+      const tokens = await apiFetch<{ accessToken: string; refreshToken: string }>("/auth/otp/verify", {
         method: "POST",
         body: JSON.stringify({ channel: "email", destination: email, code }),
       });
-      setToken(tokens.accessToken);
+      setToken(tokens.accessToken, tokens.refreshToken);
       window.location.href = "/products";
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify OTP");
@@ -53,8 +53,14 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-neutral-500">
-            Use OTP login with the dev admin account. Check API logs for the OTP code.
+            OTP login for admin and catalog manager accounts. In development, use OTP{" "}
+            <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">123456</code> for demo
+            accounts, or check API logs for a real OTP.
           </p>
+          <ul className="text-xs text-neutral-500">
+            <li>admin@ecom.local — full admin</li>
+            <li>catalog@ecom.local — catalog manager</li>
+          </ul>
           <input
             type="email"
             value={email}

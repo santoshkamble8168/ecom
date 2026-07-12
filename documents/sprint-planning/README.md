@@ -24,11 +24,11 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | Sprint | Theme | Plan File | Current Status | Primary Exit Gate |
 | --- | --- | --- | --- | --- |
 | 0 | Project Foundation | `sprint-00-project-foundation.md` | Done | Monorepo, CI, Docker, design system, auth skeleton ready |
-| 1 | Identity & User Management | `sprint-01-identity-user-management.md` | Not Started | OTP, Google Auth, profile, RBAC baseline working |
+| 1 | Identity & User Management | `sprint-01-identity-user-management.md` | Done | OTP, Google Auth, profile, RBAC baseline working |
 | 2 | Catalog Foundation | `sprint-02-catalog-foundation.md` | Done | Category, product, variant, admin CRUD foundations complete |
-| 3 | Storefront Foundation | `sprint-03-storefront-foundation.md` | In Progress | Homepage, header, footer, navigation, search shell complete |
-| 4 | Product Discovery | `sprint-04-product-discovery.md` | Not Started | PLP, filters, sorting, Meilisearch integration complete |
-| 5 | Product Details | `sprint-05-product-details.md` | Not Started | PDP, gallery, reviews shell, wishlist, related products complete |
+| 3 | Storefront Foundation | `sprint-03-storefront-foundation.md` | Done | Homepage, header, footer, navigation, search shell complete |
+| 4 | Product Discovery | `sprint-04-product-discovery.md` | Done | PLP, filters, sorting, Meilisearch integration complete |
+| 5 | Product Details | `sprint-05-product-details.md` | Done | PDP, gallery, reviews shell, wishlist, related products complete |
 | 6 | Cart & Wishlist | `sprint-06-cart-wishlist.md` | Not Started | Guest/user cart, save for later, coupons, wishlist flows complete |
 | 7 | Checkout | `sprint-07-checkout.md` | Not Started | Address, shipping, tax, review, checkout session complete |
 | 8 | Payments | `sprint-08-payments.md` | Not Started | Razorpay, COD, lifecycle, webhooks, payment hardening complete |

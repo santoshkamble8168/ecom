@@ -35,6 +35,11 @@ model User {
   refreshTokens RefreshToken[]
   oauthAccounts OAuthAccount[]
   auditLogs     AuditLog[]
+  profile       CustomerProfile?
+  addresses     Address[]
+  reviews       ProductReview[]
+  wishlistItems WishlistItem[]
+  recentlyViewed RecentlyViewed[]
 
   @@map("users")
 }
@@ -132,6 +137,39 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+model CustomerProfile {
+  userId      String   @id @map("user_id")
+  preferences Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("customer_profiles")
+}
+
+model Address {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  label      String?
+  fullName   String   @map("full_name")
+  phone      String
+  line1      String   @map("line1")
+  line2      String?  @map("line2")
+  city       String
+  state      String
+  postalCode String   @map("postal_code")
+  country    String   @default("IN")
+  isDefault  Boolean  @default(false) @map("is_default")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("addresses")
 }
 
 // ---------------------------------------------------------------------------
@@ -308,6 +346,7 @@ model Product {
   categories  ProductCategory[]
   collections ProductCollection[]
   tags        ProductTag[]
+  reviews     ProductReview[]
 
   @@index([status])
   @@index([slug])
@@ -476,4 +515,81 @@ model TrendingSearch {
 
   @@index([isActive, sortOrder])
   @@map("trending_searches")
+}
+
+// ---------------------------------------------------------------------------
+// Discovery domain (Sprint 4)
+// ---------------------------------------------------------------------------
+
+model SearchLog {
+  id          String   @id @default(uuid())
+  query       String
+  resultCount Int      @map("result_count")
+  filters     Json?
+  source      String   @default("search")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([query])
+  @@index([createdAt])
+  @@map("search_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Product detail domain (Sprint 5)
+// ---------------------------------------------------------------------------
+
+enum ReviewStatus {
+  pending
+  published
+  rejected
+}
+
+model ProductReview {
+  id                 String       @id @default(uuid())
+  productId          String       @map("product_id")
+  userId             String?      @map("user_id")
+  rating             Int
+  title              String?
+  body               String?
+  isVerifiedPurchase Boolean      @default(false) @map("is_verified_purchase")
+  status             ReviewStatus @default(published)
+  createdAt          DateTime     @default(now()) @map("created_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId, status])
+  @@index([rating])
+  @@map("product_reviews")
+}
+
+model WishlistItem {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  sessionId   String?  @map("session_id")
+  productSlug String   @map("product_slug")
+  variantSku  String?  @map("variant_sku")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@unique([userId, productSlug])
+  @@unique([sessionId, productSlug])
+  @@map("wishlist_items")
+}
+
+model RecentlyViewed {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  sessionId   String?  @map("session_id")
+  productSlug String   @map("product_slug")
+  viewedAt    DateTime @default(now()) @map("viewed_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, viewedAt])
+  @@index([sessionId, viewedAt])
+  @@map("recently_viewed")
 }

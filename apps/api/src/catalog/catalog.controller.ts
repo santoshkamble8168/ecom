@@ -1,27 +1,18 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 
 import { Public } from "../common/decorators/public.decorator";
 
 import { CatalogService } from "./catalog.service";
-import { ProductListQueryDto } from "./dto/create-variant.dto";
 
 @ApiTags("catalog")
+@SkipThrottle()
 @Controller()
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
-  @Public()
-  @Get("products")
-  listProducts(@Query() query: ProductListQueryDto) {
-    return this.catalogService.listPublishedProducts(query);
-  }
-
-  @Public()
-  @Get("products/:slug")
-  getProduct(@Param("slug") slug: string) {
-    return this.catalogService.getPublishedProductBySlug(slug);
-  }
+  // Product detail is served by ProductModule (Sprint 5 PDP read model).
 
   @Public()
   @Get("categories")

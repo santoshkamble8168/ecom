@@ -3,11 +3,14 @@ import { createHash, randomInt } from "node:crypto";
 import { UnauthorizedError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { OtpChannel } from "@prisma/client";
+import { OAuthProvider, OtpChannel } from "@prisma/client";
 
+import { AuditService } from "../audit/audit.service";
 import { AppLogger } from "../logger/logger.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { UsersService } from "../users/users.service";
 
+import { isDevDemoOtpBypass } from "./demo-accounts";
 import type { JwtPayload } from "./types/authenticated-user";
 
 const OTP_TTL_MINUTES = 10;
@@ -26,6 +29,8 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly logger: AppLogger,
+    private readonly audit: AuditService,
+    private readonly usersService: UsersService,
   ) {
     this.logger.setContext("AuthService");
   }
@@ -51,16 +56,43 @@ export class AuthService {
   }
 
   async verifyOtp(channel: OtpChannel, destination: string, code: string): Promise<IssuedTokens> {
+    if (channel === OtpChannel.email && isDevDemoOtpBypass(destination, code)) {
+      const user = await this.prisma.user.findFirst({ where: { email: destination } });
+      if (!user) {
+        throw new UnauthorizedError("Demo account not found — run the database seed");
+      }
+      this.logger.log(`Demo OTP bypass used for ${destination}`);
+      await this.audit.log({
+        userId: user.id,
+        action: "auth.login",
+        entityType: "user",
+        entityId: user.id,
+        metadata: { method: "otp_demo_bypass", channel },
+      });
+      return this.issueTokens(user.id);
+    }
+
     const challenge = await this.prisma.otpChallenge.findFirst({
       where: { channel, destination, consumedAt: null },
       orderBy: { createdAt: "desc" },
     });
 
     if (!challenge || challenge.expiresAt < new Date()) {
+      await this.audit.log({
+        action: "auth.otp_failed",
+        entityType: "otp_challenge",
+        metadata: { channel, destination, reason: "missing_or_expired" },
+      });
       throw new UnauthorizedError("OTP is invalid or has expired");
     }
 
     if (challenge.attempts >= OTP_MAX_ATTEMPTS) {
+      await this.audit.log({
+        action: "auth.otp_failed",
+        entityType: "otp_challenge",
+        entityId: challenge.id,
+        metadata: { channel, destination, reason: "max_attempts" },
+      });
       throw new UnauthorizedError("Too many attempts, request a new OTP");
     }
 
@@ -68,6 +100,12 @@ export class AuthService {
       await this.prisma.otpChallenge.update({
         where: { id: challenge.id },
         data: { attempts: { increment: 1 } },
+      });
+      await this.audit.log({
+        action: "auth.otp_failed",
+        entityType: "otp_challenge",
+        entityId: challenge.id,
+        metadata: { channel, destination, reason: "code_mismatch" },
       });
       throw new UnauthorizedError("OTP is invalid or has expired");
     }
@@ -78,7 +116,109 @@ export class AuthService {
     });
 
     const user = await this.findOrCreateUser(channel, destination);
+    await this.usersService.ensureProfile(user.id);
+    await this.audit.log({
+      userId: user.id,
+      action: "auth.login",
+      entityType: "user",
+      entityId: user.id,
+      metadata: { method: "otp", channel },
+    });
     return this.issueTokens(user.id);
+  }
+
+  async logout(refreshToken: string, userId?: string): Promise<void> {
+    const tokenHash = this.hashCode(refreshToken);
+    const stored = await this.prisma.refreshToken.findUnique({ where: { tokenHash } });
+
+    if (stored && !stored.revokedAt) {
+      await this.prisma.refreshToken.update({
+        where: { id: stored.id },
+        data: { revokedAt: new Date() },
+      });
+    }
+
+    await this.audit.log({
+      userId: userId ?? stored?.userId,
+      action: "auth.logout",
+      entityType: "user",
+      entityId: userId ?? stored?.userId,
+    });
+  }
+
+  async googleAuth(idToken: string): Promise<IssuedTokens> {
+    const googleUser = await this.verifyGoogleIdToken(idToken);
+    let user = await this.prisma.user.findFirst({ where: { email: googleUser.email } });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: { email: googleUser.email, displayName: googleUser.name, status: "active" },
+      });
+      const customerRole = await this.prisma.role.findUnique({ where: { name: "customer" } });
+      if (customerRole) {
+        await this.prisma.userRole.create({
+          data: { userId: user.id, roleId: customerRole.id },
+        });
+      }
+    }
+
+    await this.prisma.oAuthAccount.upsert({
+      where: {
+        provider_providerUserId: {
+          provider: OAuthProvider.google,
+          providerUserId: googleUser.sub,
+        },
+      },
+      update: { userId: user.id },
+      create: {
+        userId: user.id,
+        provider: OAuthProvider.google,
+        providerUserId: googleUser.sub,
+      },
+    });
+
+    await this.usersService.ensureProfile(user.id);
+
+    await this.audit.log({
+      userId: user.id,
+      action: "auth.login",
+      entityType: "user",
+      entityId: user.id,
+      metadata: { method: "google" },
+    });
+
+    return this.issueTokens(user.id);
+  }
+
+  private async verifyGoogleIdToken(idToken: string): Promise<{
+    email: string;
+    sub: string;
+    name: string | null;
+  }> {
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+    );
+    if (!response.ok) {
+      throw new UnauthorizedError("Invalid Google token");
+    }
+
+    const payload = (await response.json()) as {
+      email?: string;
+      sub?: string;
+      name?: string;
+      aud?: string;
+    };
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (clientId && payload.aud !== clientId) {
+      throw new UnauthorizedError("Invalid Google token audience");
+    }
+
+    if (!payload.email || !payload.sub) {
+      throw new UnauthorizedError("Google token is missing required claims");
+    }
+
+    return { email: payload.email, sub: payload.sub, name: payload.name ?? null };
   }
 
   async refresh(refreshToken: string): Promise<IssuedTokens> {
@@ -117,6 +257,8 @@ export class AuthService {
         data: { userId: created.id, roleId: customerRole.id },
       });
     }
+
+    await this.usersService.ensureProfile(created.id);
 
     return created;
   }

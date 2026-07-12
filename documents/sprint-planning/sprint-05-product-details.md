@@ -2,7 +2,20 @@
 
 Theme: PDP, gallery, reviews, wishlist, related products  
 Primary source volumes: Volume 2, Volume 4, Volume 6, Volume 7, Volume 8, Volume 9, Volume 10, Volume 11  
-Status: Not Started
+Status: Done (functional — formal DoD deferred)
+
+## Deferred — revisit at end of sprint program
+
+- Storybook PDP components
+- E2E / accessibility / performance reviews
+- OpenAPI docs, sprint summary, conversion-risk review
+- Worker hooks for product-view aggregation
+- Real inventory stock counts (stub in-stock until Sprint 10)
+- Cart integration (Add to Cart placeholder until Sprint 6)
+- Guest wishlist merge on login (Sprint 6)
+- Review moderation admin UI
+- Video gallery / zoom
+- PDP analytics event pipeline (basic view tracking only for now)
 
 ## Sprint Goal
 

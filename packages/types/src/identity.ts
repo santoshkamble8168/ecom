@@ -35,6 +35,8 @@ export const PERMISSIONS = {
   ORDER_READ: "order:read",
   ORDER_WRITE: "order:write",
   ADMIN_ACCESS: "admin:access",
+  USER_READ: "user:read",
+  USER_WRITE: "user:write",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

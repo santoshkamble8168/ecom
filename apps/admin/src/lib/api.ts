@@ -2,17 +2,46 @@ import type { ApiResponse } from "@ecom/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
-function getToken(): string | null {
+export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("ecom_admin_token");
 }
 
-export function setToken(token: string): void {
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("ecom_admin_refresh_token");
+}
+
+export function setToken(token: string, refreshToken?: string): void {
   localStorage.setItem("ecom_admin_token", token);
+  if (refreshToken) {
+    localStorage.setItem("ecom_admin_refresh_token", refreshToken);
+  }
 }
 
 export function clearToken(): void {
   localStorage.removeItem("ecom_admin_token");
+  localStorage.removeItem("ecom_admin_refresh_token");
+}
+
+export async function logout(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  const token = getToken();
+  if (refreshToken && token) {
+    try {
+      await fetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ refreshToken }),
+      });
+    } catch {
+      // Best-effort logout
+    }
+  }
+  clearToken();
 }
 
 export async function apiFetch<T>(

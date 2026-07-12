@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
-import { AdminSidebar } from "@/components/layout/admin-sidebar";
+import { AdminAuthGuard } from "@/components/auth/admin-auth-guard";
+import { AdminShell } from "@/components/layout/admin-shell";
 import { AppProviders } from "@/components/providers/app-providers";
 
 import "./globals.css";
@@ -19,10 +20,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body>
         <AppProviders>
-          <div className="flex min-h-screen">
-            <AdminSidebar />
-            <main className="flex-1 p-6">{children}</main>
-          </div>
+          <AdminAuthGuard>
+            <AdminShell>{children}</AdminShell>
+          </AdminAuthGuard>
         </AppProviders>
       </body>
     </html>

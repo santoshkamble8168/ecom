@@ -4,8 +4,10 @@ import { Throttle } from "@nestjs/throttler";
 
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { Public } from "../common/decorators/public.decorator";
+import { UsersService } from "../users/users.service";
 
 import { AuthService } from "./auth.service";
+import { GoogleAuthDto } from "./dto/google-auth.dto";
 import { RefreshTokenDto } from "./dto/refresh-token.dto";
 import { RequestOtpDto } from "./dto/request-otp.dto";
 import { VerifyOtpDto } from "./dto/verify-otp.dto";
@@ -19,7 +21,10 @@ const OTP_VERIFY_THROTTLE = { default: { limit: 10, ttl: 600_000 } };
 @ApiTags("auth")
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Public()
   @Throttle(OTP_REQUEST_THROTTLE)
@@ -44,8 +49,22 @@ export class AuthController {
     return this.authService.refresh(dto.refreshToken);
   }
 
+  @Public()
+  @Post("google")
+  @HttpCode(HttpStatus.OK)
+  googleAuth(@Body() dto: GoogleAuthDto) {
+    return this.authService.googleAuth(dto.idToken);
+  }
+
+  @Post("logout")
+  @HttpCode(HttpStatus.OK)
+  logout(@CurrentUser() user: AuthenticatedUser, @Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto.refreshToken, user.id);
+  }
+
+  /** @deprecated Use GET /me instead */
   @Get("me")
   me(@CurrentUser() user: AuthenticatedUser) {
-    return user;
+    return this.usersService.getProfile(user.id);
   }
 }

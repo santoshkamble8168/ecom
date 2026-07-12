@@ -6,6 +6,8 @@ import { OtpChannel } from "@prisma/client";
 
 import type { AppLogger } from "../logger/logger.service";
 import type { PrismaService } from "../prisma/prisma.service";
+import type { UsersService } from "../users/users.service";
+import type { AuditService } from "../audit/audit.service";
 
 import { AuthService } from "./auth.service";
 
@@ -21,9 +23,12 @@ describe("AuthService", () => {
     user: { findFirst: jest.Mock; create: jest.Mock; findUniqueOrThrow: jest.Mock };
     role: { findUnique: jest.Mock };
     userRole: { create: jest.Mock };
+    oAuthAccount: { upsert: jest.Mock };
   };
   let jwtService: { sign: jest.Mock };
   let logger: { setContext: jest.Mock; log: jest.Mock };
+  let audit: { log: jest.Mock };
+  let usersService: { ensureProfile: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -32,14 +37,19 @@ describe("AuthService", () => {
       user: { findFirst: jest.fn(), create: jest.fn(), findUniqueOrThrow: jest.fn() },
       role: { findUnique: jest.fn() },
       userRole: { create: jest.fn() },
+      oAuthAccount: { upsert: jest.fn() },
     };
     jwtService = { sign: jest.fn().mockReturnValue("signed.jwt.token") };
     logger = { setContext: jest.fn(), log: jest.fn() };
+    audit = { log: jest.fn().mockResolvedValue(undefined) };
+    usersService = { ensureProfile: jest.fn().mockResolvedValue(undefined) };
 
     service = new AuthService(
       prisma as unknown as PrismaService,
       jwtService as unknown as JwtService,
       logger as unknown as AppLogger,
+      audit as unknown as AuditService,
+      usersService as unknown as UsersService,
     );
   });
 
@@ -113,6 +123,27 @@ describe("AuthService", () => {
         where: { id: "challenge-1" },
         data: { attempts: { increment: 1 } },
       });
+    });
+
+    it("issues tokens for demo accounts with the dev bypass OTP", async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      prisma.user.findFirst.mockResolvedValue({ id: "demo-user" });
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: "demo-user",
+        email: "customer@ecom.local",
+        phone: null,
+        roles: [{ role: { name: "customer" } }],
+      });
+      prisma.refreshToken.create.mockResolvedValue({});
+
+      const result = await service.verifyOtp(OtpChannel.email, "customer@ecom.local", "123456");
+
+      expect(prisma.otpChallenge.findFirst).not.toHaveBeenCalled();
+      expect(result.accessToken).toBe("signed.jwt.token");
+
+      process.env.NODE_ENV = originalEnv;
     });
 
     it("consumes the challenge and issues tokens for a matching code", async () => {

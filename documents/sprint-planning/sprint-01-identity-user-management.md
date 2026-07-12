@@ -2,7 +2,25 @@
 
 Theme: Login, OTP, Google Auth, profile, RBAC  
 Primary source volumes: Volume 1, Volume 5, Volume 6, Volume 8, Volume 9, Volume 10  
-Status: Not Started
+Status: Done (functional — formal DoD deferred)
+
+## Deferred — revisit at end of sprint program
+
+These items are intentionally out of scope for now and should be completed before production:
+
+- Google OAuth UI on storefront (API ready; needs `GOOGLE_CLIENT_ID` in `.env`)
+- Mobile/SMS OTP UI flows
+- Full RBAC role set (Finance, Operations, Analyst, Content Editor, Inventory Manager)
+- Secure httpOnly cookies + CSRF strategy (currently localStorage JWT)
+- Real email/SMS OTP delivery (Mailpit/SMTP integration)
+- Admin forbidden/unauthorized screens and role-aware nav hiding
+- React Hook Form + Zod on all auth forms
+- E2E tests (customer OTP, profile, admin login, unauthorized routes)
+- Accessibility audit on auth forms
+- Storybook stories (OTP input, auth card, profile card, address card)
+- OpenAPI auth/RBAC documentation
+- Identity ADRs, RBAC permission matrix, sprint summary, security review
+- Integration tests for auth endpoints and audit logs
 
 ## Sprint Goal
 

@@ -1,5 +1,6 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 
 import { Public } from "../common/decorators/public.decorator";
 
@@ -7,6 +8,7 @@ import { NewsletterSubscribeDto } from "./dto/newsletter-subscribe.dto";
 import { StorefrontService } from "./storefront.service";
 
 @ApiTags("storefront")
+@SkipThrottle()
 @Controller()
 export class StorefrontController {
   constructor(private readonly storefrontService: StorefrontService) {}

@@ -8,6 +8,8 @@ const PERMISSIONS = [
   { key: "order:read", description: "View orders" },
   { key: "order:write", description: "Manage orders" },
   { key: "admin:access", description: "Access the admin dashboard" },
+  { key: "user:read", description: "View users and roles" },
+  { key: "user:write", description: "Manage users and role assignments" },
 ];
 
 const ROLES: Array<{ name: string; description: string; permissionKeys: string[] }> = [
@@ -20,7 +22,17 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
   {
     name: "catalog_manager",
     description: "Manages catalog content",
-    permissionKeys: ["catalog:read", "catalog:write"],
+    permissionKeys: ["catalog:read", "catalog:write", "admin:access"],
+  },
+  {
+    name: "customer_support",
+    description: "Handles customer support and orders",
+    permissionKeys: ["order:read", "order:write", "user:read", "admin:access"],
+  },
+  {
+    name: "marketing_manager",
+    description: "Manages campaigns and storefront content",
+    permissionKeys: ["catalog:read", "admin:access"],
   },
 ];
 
@@ -440,6 +452,44 @@ async function seedStorefront() {
   }
 }
 
+async function seedReviews() {
+  const products = await prisma.product.findMany({
+    where: { status: "published" },
+    select: { id: true, slug: true },
+  });
+
+  const sampleReviews = [
+    { rating: 5, title: "Great quality", body: "Soft fabric and true to size. Will buy again.", verified: true },
+    { rating: 4, title: "Good value", body: "Nice fit, colour matches the photos.", verified: true },
+    { rating: 5, title: "Perfect everyday tee", body: "Comfortable for daily wear.", verified: false },
+    { rating: 3, title: "Decent", body: "Good but runs slightly large.", verified: false },
+  ];
+
+  for (const product of products) {
+    for (const [i, review] of sampleReviews.entries()) {
+      await prisma.productReview.upsert({
+        where: { id: `review-${product.slug}-${i}` },
+        update: {
+          rating: review.rating,
+          title: review.title,
+          body: review.body,
+          isVerifiedPurchase: review.verified,
+          status: "published",
+        },
+        create: {
+          id: `review-${product.slug}-${i}`,
+          productId: product.id,
+          rating: review.rating,
+          title: review.title,
+          body: review.body,
+          isVerifiedPurchase: review.verified,
+          status: "published",
+        },
+      });
+    }
+  }
+}
+
 async function main() {
   for (const permission of PERMISSIONS) {
     await prisma.permission.upsert({
@@ -476,32 +526,43 @@ async function main() {
     });
   }
 
-  const adminRole = await prisma.role.findUniqueOrThrow({ where: { name: "admin" } });
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@ecom.local" },
-    update: {},
-    create: {
-      email: "admin@ecom.local",
-      displayName: "Development Admin",
-      status: "active",
-    },
-  });
-  await prisma.userRole.upsert({
-    where: { userId_roleId: { userId: adminUser.id, roleId: adminRole.id } },
-    update: {},
-    create: { userId: adminUser.id, roleId: adminRole.id },
-  });
+  const demoUsers = [
+    { email: "admin@ecom.local", displayName: "Development Admin", role: "admin" },
+    { email: "catalog@ecom.local", displayName: "Catalog Manager", role: "catalog_manager" },
+    { email: "customer@ecom.local", displayName: "Demo Customer", role: "customer" },
+  ] as const;
+
+  for (const demo of demoUsers) {
+    const role = await prisma.role.findUniqueOrThrow({ where: { name: demo.role } });
+    const user = await prisma.user.upsert({
+      where: { email: demo.email },
+      update: { displayName: demo.displayName, status: "active" },
+      create: { email: demo.email, displayName: demo.displayName, status: "active" },
+    });
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: user.id, roleId: role.id } },
+      update: {},
+      create: { userId: user.id, roleId: role.id },
+    });
+  }
 
   const valueMap = await seedAttributes();
   const categoryIds = await seedCategories();
   const collectionIds = await seedCollections();
   await seedProducts(categoryIds, collectionIds, valueMap);
   await seedStorefront();
+  await seedReviews();
 
   // eslint-disable-next-line no-console
-  console.log(
-    "Seed complete: roles, permissions, catalog, storefront CMS, sample products, and dev admin user are ready.",
-  );
+  console.log("Seed complete: roles, permissions, catalog, storefront CMS, and sample products are ready.");
+  // eslint-disable-next-line no-console
+  console.log("\nDemo accounts (development OTP: 123456):");
+  // eslint-disable-next-line no-console
+  console.log("  admin@ecom.local     — Admin panel (http://localhost:3001/login)");
+  // eslint-disable-next-line no-console
+  console.log("  catalog@ecom.local   — Catalog manager (admin panel)");
+  // eslint-disable-next-line no-console
+  console.log("  customer@ecom.local  — Storefront customer (http://localhost:3000/account)");
 }
 
 main()
