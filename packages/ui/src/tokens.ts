@@ -18,6 +18,23 @@ export const colors = {
     800: "#9a3412",
     900: "#7c2d12",
   },
+  // High-contrast conversion accent for storefront primary CTAs (Add to Bag,
+  // Proceed, Subscribe) — kept distinct from `brand` (logo/link color) so the
+  // two can be themed independently. A vibrant raspberry/rose was chosen
+  // deliberately instead of the ubiquitous yellow CTA seen on competitor
+  // fashion sites, so ECOM reads as its own brand rather than a clone.
+  accent: {
+    50: "#fff1f2",
+    100: "#ffe4e6",
+    200: "#fecdd3",
+    300: "#fda4af",
+    400: "#fb7185",
+    500: "#f43f5e",
+    600: "#e11d48",
+    700: "#be123c",
+    800: "#9f1239",
+    900: "#881337",
+  },
   neutral: {
     0: "#ffffff",
     50: "#fafafa",
@@ -32,7 +49,7 @@ export const colors = {
     900: "#18181b",
     950: "#09090b",
   },
-  success: { 500: "#22c55e", 600: "#16a34a" },
+  success: { 50: "#f0fdf4", 100: "#dcfce7", 500: "#22c55e", 600: "#16a34a", 700: "#15803d" },
   warning: { 500: "#f59e0b", 600: "#d97706" },
   danger: { 500: "#ef4444", 600: "#dc2626" },
   info: { 500: "#3b82f6", 600: "#2563eb" },

@@ -74,7 +74,7 @@ export default function WishlistPage() {
             <div key={item.id} className="space-y-2">
               {item.product ? (
                 <Link href={`/products/${item.productSlug}`}>
-                  <ProductCard product={item.product} />
+                  <ProductCard product={item.product} showStatus={false} />
                 </Link>
               ) : (
                 <p className="text-sm">{item.productSlug}</p>

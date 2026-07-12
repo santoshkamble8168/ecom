@@ -53,14 +53,18 @@ export function NewsletterForm({
           onChange={(e) => setEmail(e.target.value)}
           placeholder={placeholder}
           required
-          className="flex-1 rounded-md px-4 py-2 text-neutral-900"
+          className="flex-1 rounded-md bg-white px-4 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
         />
-        <Button type="submit" variant="secondary" disabled={status === "loading"}>
+        <Button
+          type="submit"
+          disabled={status === "loading"}
+          className="bg-accent-600 text-white hover:bg-accent-700"
+        >
           {status === "loading" ? "..." : ctaLabel}
         </Button>
       </form>
       {message && (
-        <p className={`mt-2 text-sm ${status === "error" ? "text-red-200" : "text-brand-100"}`}>
+        <p className={`mt-2 text-sm ${status === "error" ? "text-red-300" : "text-accent-300"}`}>
           {message}
         </p>
       )}

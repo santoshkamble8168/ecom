@@ -10,7 +10,7 @@ function HeroSection({ block }: { block: Extract<HomepageBlock, { type: "hero" }
       <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-16 md:grid-cols-2 md:py-24">
         <div className="flex flex-col gap-4">
           {block.badge && (
-            <span className="w-fit rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold">
+            <span className="w-fit rounded-full bg-accent-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
               {block.badge}
             </span>
           )}
@@ -19,7 +19,7 @@ function HeroSection({ block }: { block: Extract<HomepageBlock, { type: "hero" }
           <div>
             <Link
               href={block.ctaHref}
-              className="inline-flex h-12 items-center justify-center rounded-md bg-brand-700 px-6 text-base font-medium text-white hover:bg-brand-800"
+              className="inline-flex h-12 items-center justify-center rounded-md bg-accent-600 px-6 text-base font-bold uppercase tracking-wide text-white hover:bg-accent-700"
             >
               {block.ctaLabel}
             </Link>
@@ -109,7 +109,7 @@ function ProductRailSection({ block }: { block: Extract<HomepageBlock, { type: "
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {block.products.map((product) => (
           <Link key={product.slug} href={`/products/${product.slug}`}>
-            <ProductCard product={product} />
+            <ProductCard product={product} showStatus={false} />
           </Link>
         ))}
       </div>

@@ -8,11 +8,30 @@ import type { ApiResponse, PdpProduct } from "@ecom/types";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 async function getProduct(slug: string): Promise<PdpProduct | null> {
-  const res = await fetch(`${API_URL}/products/${slug}`, { next: { revalidate: 60 } });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/products/${slug}`, { next: { revalidate: 60 } });
+  } catch (err) {
+    // API unreachable (down, restarting, network hiccup) — degrade to the
+    // "not found" page instead of crashing the whole route with a 500.
+    console.error(`[PDP] Failed to reach API for "${slug}":`, err);
+    return null;
+  }
+
   if (res.status === 404) return null;
-  const body = (await res.json()) as ApiResponse<PdpProduct>;
-  if (!body.success) return null;
-  return body.data;
+  if (!res.ok) {
+    console.error(`[PDP] API returned ${res.status} for "${slug}"`);
+    return null;
+  }
+
+  try {
+    const body = (await res.json()) as ApiResponse<PdpProduct>;
+    if (!body.success) return null;
+    return body.data;
+  } catch (err) {
+    console.error(`[PDP] Failed to parse API response for "${slug}":`, err);
+    return null;
+  }
 }
 
 export async function generateMetadata({
