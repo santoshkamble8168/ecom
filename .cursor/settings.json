@@ -1,0 +1,8 @@
+{
+  "aiEngineeringFramework.enabled": true,
+  "aiEngineeringFramework.contextFiles": [
+    ".ai/memory/project-memory.md",
+    ".ai/context/project-conventions.md",
+    "docs/README.md"
+  ]
+}

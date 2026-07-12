@@ -1,0 +1,19 @@
+{
+  "name": "ecom-ai-engineering-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reusable AI-powered engineering workspace for production software projects.",
+  "scripts": {
+    "framework:generate": "python scripts/generate_ai_framework.py",
+    "framework:validate": "python scripts/validate_ai_framework.py",
+    "test": "npm run framework:validate"
+  },
+  "keywords": [
+    "ai-engineering",
+    "cursor",
+    "architecture",
+    "testing",
+    "playwright"
+  ],
+  "license": "UNLICENSED"
+}
