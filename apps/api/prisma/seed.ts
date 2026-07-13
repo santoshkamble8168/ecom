@@ -527,6 +527,68 @@ async function seedCoupons() {
   }
 }
 
+async function seedCheckoutConfig() {
+  const standard = await prisma.shippingMethod.upsert({
+    where: { code: "standard" },
+    update: {},
+    create: {
+      code: "standard",
+      label: "Standard Delivery",
+      baseFee: "49",
+      estimatedDaysMin: 4,
+      estimatedDaysMax: 7,
+      sortOrder: 0,
+    },
+  });
+
+  const express = await prisma.shippingMethod.upsert({
+    where: { code: "express" },
+    update: {},
+    create: {
+      code: "express",
+      label: "Express Delivery",
+      baseFee: "99",
+      estimatedDaysMin: 2,
+      estimatedDaysMax: 4,
+      sortOrder: 1,
+    },
+  });
+
+  const metroPrefixes = ["11", "12", "40", "41", "50", "56", "60", "70"];
+
+  await prisma.shippingZone.deleteMany({
+    where: { shippingMethodId: { in: [standard.id, express.id] } },
+  });
+
+  await prisma.shippingZone.create({
+    data: {
+      name: "All India — Standard",
+      pincodePrefixes: [...metroPrefixes, "30", "80", "90", "95"],
+      shippingMethodId: standard.id,
+    },
+  });
+
+  await prisma.shippingZone.create({
+    data: {
+      name: "Metro — Express",
+      pincodePrefixes: metroPrefixes,
+      shippingMethodId: express.id,
+    },
+  });
+
+  await prisma.taxRule.upsert({
+    where: { id: "default-gst-apparel" },
+    update: { rate: "0.0500", isActive: true },
+    create: {
+      id: "default-gst-apparel",
+      name: "GST Apparel (5%)",
+      rate: "0.0500",
+      appliesTo: "all",
+      priority: 0,
+    },
+  });
+}
+
 async function main() {
   for (const permission of PERMISSIONS) {
     await prisma.permission.upsert({
@@ -590,9 +652,10 @@ async function main() {
   await seedStorefront();
   await seedReviews();
   await seedCoupons();
+  await seedCheckoutConfig();
 
   // eslint-disable-next-line no-console
-  console.log("Seed complete: roles, permissions, catalog, storefront CMS, and sample products are ready.");
+  console.log("Seed complete: roles, permissions, catalog, storefront CMS, checkout config, and sample products are ready.");
   // eslint-disable-next-line no-console
   console.log("\nDemo accounts (development OTP: 123456):");
   // eslint-disable-next-line no-console

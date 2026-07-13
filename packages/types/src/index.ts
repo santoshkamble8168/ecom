@@ -1,6 +1,7 @@
 export * from "./api";
 export * from "./cart";
 export * from "./catalog";
+export * from "./checkout";
 export * from "./customer";
 export * from "./discovery";
 export * from "./identity";

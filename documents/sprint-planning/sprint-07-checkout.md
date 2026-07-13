@@ -2,7 +2,16 @@
 
 Theme: Address, shipping, taxes, order review  
 Primary source volumes: Volume 4, Volume 6, Volume 8, Volume 9, Volume 10, Volume 12  
-Status: Not Started
+Status: In Progress
+
+## Deferred — revisit before Sprint 17 (production readiness)
+
+- Storybook, E2E, full accessibility audit
+- Background job for checkout expiration and reservation release
+- Real inventory pre-reservation (stub until Sprint 10)
+- OpenAPI docs, ADR, sprint summary, security review doc
+- Redis-backed idempotency cache (DB-only for now)
+- Guest wishlist at checkout (login prompt only)
 
 ## Sprint Goal
 

@@ -30,7 +30,7 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | 4 | Product Discovery | `sprint-04-product-discovery.md` | Done | PLP, filters, sorting, Meilisearch integration complete |
 | 5 | Product Details | `sprint-05-product-details.md` | Done | PDP, gallery, reviews shell, wishlist, related products complete |
 | 6 | Cart & Wishlist | `sprint-06-cart-wishlist.md` | Done | Guest/user cart, save for later, coupons, wishlist flows complete |
-| 7 | Checkout | `sprint-07-checkout.md` | Not Started | Address, shipping, tax, review, checkout session complete |
+| 7 | Checkout | `sprint-07-checkout.md` | In Progress | Address, shipping, tax, review, checkout session complete |
 | 8 | Payments | `sprint-08-payments.md` | Not Started | Razorpay, COD, lifecycle, webhooks, payment hardening complete |
 | 9 | Orders | `sprint-09-orders.md` | Not Started | Order history, tracking, cancellation, returns, invoices complete |
 | 10 | Inventory & Pricing | `sprint-10-inventory-pricing.md` | Not Started | Stock ledger, warehouses, promotions, scheduled pricing complete |

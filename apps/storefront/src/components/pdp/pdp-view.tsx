@@ -3,8 +3,9 @@
 import type { DeliveryEstimate, PdpProduct, ProductReview } from "@ecom/types";
 import { PriceDisplay, ProductCard } from "@ecom/ui";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type React from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiFetch, getToken } from "@/lib/auth";
 import { addToCart } from "@/lib/cart";
@@ -24,7 +25,255 @@ function getOptionMap(variant: PdpProduct["variants"][number]): Record<string, s
   return map;
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   SVG Icons
+──────────────────────────────────────────────────────────────────── */
+function BagIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+      <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
+      <circle cx="12" cy="12" r="9" />
+    </svg>
+  );
+}
+
+function ArrowRightIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={2.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+function SpinnerIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" d="M12 3a9 9 0 1 0 9 9" />
+    </svg>
+  );
+}
+
+function PartyIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5.8 11.3 2 22l10.7-3.8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 3h.01M22 8h.01M15 2h.01M22 20h.01M9.5 6 8 2M19.5 13l2-4M12.5 21l-1-3" />
+      <path strokeLinecap="round" d="m8 14 6-6" />
+    </svg>
+  );
+}
+
+function TruckIcon({ className = "h-5 w-5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth={1.8}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M1 3h15v13H1z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M16 8h4l3 3v5h-7V8Z" />
+      <circle cx="5.5" cy="18.5" r="2.5" />
+      <circle cx="18.5" cy="18.5" r="2.5" />
+    </svg>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Toast notification (bottom of screen)
+──────────────────────────────────────────────────────────────────── */
+interface ToastProps {
+  show: boolean;
+  message: string;
+  productTitle: string;
+  onGoToBag: () => void;
+}
+
+function Toast({ show, message, productTitle, onGoToBag }: ToastProps) {
+  return (
+    <div
+      className={`fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 transition-all duration-500 ${
+        show ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"
+      }`}
+      style={{ minWidth: "340px", maxWidth: "92vw" }}
+    >
+      <div className="flex items-center gap-3 rounded-2xl bg-neutral-900 px-5 py-3.5 text-white shadow-2xl dark:bg-white dark:text-neutral-900">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500 text-white animate-pop">
+          <CheckCircleIcon className="h-5 w-5" />
+        </span>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold truncate">{message}</p>
+          <p className="text-xs opacity-60 truncate">{productTitle}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onGoToBag}
+          className="flex items-center gap-1.5 rounded-lg bg-green-500 px-4 py-2 text-xs font-bold text-white whitespace-nowrap transition-all hover:bg-green-600 active:scale-95"
+        >
+          GO TO BAG <ArrowRightIcon className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Celebration Banner (Bewakoof-style inline success bar)
+──────────────────────────────────────────────────────────────────── */
+interface CelebrationBannerProps {
+  show: boolean;
+  savings: number;
+  freeShipping: boolean;
+}
+
+function CelebrationBanner({ show, savings, freeShipping }: CelebrationBannerProps) {
+  if (!show) return null;
+
+  return (
+    <div className="mt-4 animate-fade-in overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-5 py-3.5 text-white shadow-lg">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 animate-pop">
+          {freeShipping ? <TruckIcon className="h-5 w-5" /> : <PartyIcon className="h-5 w-5" />}
+        </span>
+        <div>
+          <p className="text-sm font-bold">
+            {freeShipping ? "Yay! FREE shipping unlocked" : "Added to your bag! 🎉"}
+          </p>
+          {savings > 0 && (
+            <p className="text-xs opacity-80">
+              You are saving ₹{savings.toLocaleString("en-IN")} on this item
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Size Picker Modal (Bewakoof-style "Choose your perfect fit!")
+──────────────────────────────────────────────────────────────────── */
+interface SizePickerModalProps {
+  open: boolean;
+  onClose: () => void;
+  attributeGroups: { key: string; name: string; values: string[] }[];
+  selectedOptions: Record<string, string>;
+  onSelect: (key: string, slug: string) => void;
+  product: PdpProduct;
+  onAddToBag: () => void;
+  addingToCart: boolean;
+}
+
+function SizePickerModal({
+  open,
+  onClose,
+  attributeGroups,
+  selectedOptions,
+  onSelect,
+  product,
+  onAddToBag,
+  addingToCart,
+}: SizePickerModalProps) {
+  const sizeGroup = attributeGroups.find((g) => g.key === "size");
+  const hasSizeSelected = !!(sizeGroup && selectedOptions["size"]);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      {/* backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* sheet */}
+      <div className="relative w-full sm:max-w-md mx-0 sm:mx-4 rounded-t-2xl sm:rounded-2xl bg-white dark:bg-neutral-950 p-6 shadow-2xl animate-slide-up">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold">Choose your perfect fit!</h2>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+
+        {attributeGroups
+          .filter((g) => g.key !== "color")
+          .map((group) => (
+            <div key={group.key} className="mb-5">
+              <p className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+                Select {group.name}
+              </p>
+              <div className="flex flex-wrap gap-2.5">
+                {group.values.map((slug) => {
+                  const available = product.variants.some((v) => {
+                    if (!v.isActive) return false;
+                    return getOptionMap(v)[group.key] === slug;
+                  });
+                  const isSelected = selectedOptions[group.key] === slug;
+                  return (
+                    <button
+                      key={slug}
+                      type="button"
+                      disabled={!available}
+                      onClick={() => onSelect(group.key, slug)}
+                      className={`min-w-[3rem] rounded-lg border px-4 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-200 ${
+                        !available
+                          ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
+                          : isSelected
+                            ? "border-accent-600 bg-accent-600 text-white shadow-md scale-105"
+                            : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
+                      }`}
+                    >
+                      {slug}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+        <button
+          type="button"
+          disabled={!hasSizeSelected || addingToCart}
+          onClick={onAddToBag}
+          className={`mt-2 flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 disabled:cursor-not-allowed ${
+            hasSizeSelected
+              ? "bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98] shadow-md"
+              : "bg-neutral-200 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-600"
+          }`}
+        >
+          {addingToCart ? (
+            <>
+              <SpinnerIcon className="h-5 w-5" />
+              Adding…
+            </>
+          ) : (
+            <>
+              <BagIcon className="h-5 w-5" />
+              Add to Bag
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Main PDP View
+──────────────────────────────────────────────────────────────────── */
 export function PdpView({ product }: PdpViewProps) {
+  const router = useRouter();
   const [activeImage, setActiveImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
@@ -34,8 +283,13 @@ export function PdpView({ product }: PdpViewProps) {
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [wishlisted, setWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>("details");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [sizePickerOpen, setSizePickerOpen] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const images = product.media.length > 0 ? product.media : product.primaryImage ? [product.primaryImage] : [];
 
@@ -55,10 +309,14 @@ export function PdpView({ product }: PdpViewProps) {
     }));
   }, [product.variants]);
 
+  // No default size – user must explicitly select.
+  // Auto-select non-size attributes (e.g. color) so variant matching works.
   useEffect(() => {
     const defaults: Record<string, string> = {};
     for (const group of attributeGroups) {
-      defaults[group.key] = group.values[0] ?? "";
+      if (group.key !== "size") {
+        defaults[group.key] = group.values[0] ?? "";
+      }
     }
     setSelectedOptions(defaults);
   }, [attributeGroups]);
@@ -71,8 +329,13 @@ export function PdpView({ product }: PdpViewProps) {
     });
   }, [product.variants, selectedOptions]);
 
+  const sizeSelected = !!selectedOptions["size"];
+
   const displayPrice = selectedVariant?.price ?? product.basePrice;
   const displayCompare = selectedVariant?.compareAtPrice ?? product.compareAtPrice;
+  const savings = displayCompare && displayPrice
+    ? Math.max(0, Number(displayCompare) - Number(displayPrice))
+    : 0;
   const fabricHighlight = product.highlights.find((h) => h.label === "Fabric")?.value;
   const selectedSizeGuideRow = SIZE_GUIDE_ROWS.find(
     (row) => row.size.toLowerCase() === selectedOptions.size,
@@ -137,12 +400,50 @@ export function PdpView({ product }: PdpViewProps) {
     setWishlisted(true);
   }
 
-  async function handleAddToCart() {
+  // Called when user clicks the main CTA
+  function handleCtaClick() {
+    // If already added, navigate to cart
+    if (addedToCart) {
+      router.push("/cart");
+      return;
+    }
+    // If no size selected, open the size picker modal
+    if (!sizeSelected) {
+      setSizePickerOpen(true);
+      return;
+    }
+    if (!selectedVariant) return;
+    void performAddToCart();
+  }
+
+  // Called from the size picker modal's button
+  function handleModalAddToBag() {
+    if (!selectedVariant) return;
+    void performAddToCart();
+  }
+
+  async function performAddToCart() {
     if (!selectedVariant) return;
     setAddingToCart(true);
     try {
       await addToCart(product.slug, selectedVariant.sku, quantity);
       window.dispatchEvent(new Event("cart-updated"));
+
+      // Close modal immediately
+      setSizePickerOpen(false);
+
+      // Permanently set "Go to Bag" state
+      setAddedToCart(true);
+
+      // Show celebration banner
+      setShowCelebration(true);
+
+      // Show bottom toast
+      setShowToast(true);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
+        setShowToast(false);
+      }, 4500);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to add to cart");
     } finally {
@@ -150,8 +451,13 @@ export function PdpView({ product }: PdpViewProps) {
     }
   }
 
+  function handleSelectSize(key: string, slug: string) {
+    setSelectedOptions((prev) => ({ ...prev, [key]: slug }));
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 pb-28">
+      {/* Breadcrumb */}
       <nav className="mb-4 text-sm text-neutral-500">
         <Link href="/" className="hover:underline">
           Home
@@ -165,6 +471,7 @@ export function PdpView({ product }: PdpViewProps) {
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-2">
+        {/* ─── Image gallery ─── */}
         <div className="flex gap-3">
           <div className="hidden flex-col gap-2 sm:flex">
             {images.map((img, i) => (
@@ -172,7 +479,7 @@ export function PdpView({ product }: PdpViewProps) {
                 key={img.url}
                 type="button"
                 onClick={() => setActiveImage(i)}
-                className={`h-16 w-16 overflow-hidden rounded border ${activeImage === i ? "border-brand-700" : "border-neutral-200"}`}
+                className={`h-16 w-16 overflow-hidden rounded border transition-colors ${activeImage === i ? "border-brand-700 ring-1 ring-brand-700" : "border-neutral-200"}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={img.url} alt="" className="h-full w-full object-cover" />
@@ -191,6 +498,7 @@ export function PdpView({ product }: PdpViewProps) {
           </div>
         </div>
 
+        {/* ─── Product details ─── */}
         <div>
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -225,14 +533,18 @@ export function PdpView({ product }: PdpViewProps) {
             <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">Out of stock</p>
           )}
 
-          {/* Color is hidden until real per-color imagery/variants are available — selection still
-              defaults to the first color internally so variant matching keeps working. */}
+          {/* Color is hidden until real per-color imagery/variants are available */}
           {attributeGroups
             .filter((group) => group.key !== "color")
             .map((group) => (
               <div key={group.key} className="mt-6">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold">Select {group.name}</p>
+                  <p className="text-sm font-semibold">
+                    Select {group.name}
+                    {group.key === "size" && !sizeSelected && (
+                      <span className="ml-2 text-xs font-normal text-neutral-400">(required)</span>
+                    )}
+                  </p>
                   {group.key === "size" && (
                     <button
                       type="button"
@@ -257,12 +569,12 @@ export function PdpView({ product }: PdpViewProps) {
                         type="button"
                         disabled={!available}
                         onClick={() => setSelectedOptions((prev) => ({ ...prev, [group.key]: slug }))}
-                        className={`min-w-[3rem] rounded border px-3 py-2 text-sm font-medium uppercase transition-colors ${
+                        className={`min-w-[3rem] rounded border px-3 py-2 text-sm font-medium uppercase transition-all duration-150 ${
                           !available
                             ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
                             : selectedOptions[group.key] === slug
-                              ? "border-neutral-900 bg-neutral-900 text-white"
-                              : "border-neutral-300 hover:border-neutral-500"
+                              ? "border-neutral-900 bg-neutral-900 text-white scale-105 shadow"
+                              : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
                         }`}
                       >
                         {slug}
@@ -278,12 +590,15 @@ export function PdpView({ product }: PdpViewProps) {
               </div>
             ))}
 
+          {/* Celebration banner — shown after add-to-cart success */}
+          <CelebrationBanner show={showCelebration} savings={savings} freeShipping={Number(displayPrice) >= 999} />
+
           <div className="mt-6">
             <p className="mb-2 text-sm font-semibold">Quantity</p>
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50"
+                className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50 transition-colors"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               >
                 −
@@ -291,7 +606,7 @@ export function PdpView({ product }: PdpViewProps) {
               <span className="w-8 text-center font-medium">{quantity}</span>
               <button
                 type="button"
-                className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50"
+                className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50 transition-colors"
                 onClick={() => setQuantity((q) => q + 1)}
               >
                 +
@@ -299,22 +614,47 @@ export function PdpView({ product }: PdpViewProps) {
             </div>
           </div>
 
+          {/* ─── Primary CTA: Add to Bag / Go to Bag ─── */}
           <div className="mt-6 flex gap-3">
             <button
               type="button"
-              disabled={!product.inStock || !selectedVariant || addingToCart}
-              onClick={() => void handleAddToCart()}
-              className="flex-1 rounded-md bg-accent-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white transition-colors hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!product.inStock || addingToCart}
+              onClick={handleCtaClick}
+              className={`relative flex-1 flex items-center justify-center gap-2.5 overflow-hidden rounded-md px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
+                addedToCart
+                  ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20"
+                  : "bg-accent-600 hover:bg-accent-700"
+              }`}
             >
-              {addingToCart ? "Adding…" : "Add to Bag"}
+              {addedToCart ? (
+                <>
+                  <CheckCircleIcon className="h-5 w-5 animate-pop" />
+                  Go to Bag
+                  <ArrowRightIcon className="h-4 w-4" />
+                </>
+              ) : addingToCart ? (
+                <>
+                  <SpinnerIcon className="h-5 w-5" />
+                  Adding…
+                </>
+              ) : (
+                <>
+                  <BagIcon className="h-5 w-5" />
+                  Add to Bag
+                </>
+              )}
+              {/* Shimmer sweep on success */}
+              {addedToCart && (
+                <span className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent" />
+              )}
             </button>
             <button
               type="button"
               onClick={() => void toggleWishlist()}
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-md border transition-colors ${
+              className={`flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-md border transition-all duration-200 ${
                 wishlisted
-                  ? "border-accent-600 text-accent-600"
-                  : "border-neutral-300 text-neutral-700 hover:border-neutral-500"
+                  ? "border-accent-600 bg-accent-50 text-accent-600 scale-110"
+                  : "border-neutral-300 text-neutral-700 hover:border-neutral-500 hover:scale-105"
               }`}
               aria-label={wishlisted ? "Saved to wishlist" : "Add to wishlist"}
               aria-pressed={wishlisted}
@@ -335,6 +675,7 @@ export function PdpView({ product }: PdpViewProps) {
             </button>
           </div>
 
+          {/* Delivery details */}
           <div className="mt-6 rounded-lg border border-neutral-200 p-4">
             <p className="text-sm font-semibold">Check for Delivery Details</p>
             <div className="mt-2 flex gap-2">
@@ -358,6 +699,7 @@ export function PdpView({ product }: PdpViewProps) {
             <p className="mt-2 text-xs text-neutral-500">Free shipping on orders above ₹999 · Cash on delivery available</p>
           </div>
 
+          {/* Key highlights */}
           {product.highlights.length > 0 && (
             <div className="mt-6 rounded-lg border border-neutral-200 dark:border-neutral-800">
               <p className="border-b border-neutral-200 px-4 py-3 text-sm font-semibold dark:border-neutral-800">
@@ -376,6 +718,7 @@ export function PdpView({ product }: PdpViewProps) {
         </div>
       </div>
 
+      {/* Accordions */}
       <section className="mt-2">
         {[
           { id: "details", title: "Product Details", content: product.description ?? "No description available." },
@@ -397,6 +740,7 @@ export function PdpView({ product }: PdpViewProps) {
         ))}
       </section>
 
+      {/* Trust badges */}
       <section className="mt-10 grid grid-cols-1 gap-4 border-y border-neutral-200 py-6 sm:grid-cols-3 dark:border-neutral-800">
         <TrustItem
           title="100% Genuine"
@@ -415,6 +759,7 @@ export function PdpView({ product }: PdpViewProps) {
         />
       </section>
 
+      {/* Reviews */}
       <section className="mt-12">
         <h2 className="mb-4 text-xl font-semibold">Customer Reviews</h2>
 
@@ -468,6 +813,7 @@ export function PdpView({ product }: PdpViewProps) {
         )}
       </section>
 
+      {/* Related products */}
       {product.relatedProducts.length > 0 && (
         <section className="mt-12">
           <h2 className="mb-4 text-xl font-semibold">You May Also Like</h2>
@@ -481,26 +827,69 @@ export function PdpView({ product }: PdpViewProps) {
         </section>
       )}
 
+      {/* ─── Mobile sticky footer ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white p-3 md:hidden dark:border-neutral-800 dark:bg-neutral-950">
         <div className="mx-auto flex max-w-7xl gap-2">
           <button
             type="button"
-            disabled={!product.inStock || !selectedVariant || addingToCart}
-            onClick={() => void handleAddToCart()}
-            className="flex-1 rounded-md bg-accent-600 py-3 text-sm font-bold uppercase tracking-wide text-white disabled:opacity-50"
+            disabled={!product.inStock || addingToCart}
+            onClick={handleCtaClick}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 disabled:opacity-50 ${
+              addedToCart ? "bg-green-600" : "bg-accent-600"
+            }`}
           >
-            {addingToCart ? "Adding…" : "Add to Bag"}
+            {addedToCart ? (
+              <>
+                <CheckCircleIcon className="h-5 w-5" />
+                Go to Bag
+                <ArrowRightIcon className="h-3.5 w-3.5" />
+              </>
+            ) : addingToCart ? (
+              <>
+                <SpinnerIcon className="h-5 w-5" />
+                Adding…
+              </>
+            ) : (
+              <>
+                <BagIcon className="h-5 w-5" />
+                Add to Bag
+              </>
+            )}
           </button>
           <button
             type="button"
-            onClick={() => void handleAddToCart()}
-            className="flex-1 rounded-md border border-neutral-900 py-3 text-sm font-bold uppercase tracking-wide text-neutral-900 dark:border-white dark:text-white"
+            onClick={handleCtaClick}
+            className="flex flex-1 items-center justify-center gap-2 rounded-md border border-neutral-900 py-3 text-sm font-bold uppercase tracking-wide text-neutral-900 dark:border-white dark:text-white"
           >
             Buy Now
           </button>
         </div>
       </div>
 
+      {/* Size picker modal */}
+      <SizePickerModal
+        open={sizePickerOpen}
+        onClose={() => setSizePickerOpen(false)}
+        attributeGroups={attributeGroups}
+        selectedOptions={selectedOptions}
+        onSelect={handleSelectSize}
+        product={product}
+        onAddToBag={handleModalAddToBag}
+        addingToCart={addingToCart}
+      />
+
+      {/* Bottom toast */}
+      <Toast
+        show={showToast}
+        message="Added to your bag!"
+        productTitle={product.title}
+        onGoToBag={() => {
+          setShowToast(false);
+          router.push("/cart");
+        }}
+      />
+
+      {/* Size guide modal */}
       {sizeGuideOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 dark:bg-neutral-950">
@@ -543,6 +932,9 @@ export function PdpView({ product }: PdpViewProps) {
   );
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   Static data & sub-components
+──────────────────────────────────────────────────────────────────── */
 const SIZE_GUIDE_ROWS = [
   { size: "S", chest: "36", length: "27", sleeve: "8.5" },
   { size: "M", chest: "38", length: "27.5", sleeve: "9" },

@@ -3,6 +3,7 @@
 import type { CartSummary, DeliveryEstimate } from "@ecom/types";
 import { Button, PriceDisplay } from "@ecom/ui";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { apiFetch } from "@/lib/auth";
@@ -25,7 +26,125 @@ function discountPercent(base?: string | null, compare?: string | null): number 
   return Math.round(((c - b) / c) * 100);
 }
 
+/* ────────────────────────────────────────────────────────────────────
+   Clear From Bag Modal
+──────────────────────────────────────────────────────────────────── */
+interface ClearFromBagModalProps {
+  item: CartSummary["items"][number] | null;
+  onClose: () => void;
+  onRemove: () => void;
+  onSaveForLater: () => void;
+  actionLoading: boolean;
+}
+
+function ClearFromBagModal({
+  item,
+  onClose,
+  onRemove,
+  onSaveForLater,
+  actionLoading,
+}: ClearFromBagModalProps) {
+  if (!item) return null;
+
+  const compareAt = item.product?.compareAtPrice;
+  const unitPrice = item.unitPrice;
+  const savings = compareAt && Number(compareAt) > Number(unitPrice)
+    ? (Number(compareAt) - Number(unitPrice)) * item.quantity
+    : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" 
+        onClick={onClose} 
+        aria-hidden="true"
+      />
+      
+      {/* modal box */}
+      <div className="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl dark:bg-neutral-950 animate-slide-up">
+        {/* close button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+          aria-label="Close modal"
+        >
+          ✕
+        </button>
+
+        <h2 className="mb-2 text-lg font-bold">Clear From Bag</h2>
+        <p className="mb-4 text-sm text-neutral-500">Are you sure want to remove this item from bag?</p>
+
+        {/* Product card inside modal */}
+        <div className="mb-6 flex gap-4 rounded-lg border border-neutral-100 p-3 dark:border-neutral-900">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded bg-neutral-100">
+            {item.product?.primaryImage && (
+              <img
+                src={item.product.primaryImage.url}
+                alt={item.product.title}
+                className="h-full w-full object-cover"
+              />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-neutral-900 dark:text-neutral-100 truncate">
+              {item.product?.brand ?? "Bewakoof®"}
+            </p>
+            <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
+              {item.product?.title ?? item.productSlug}
+            </p>
+            <p className="mt-1 text-xs text-neutral-450 dark:text-neutral-400">
+              Ships in 1-2 days
+            </p>
+            
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="font-bold text-neutral-900 dark:text-neutral-100">
+                ₹{Number(unitPrice).toLocaleString("en-IN")}
+              </span>
+              {compareAt && (
+                <span className="text-xs text-neutral-450 line-through">
+                  ₹{Number(compareAt).toLocaleString("en-IN")}
+                </span>
+              )}
+              {savings > 0 && (
+                <span className="text-xs font-semibold text-success-600">
+                  You saved ₹{savings.toLocaleString("en-IN")}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            disabled={actionLoading}
+            onClick={onRemove}
+            className="flex-1 rounded-md border border-neutral-350 py-3 text-sm font-bold uppercase tracking-wide text-neutral-700 hover:bg-neutral-50 dark:border-neutral-805 dark:text-neutral-300 dark:hover:bg-neutral-900 transition-colors"
+          >
+            REMOVE
+          </button>
+          <button
+            type="button"
+            disabled={actionLoading}
+            onClick={onSaveForLater}
+            className="flex-1 rounded-md bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600 transition-colors"
+          >
+            SAVE FOR LATER
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────
+   Main Cart Page
+──────────────────────────────────────────────────────────────────── */
 export default function CartPage() {
+  const router = useRouter();
   const [cart, setCart] = useState<CartSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +153,7 @@ export default function CartPage() {
   const [pincode, setPincode] = useState("");
   const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
+  const [itemToRemove, setItemToRemove] = useState<CartSummary["items"][number] | null>(null);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -193,7 +313,7 @@ export default function CartPage() {
                       type="button"
                       className="text-sm text-red-600 hover:underline"
                       disabled={actionLoading}
-                      onClick={() => void runAction(() => removeCartItem(item.id))}
+                      onClick={() => setItemToRemove(item)}
                     >
                       Remove
                     </button>
@@ -341,11 +461,11 @@ export default function CartPage() {
 
             <Button
               className="mt-6 w-full bg-accent-600 py-3 text-sm font-bold uppercase tracking-wide text-white hover:bg-accent-700"
-              disabled
+              disabled={actionLoading || cart.itemCount === 0}
+              onClick={() => router.push("/checkout")}
             >
               Proceed to Checkout
             </Button>
-            <p className="mt-2 text-center text-xs text-neutral-400">Checkout is arriving in a future update</p>
 
             <div className="mt-6 grid grid-cols-3 gap-2 border-t border-neutral-200 pt-4 text-center dark:border-neutral-800">
               <p className="text-[11px] text-neutral-500">100% Genuine</p>
@@ -355,6 +475,25 @@ export default function CartPage() {
           </div>
         </aside>
       </div>
+
+      {/* Clear From Bag Modal */}
+      <ClearFromBagModal
+        item={itemToRemove}
+        onClose={() => setItemToRemove(null)}
+        onRemove={() => {
+          if (itemToRemove) {
+            void runAction(() => removeCartItem(itemToRemove.id));
+            setItemToRemove(null);
+          }
+        }}
+        onSaveForLater={() => {
+          if (itemToRemove) {
+            void runAction(() => saveForLater(itemToRemove.id));
+            setItemToRemove(null);
+          }
+        }}
+        actionLoading={actionLoading}
+      />
     </div>
   );
 }

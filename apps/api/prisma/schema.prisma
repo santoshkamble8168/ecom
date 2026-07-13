@@ -41,6 +41,7 @@ model User {
   wishlistItems WishlistItem[]
   recentlyViewed RecentlyViewed[]
   carts         Cart[]
+  checkoutSessions CheckoutSession[]
 
   @@map("users")
 }
@@ -631,6 +632,7 @@ model Cart {
   user    User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items   CartItem[]
   coupons CartCoupon[]
+  checkouts CheckoutSession[]
 
   @@index([expiresAt])
   @@map("carts")
@@ -662,4 +664,120 @@ model CartCoupon {
 
   @@id([cartId, code])
   @@map("cart_coupons")
+}
+
+// ---------------------------------------------------------------------------
+// Checkout domain (Sprint 7)
+// ---------------------------------------------------------------------------
+
+enum CheckoutStatus {
+  draft
+  address_selected
+  shipping_selected
+  payment_selected
+  reviewed
+  order_prepared
+  expired
+  cancelled
+}
+
+enum CheckoutPaymentMethod {
+  razorpay
+  cod
+}
+
+model CheckoutSession {
+  id                String               @id @default(uuid())
+  cartId            String               @map("cart_id")
+  userId            String?              @map("user_id")
+  sessionId         String?              @map("session_id")
+  status            CheckoutStatus       @default(draft)
+  subtotal          Decimal              @db.Decimal(10, 2)
+  discount          Decimal              @db.Decimal(10, 2)
+  shippingFee       Decimal              @map("shipping_fee") @db.Decimal(10, 2)
+  taxAmount         Decimal              @map("tax_amount") @db.Decimal(10, 2)
+  total             Decimal              @db.Decimal(10, 2)
+  addressId         String?              @map("address_id")
+  guestAddress      Json?                @map("guest_address")
+  shippingMethodCode String?             @map("shipping_method_code")
+  shippingLabel     String?              @map("shipping_label")
+  estimatedDaysMin  Int?                 @map("estimated_days_min")
+  estimatedDaysMax  Int?                 @map("estimated_days_max")
+  paymentMethod     CheckoutPaymentMethod? @map("payment_method")
+  lineItemsSnapshot Json                 @map("line_items_snapshot")
+  couponsSnapshot   Json                 @map("coupons_snapshot")
+  reviewValidAt     DateTime?            @map("review_valid_at")
+  preparedOrderRef  String?              @unique @map("prepared_order_ref")
+  expiresAt         DateTime             @map("expires_at")
+  createdAt         DateTime             @default(now()) @map("created_at")
+  updatedAt         DateTime             @updatedAt @map("updated_at")
+
+  cart            Cart                  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  user            User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  idempotencyKeys CheckoutIdempotency[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([cartId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("checkout_sessions")
+}
+
+model CheckoutIdempotency {
+  id             String   @id @default(uuid())
+  checkoutId     String   @map("checkout_id")
+  idempotencyKey String   @map("idempotency_key")
+  response       Json
+  createdAt      DateTime @default(now()) @map("created_at")
+  expiresAt      DateTime @map("expires_at")
+
+  checkout CheckoutSession @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+
+  @@unique([checkoutId, idempotencyKey])
+  @@index([expiresAt])
+  @@map("checkout_idempotency")
+}
+
+model ShippingMethod {
+  id               String   @id @default(uuid())
+  code             String   @unique
+  label            String
+  baseFee          Decimal  @map("base_fee") @db.Decimal(10, 2)
+  estimatedDaysMin Int      @map("estimated_days_min")
+  estimatedDaysMax Int      @map("estimated_days_max")
+  isActive         Boolean  @default(true) @map("is_active")
+  sortOrder        Int      @default(0) @map("sort_order")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  zones ShippingZone[]
+
+  @@map("shipping_methods")
+}
+
+model ShippingZone {
+  id               String   @id @default(uuid())
+  name             String
+  pincodePrefixes  String[] @map("pincode_prefixes")
+  shippingMethodId String   @map("shipping_method_id")
+  feeOverride      Decimal? @map("fee_override") @db.Decimal(10, 2)
+  isServiceable    Boolean  @default(true) @map("is_serviceable")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Cascade)
+
+  @@index([shippingMethodId])
+  @@map("shipping_zones")
+}
+
+model TaxRule {
+  id        String   @id @default(uuid())
+  name      String
+  rate      Decimal  @db.Decimal(5, 4)
+  appliesTo String   @default("all") @map("applies_to")
+  isActive  Boolean  @default(true) @map("is_active")
+  priority  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("tax_rules")
 }

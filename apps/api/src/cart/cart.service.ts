@@ -291,6 +291,16 @@ export class CartService {
     return summary;
   }
 
+  async getSummaryForCartId(cartId: string): Promise<CartSummary> {
+    const cart = await this.prisma.cart.findUnique({ where: { id: cartId } });
+    if (!cart) throw new NotFoundError("Cart not found");
+    return this.buildSummary(cartId);
+  }
+
+  async findCart(userId?: string, sessionId?: string) {
+    return this.resolveCart(userId, sessionId, false);
+  }
+
   private async resolveCart(userId?: string, sessionId?: string, create = true) {
     if (!userId && !sessionId) return null;
 

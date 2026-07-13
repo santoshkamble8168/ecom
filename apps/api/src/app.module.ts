@@ -7,6 +7,7 @@ import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { CartModule } from "./cart/cart.module";
 import { CatalogModule } from "./catalog/catalog.module";
+import { CheckoutModule } from "./checkout/checkout.module";
 import { DiscoveryModule } from "./discovery/discovery.module";
 import { ProductModule } from "./product/product.module";
 import { StorefrontModule } from "./storefront/storefront.module";
@@ -37,6 +38,7 @@ import { RedisModule } from "./redis/redis.module";
     UsersModule,
     AdminModule,
     CartModule,
+    CheckoutModule,
     CatalogModule,
     DiscoveryModule,
     ProductModule,
