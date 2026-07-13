@@ -15,6 +15,9 @@ out/
 .env.*.local
 !.env.example
 
+# Local dev credentials reference (never commit)
+LOCAL-DEV-CREDENTIALS.md
+
 # Logs
 *.log
 npm-debug.log*

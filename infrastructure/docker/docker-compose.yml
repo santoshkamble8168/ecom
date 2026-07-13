@@ -68,6 +68,7 @@ services:
       - "8025:8025"
 
   api:
+    profiles: ["apps"]
     build:
       context: ../..
       dockerfile: apps/api/Dockerfile
@@ -90,6 +91,7 @@ services:
       - "4000:4000"
 
   worker:
+    profiles: ["apps"]
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
@@ -101,6 +103,7 @@ services:
         condition: service_healthy
 
   storefront:
+    profiles: ["apps"]
     build:
       context: ../..
       dockerfile: apps/storefront/Dockerfile
@@ -113,6 +116,7 @@ services:
       - "3000:3000"
 
   admin:
+    profiles: ["apps"]
     build:
       context: ../..
       dockerfile: apps/admin/Dockerfile
@@ -125,6 +129,7 @@ services:
       - "3001:3001"
 
   nginx:
+    profiles: ["apps"]
     image: nginx:1.27-alpine
     restart: unless-stopped
     volumes:

@@ -45,6 +45,7 @@ export class CartService {
     if (!variant) throw new NotFoundError("Variant not found or unavailable");
 
     const cart = await this.resolveCart(params.userId, params.sessionId, true);
+    if (!cart) throw new ValidationError("Unable to resolve cart");
     const existing = await this.prisma.cartItem.findFirst({
       where: {
         cartId: cart.id,
@@ -216,6 +217,7 @@ export class CartService {
     }
 
     const userCart = await this.resolveCart(userId, undefined, true);
+    if (!userCart) throw new ValidationError("Unable to resolve user cart");
 
     const guestItems = await this.prisma.cartItem.findMany({ where: { cartId: guestCart.id } });
     for (const item of guestItems) {
