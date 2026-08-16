@@ -1,6 +1,6 @@
 "use client";
 
-import type { CartSummary, DeliveryEstimate } from "@ecom/types";
+import type { CartLineItem, CartSummary, DeliveryEstimate } from "@ecom/types";
 import { Button, PriceDisplay } from "@ecom/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -26,60 +26,54 @@ function discountPercent(base?: string | null, compare?: string | null): number 
   return Math.round(((c - b) / c) * 100);
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   Clear From Bag Modal
-──────────────────────────────────────────────────────────────────── */
-interface ClearFromBagModalProps {
-  item: CartSummary["items"][number] | null;
-  onClose: () => void;
-  onRemove: () => void;
-  onSaveForLater: () => void;
-  actionLoading: boolean;
-}
-
 function ClearFromBagModal({
   item,
   onClose,
   onRemove,
   onSaveForLater,
-  actionLoading,
-}: ClearFromBagModalProps) {
-  if (!item) return null;
-
-  const compareAt = item.product?.compareAtPrice;
-  const unitPrice = item.unitPrice;
-  const savings = compareAt && Number(compareAt) > Number(unitPrice)
-    ? (Number(compareAt) - Number(unitPrice)) * item.quantity
-    : 0;
+  loading,
+}: {
+  item: CartLineItem;
+  onClose: () => void;
+  onRemove: () => void;
+  onSaveForLater: () => void;
+  loading: boolean;
+}) {
+  const savings =
+    item.product?.compareAtPrice != null
+      ? Math.max(0, Number(item.product.compareAtPrice) - Number(item.unitPrice)) * item.quantity
+      : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" 
-        onClick={onClose} 
-        aria-hidden="true"
-      />
-      
-      {/* modal box */}
-      <div className="relative w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl dark:bg-neutral-950 animate-slide-up">
-        {/* close button */}
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
-          aria-label="Close modal"
-        >
-          ✕
-        </button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} aria-hidden="true" />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="clear-bag-title"
+        className="relative w-full max-w-md rounded-t-2xl bg-white p-5 shadow-2xl animate-slide-up sm:mx-4 sm:rounded-2xl dark:bg-neutral-950"
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h2 id="clear-bag-title" className="text-lg font-bold">
+            Clear From Bag
+          </h2>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            ✕
+          </button>
+        </div>
+        <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
+          Are you sure you want to remove this item from bag?
+        </p>
 
-        <h2 className="mb-2 text-lg font-bold">Clear From Bag</h2>
-        <p className="mb-4 text-sm text-neutral-500">Are you sure want to remove this item from bag?</p>
-
-        {/* Product card inside modal */}
-        <div className="mb-6 flex gap-4 rounded-lg border border-neutral-100 p-3 dark:border-neutral-900">
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded bg-neutral-100">
+        <div className="mb-5 flex gap-3 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
             {item.product?.primaryImage && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={item.product.primaryImage.url}
                 alt={item.product.title}
@@ -87,52 +81,39 @@ function ClearFromBagModal({
               />
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-neutral-900 dark:text-neutral-100 truncate">
-              {item.product?.brand ?? "Bewakoof®"}
-            </p>
-            <p className="text-sm text-neutral-500 dark:text-neutral-400 truncate">
-              {item.product?.title ?? item.productSlug}
-            </p>
-            <p className="mt-1 text-xs text-neutral-450 dark:text-neutral-400">
-              Ships in 1-2 days
-            </p>
-            
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-bold text-neutral-900 dark:text-neutral-100">
-                ₹{Number(unitPrice).toLocaleString("en-IN")}
-              </span>
-              {compareAt && (
-                <span className="text-xs text-neutral-450 line-through">
-                  ₹{Number(compareAt).toLocaleString("en-IN")}
-                </span>
-              )}
-              {savings > 0 && (
-                <span className="text-xs font-semibold text-success-600">
-                  You saved ₹{savings.toLocaleString("en-IN")}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{item.product?.title ?? item.productSlug}</p>
+            {item.variantLabel && <p className="text-xs text-neutral-500">Size: {item.variantLabel}</p>}
+            <div className="mt-1 flex items-baseline gap-2">
+              <span className="text-sm font-bold">{formatInr(item.unitPrice)}</span>
+              {item.product?.compareAtPrice && (
+                <span className="text-xs text-neutral-400 line-through">
+                  {formatInr(item.product.compareAtPrice)}
                 </span>
               )}
             </div>
+            {savings > 0 && (
+              <p className="mt-0.5 text-xs font-medium text-success-600">You saved {formatInr(savings)}</p>
+            )}
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            disabled={actionLoading}
+            disabled={loading}
             onClick={onRemove}
-            className="flex-1 rounded-md border border-neutral-350 py-3 text-sm font-bold uppercase tracking-wide text-neutral-700 hover:bg-neutral-50 dark:border-neutral-805 dark:text-neutral-300 dark:hover:bg-neutral-900 transition-colors"
+            className="rounded-xl border border-neutral-300 py-3 text-sm font-bold uppercase tracking-wide transition-colors hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
           >
-            REMOVE
+            Remove
           </button>
           <button
             type="button"
-            disabled={actionLoading}
+            disabled={loading}
             onClick={onSaveForLater}
-            className="flex-1 rounded-md bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600 transition-colors"
+            className="rounded-xl bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 transition-colors hover:bg-accent-600 disabled:opacity-50"
           >
-            SAVE FOR LATER
+            Save for Later
           </button>
         </div>
       </div>
@@ -140,9 +121,6 @@ function ClearFromBagModal({
   );
 }
 
-/* ────────────────────────────────────────────────────────────────────
-   Main Cart Page
-──────────────────────────────────────────────────────────────────── */
 export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState<CartSummary | null>(null);
@@ -153,7 +131,7 @@ export default function CartPage() {
   const [pincode, setPincode] = useState("");
   const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
-  const [itemToRemove, setItemToRemove] = useState<CartSummary["items"][number] | null>(null);
+  const [removeItem, setRemoveItem] = useState<CartLineItem | null>(null);
 
   const loadCart = useCallback(async () => {
     setLoading(true);
@@ -211,7 +189,7 @@ export default function CartPage() {
         <p className="mt-2 text-neutral-500">Add items from the shop to get started.</p>
         <Link
           href="/men"
-          className="mt-6 inline-block rounded-md bg-accent-600 px-6 py-3 text-sm font-bold uppercase tracking-wide text-white hover:bg-accent-700"
+          className="mt-6 inline-block rounded-md bg-accent-500 px-6 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
         >
           Continue Shopping
         </Link>
@@ -239,21 +217,40 @@ export default function CartPage() {
         {" / "}
         <span className="text-neutral-900 dark:text-neutral-200">My Bag</span>
       </nav>
-      <h1 className="mb-6 text-2xl font-display font-bold">
-        My Bag <span className="font-normal text-neutral-500">({cart.itemCount} items)</span>
+      <h1 className="mb-4 text-2xl font-display font-bold">
+        My Bag{" "}
+        <span className="font-normal text-neutral-500">
+          ({cart.itemCount} Item{cart.itemCount === 1 ? "" : "s"})
+        </span>
       </h1>
+
+      {totalSavings > 0 && (
+        <div className="mb-6 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 dark:bg-green-950/40 dark:text-green-300">
+          <span aria-hidden="true">%</span>
+          You are saving {formatInr(totalSavings)} on this order
+        </div>
+      )}
+
       {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
           {cart.items.map((item) => {
             const discount = discountPercent(item.unitPrice, item.product?.compareAtPrice);
+            const lineSavings =
+              item.product?.compareAtPrice != null
+                ? Math.max(0, Number(item.product.compareAtPrice) - Number(item.unitPrice)) *
+                  item.quantity
+                : 0;
             return (
               <div
                 key={item.id}
-                className="flex gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
+                className="relative flex gap-4 rounded-lg border border-neutral-200 p-4 dark:border-neutral-800"
               >
-                <Link href={`/products/${item.productSlug}`} className="h-24 w-24 shrink-0 overflow-hidden rounded bg-neutral-100">
+                <Link
+                  href={`/products/${item.productSlug}`}
+                  className="h-24 w-24 shrink-0 overflow-hidden rounded bg-neutral-100"
+                >
                   {item.product?.primaryImage && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -265,19 +262,36 @@ export default function CartPage() {
                 </Link>
                 <div className="flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <div>
+                    <div className="min-w-0 pr-6">
                       <Link href={`/products/${item.productSlug}`} className="font-semibold hover:underline">
                         {item.product?.title ?? item.productSlug}
                       </Link>
-                      {item.variantLabel && <p className="text-sm text-neutral-500">Size: {item.variantLabel}</p>}
+                      {item.variantLabel && (
+                        <p className="text-sm text-neutral-500">Size: {item.variantLabel}</p>
+                      )}
                     </div>
-                    <p className="font-semibold">{formatInr(item.lineTotal)}</p>
+                    <button
+                      type="button"
+                      aria-label="Remove item"
+                      className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-700 dark:hover:bg-neutral-900"
+                      disabled={actionLoading}
+                      onClick={() => setRemoveItem(item)}
+                    >
+                      ✕
+                    </button>
                   </div>
 
                   <div className="mt-1 flex items-baseline gap-2">
                     <PriceDisplay price={item.unitPrice} compareAtPrice={item.product?.compareAtPrice} />
-                    {discount && <span className="text-xs font-semibold text-success-600">{discount}% off</span>}
+                    {discount && (
+                      <span className="text-xs font-semibold text-success-600">{discount}% off</span>
+                    )}
                   </div>
+                  {lineSavings > 0 && (
+                    <p className="mt-0.5 text-xs font-medium text-success-600">
+                      You saved {formatInr(lineSavings)}
+                    </p>
+                  )}
 
                   {!item.available && <p className="mt-1 text-sm text-red-600">Unavailable</p>}
 
@@ -308,14 +322,6 @@ export default function CartPage() {
                       onClick={() => void runAction(() => saveForLater(item.id))}
                     >
                       Save for later
-                    </button>
-                    <button
-                      type="button"
-                      className="text-sm text-red-600 hover:underline"
-                      disabled={actionLoading}
-                      onClick={() => setItemToRemove(item)}
-                    >
-                      Remove
                     </button>
                   </div>
                 </div>
@@ -413,7 +419,7 @@ export default function CartPage() {
           </div>
 
           <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
-            <h2 className="mb-4 font-semibold">Order Summary</h2>
+            <h2 className="mb-4 font-semibold">Price Summary</h2>
 
             <div className="mb-4">
               <div className="mb-1 flex justify-between text-xs text-neutral-500">
@@ -428,7 +434,9 @@ export default function CartPage() {
                   Add {formatInr(cart.amountToFreeShipping)} more for free shipping
                 </p>
               ) : (
-                <p className="mt-1 text-xs font-medium text-success-600">Yay! You get FREE delivery</p>
+                <p className="mt-1 text-xs font-medium text-success-600">
+                  Yayy! You get FREE DELIVERY on this order
+                </p>
               )}
             </div>
 
@@ -460,40 +468,35 @@ export default function CartPage() {
             </dl>
 
             <Button
-              className="mt-6 w-full bg-accent-600 py-3 text-sm font-bold uppercase tracking-wide text-white hover:bg-accent-700"
+              className="mt-6 w-full bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
               disabled={actionLoading || cart.itemCount === 0}
               onClick={() => router.push("/checkout")}
             >
-              Proceed to Checkout
+              Proceed
             </Button>
 
             <div className="mt-6 grid grid-cols-3 gap-2 border-t border-neutral-200 pt-4 text-center dark:border-neutral-800">
-              <p className="text-[11px] text-neutral-500">100% Genuine</p>
-              <p className="text-[11px] text-neutral-500">Secure Payments</p>
+              <p className="text-[11px] text-neutral-500">Quality Assurance</p>
+              <p className="text-[11px] text-neutral-500">100% Secure Payment</p>
               <p className="text-[11px] text-neutral-500">Easy Returns</p>
             </div>
           </div>
         </aside>
       </div>
 
-      {/* Clear From Bag Modal */}
-      <ClearFromBagModal
-        item={itemToRemove}
-        onClose={() => setItemToRemove(null)}
-        onRemove={() => {
-          if (itemToRemove) {
-            void runAction(() => removeCartItem(itemToRemove.id));
-            setItemToRemove(null);
-          }
-        }}
-        onSaveForLater={() => {
-          if (itemToRemove) {
-            void runAction(() => saveForLater(itemToRemove.id));
-            setItemToRemove(null);
-          }
-        }}
-        actionLoading={actionLoading}
-      />
+      {removeItem && (
+        <ClearFromBagModal
+          item={removeItem}
+          loading={actionLoading}
+          onClose={() => setRemoveItem(null)}
+          onRemove={() => {
+            void runAction(() => removeCartItem(removeItem.id)).then(() => setRemoveItem(null));
+          }}
+          onSaveForLater={() => {
+            void runAction(() => saveForLater(removeItem.id)).then(() => setRemoveItem(null));
+          }}
+        />
+      )}
     </div>
   );
 }

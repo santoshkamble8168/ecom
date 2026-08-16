@@ -97,25 +97,28 @@ interface ToastProps {
 function Toast({ show, message, productTitle, onGoToBag }: ToastProps) {
   return (
     <div
-      className={`fixed bottom-6 left-1/2 z-[100] -translate-x-1/2 transition-all duration-500 ${
-        show ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0 pointer-events-none"
+      className={`fixed bottom-5 left-1/2 z-[100] w-[min(420px,92vw)] ${
+        show ? "animate-toast-in pointer-events-auto" : "animate-toast-out pointer-events-none"
       }`}
-      style={{ minWidth: "340px", maxWidth: "92vw" }}
+      style={{ visibility: show ? "visible" : "hidden" }}
+      role="status"
+      aria-live="polite"
     >
-      <div className="flex items-center gap-3 rounded-2xl bg-neutral-900 px-5 py-3.5 text-white shadow-2xl dark:bg-white dark:text-neutral-900">
+      <div className="flex items-center gap-3 rounded-2xl bg-neutral-900 px-4 py-3.5 text-white shadow-2xl ring-1 ring-white/10 dark:bg-white dark:text-neutral-900 dark:ring-black/5">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500 text-white animate-pop">
           <CheckCircleIcon className="h-5 w-5" />
         </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold truncate">{message}</p>
-          <p className="text-xs opacity-60 truncate">{productTitle}</p>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold">{message}</p>
+          <p className="truncate text-xs opacity-60">{productTitle}</p>
         </div>
         <button
           type="button"
           onClick={onGoToBag}
-          className="flex items-center gap-1.5 rounded-lg bg-green-500 px-4 py-2 text-xs font-bold text-white whitespace-nowrap transition-all hover:bg-green-600 active:scale-95"
+          className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-white transition-all hover:bg-green-600 active:scale-95"
         >
-          GO TO BAG <ArrowRightIcon className="h-3.5 w-3.5" />
+          Go to Bag
+          <ArrowRightIcon className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
@@ -161,7 +164,7 @@ function CelebrationBanner({ show, savings, freeShipping }: CelebrationBannerPro
 interface SizePickerModalProps {
   open: boolean;
   onClose: () => void;
-  attributeGroups: { key: string; name: string; values: string[] }[];
+  attributeGroups: { key: string; name: string; values: { slug: string; label: string }[] }[];
   selectedOptions: Record<string, string>;
   onSelect: (key: string, slug: string) => void;
   product: PdpProduct;
@@ -181,26 +184,34 @@ function SizePickerModal({
 }: SizePickerModalProps) {
   const sizeGroup = attributeGroups.find((g) => g.key === "size");
   const hasSizeSelected = !!(sizeGroup && selectedOptions["size"]);
+  const selectedSizeGuideRow = SIZE_GUIDE_ROWS.find(
+    (row) => row.size.toLowerCase() === (selectedOptions.size ?? "").toLowerCase(),
+  );
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      {/* backdrop */}
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
-      {/* sheet */}
-      <div className="relative w-full sm:max-w-md mx-0 sm:mx-4 rounded-t-2xl sm:rounded-2xl bg-white dark:bg-neutral-950 p-6 shadow-2xl animate-slide-up">
-        <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-bold">Choose your perfect fit!</h2>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="size-picker-title"
+        className="relative mx-0 w-full rounded-t-2xl bg-white p-6 shadow-2xl animate-slide-up sm:mx-4 sm:max-w-md sm:rounded-2xl dark:bg-neutral-950"
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <h2 id="size-picker-title" className="text-lg font-bold">
+            Choose your perfect fit!
+          </h2>
           <button
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             ✕
           </button>
@@ -214,7 +225,7 @@ function SizePickerModal({
                 Select {group.name}
               </p>
               <div className="flex flex-wrap gap-2.5">
-                {group.values.map((slug) => {
+                {group.values.map(({ slug, label }) => {
                   const available = product.variants.some((v) => {
                     if (!v.isActive) return false;
                     return getOptionMap(v)[group.key] === slug;
@@ -226,19 +237,25 @@ function SizePickerModal({
                       type="button"
                       disabled={!available}
                       onClick={() => onSelect(group.key, slug)}
-                      className={`min-w-[3rem] rounded-lg border px-4 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-200 ${
+                      className={`min-w-[3.25rem] rounded-lg border px-4 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-200 ${
                         !available
                           ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
                           : isSelected
-                            ? "border-accent-600 bg-accent-600 text-white shadow-md scale-105"
+                            ? "animate-size-select border-accent-500 bg-accent-500 text-neutral-950 shadow-md"
                             : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
                       }`}
                     >
-                      {slug}
+                      {label}
                     </button>
                   );
                 })}
               </div>
+              {group.key === "size" && selectedSizeGuideRow && (
+                <p className="mt-3 text-xs text-neutral-500">
+                  Garment (in Inches) Chest : {selectedSizeGuideRow.chest} | Front Length :{" "}
+                  {selectedSizeGuideRow.length} | Sleeve Length : {selectedSizeGuideRow.sleeve}
+                </p>
+              )}
             </div>
           ))}
 
@@ -248,7 +265,7 @@ function SizePickerModal({
           onClick={onAddToBag}
           className={`mt-2 flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 disabled:cursor-not-allowed ${
             hasSizeSelected
-              ? "bg-accent-500 text-white hover:bg-accent-600 active:scale-[0.98] shadow-md"
+              ? "bg-accent-500 text-neutral-950 shadow-md hover:bg-accent-600 active:scale-[0.98]"
               : "bg-neutral-200 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-600"
           }`}
         >
@@ -289,37 +306,71 @@ export function PdpView({ product }: PdpViewProps) {
   const [sizePickerOpen, setSizePickerOpen] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
+  const ctaRef = useRef<HTMLButtonElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const images = product.media.length > 0 ? product.media : product.primaryImage ? [product.primaryImage] : [];
 
   const attributeGroups = useMemo(() => {
-    const groups = new Map<string, { name: string; values: Set<string> }>();
+    const groups = new Map<string, { name: string; values: Map<string, string> }>();
     for (const variant of product.variants) {
       for (const opt of variant.options) {
-        const group = groups.get(opt.attributeKey) ?? { name: opt.attributeName, values: new Set<string>() };
-        group.values.add(opt.valueSlug);
+        const group = groups.get(opt.attributeKey) ?? {
+          name: opt.attributeName,
+          values: new Map<string, string>(),
+        };
+        group.values.set(opt.valueSlug, opt.value);
         groups.set(opt.attributeKey, group);
       }
     }
     return [...groups.entries()].map(([key, group]) => ({
       key,
       name: group.name,
-      values: [...group.values],
+      values: [...group.values.entries()].map(([slug, label]) => ({ slug, label })),
     }));
   }, [product.variants]);
 
-  // No default size – user must explicitly select.
+  // No default size — user must explicitly select.
   // Auto-select non-size attributes (e.g. color) so variant matching works.
   useEffect(() => {
     const defaults: Record<string, string> = {};
     for (const group of attributeGroups) {
       if (group.key !== "size") {
-        defaults[group.key] = group.values[0] ?? "";
+        defaults[group.key] = group.values[0]?.slug ?? "";
       }
     }
     setSelectedOptions(defaults);
+    setAddedToCart(false);
+    setShowCelebration(false);
   }, [attributeGroups]);
+
+  function playFlyToBagAnimation() {
+    const imageUrl = images[activeImage]?.url ?? product.primaryImage?.url;
+    const bagTarget = document.getElementById("site-header-bag");
+    const origin = ctaRef.current;
+    if (!imageUrl || !bagTarget || !origin) return;
+
+    const from = origin.getBoundingClientRect();
+    const to = bagTarget.getBoundingClientRect();
+
+    const flyer = document.createElement("div");
+    flyer.className = "fly-to-bag";
+    flyer.style.left = `${from.left + from.width / 2 - 32}px`;
+    flyer.style.top = `${from.top + from.height / 2 - 32}px`;
+    flyer.innerHTML = `<img src="${imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover" />`;
+    document.body.appendChild(flyer);
+
+    requestAnimationFrame(() => {
+      flyer.style.left = `${to.left + to.width / 2 - 12}px`;
+      flyer.style.top = `${to.top + to.height / 2 - 12}px`;
+      flyer.style.width = "24px";
+      flyer.style.height = "24px";
+      flyer.style.opacity = "0";
+      flyer.style.transform = "scale(0.4) rotate(18deg)";
+    });
+
+    window.setTimeout(() => flyer.remove(), 750);
+  }
 
   const selectedVariant = useMemo(() => {
     return product.variants.find((variant) => {
@@ -427,18 +478,15 @@ export function PdpView({ product }: PdpViewProps) {
     setAddingToCart(true);
     try {
       await addToCart(product.slug, selectedVariant.sku, quantity);
+
+      // Close modal immediately, then play fly-to-bag + success states
+      setSizePickerOpen(false);
+      playFlyToBagAnimation();
+
+      setAddedToCart(true);
+      setShowCelebration(true);
       window.dispatchEvent(new Event("cart-updated"));
 
-      // Close modal immediately
-      setSizePickerOpen(false);
-
-      // Permanently set "Go to Bag" state
-      setAddedToCart(true);
-
-      // Show celebration banner
-      setShowCelebration(true);
-
-      // Show bottom toast
       setShowToast(true);
       if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       toastTimerRef.current = setTimeout(() => {
@@ -557,27 +605,28 @@ export function PdpView({ product }: PdpViewProps) {
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {group.values.map((slug) => {
+                  {group.values.map(({ slug, label }) => {
                     const available = product.variants.some((variant) => {
                       if (!variant.isActive) return false;
                       const map = getOptionMap(variant);
                       return map[group.key] === slug;
                     });
+                    const isSelected = selectedOptions[group.key] === slug;
                     return (
                       <button
                         key={slug}
                         type="button"
                         disabled={!available}
                         onClick={() => setSelectedOptions((prev) => ({ ...prev, [group.key]: slug }))}
-                        className={`min-w-[3rem] rounded border px-3 py-2 text-sm font-medium uppercase transition-all duration-150 ${
+                        className={`min-w-[3.25rem] rounded-lg border px-3.5 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-150 ${
                           !available
                             ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
-                            : selectedOptions[group.key] === slug
-                              ? "border-neutral-900 bg-neutral-900 text-white scale-105 shadow"
+                            : isSelected
+                              ? "animate-size-select border-accent-500 bg-accent-500 text-neutral-950 shadow-md"
                               : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
                         }`}
                       >
-                        {slug}
+                        {label}
                       </button>
                     );
                   })}
@@ -593,7 +642,7 @@ export function PdpView({ product }: PdpViewProps) {
           {/* Celebration banner — shown after add-to-cart success */}
           <CelebrationBanner show={showCelebration} savings={savings} freeShipping={Number(displayPrice) >= 999} />
 
-          <div className="mt-6">
+          {/* <div className="mt-6">
             <p className="mb-2 text-sm font-semibold">Quantity</p>
             <div className="flex items-center gap-3">
               <button
@@ -612,18 +661,19 @@ export function PdpView({ product }: PdpViewProps) {
                 +
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* ─── Primary CTA: Add to Bag / Go to Bag ─── */}
           <div className="mt-6 flex gap-3">
             <button
+              ref={ctaRef}
               type="button"
               disabled={!product.inStock || addingToCart}
               onClick={handleCtaClick}
-              className={`relative flex-1 flex items-center justify-center gap-2.5 overflow-hidden rounded-md px-6 py-3.5 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`relative flex flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-md px-6 py-3.5 text-sm font-bold uppercase tracking-wide transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
                 addedToCart
-                  ? "bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20"
-                  : "bg-accent-600 hover:bg-accent-700"
+                  ? "animate-cta-pulse bg-green-600 text-white shadow-lg shadow-green-600/25 hover:bg-green-700"
+                  : "bg-accent-500 text-neutral-950 hover:bg-accent-600"
               }`}
             >
               {addedToCart ? (
@@ -643,7 +693,6 @@ export function PdpView({ product }: PdpViewProps) {
                   Add to Bag
                 </>
               )}
-              {/* Shimmer sweep on success */}
               {addedToCart && (
                 <span className="pointer-events-none absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent" />
               )}
@@ -834,8 +883,8 @@ export function PdpView({ product }: PdpViewProps) {
             type="button"
             disabled={!product.inStock || addingToCart}
             onClick={handleCtaClick}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-sm font-bold uppercase tracking-wide text-white transition-all duration-300 disabled:opacity-50 ${
-              addedToCart ? "bg-green-600" : "bg-accent-600"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-sm font-bold uppercase tracking-wide transition-all duration-300 disabled:opacity-50 ${
+              addedToCart ? "bg-green-600 text-white" : "bg-accent-500 text-neutral-950"
             }`}
           >
             {addedToCart ? (
@@ -879,15 +928,17 @@ export function PdpView({ product }: PdpViewProps) {
       />
 
       {/* Bottom toast */}
-      <Toast
-        show={showToast}
-        message="Added to your bag!"
-        productTitle={product.title}
-        onGoToBag={() => {
-          setShowToast(false);
-          router.push("/cart");
-        }}
-      />
+      {showToast && (
+        <Toast
+          show={showToast}
+          message="Added to your bag!"
+          productTitle={product.title}
+          onGoToBag={() => {
+            setShowToast(false);
+            router.push("/cart");
+          }}
+        />
+      )}
 
       {/* Size guide modal */}
       {sizeGuideOpen && (
@@ -941,6 +992,8 @@ const SIZE_GUIDE_ROWS = [
   { size: "L", chest: "40", length: "28", sleeve: "9.5" },
   { size: "XL", chest: "42", length: "28.5", sleeve: "10" },
   { size: "XXL", chest: "44", length: "29", sleeve: "10.5" },
+  { size: "2XL", chest: "44", length: "29", sleeve: "10.5" },
+  { size: "3XL", chest: "46", length: "29.5", sleeve: "11" },
 ];
 
 function TrustItem({

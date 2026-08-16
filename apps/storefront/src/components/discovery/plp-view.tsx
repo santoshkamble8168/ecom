@@ -192,7 +192,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
             type="number"
             placeholder="Min"
             defaultValue={minPrice}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            className="w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
             onBlur={(e) => updateParams({ minPrice: e.target.value || null })}
           />
           <input
@@ -200,7 +200,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
             type="number"
             placeholder="Max"
             defaultValue={maxPrice}
-            className="w-full rounded border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            className="w-full rounded border border-neutral-300 bg-white px-2 py-1.5 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
             onBlur={(e) => updateParams({ maxPrice: e.target.value || null })}
           />
         </div>
@@ -211,7 +211,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
             type="checkbox"
             checked={onSale}
             onChange={(e) => updateParams({ onSale: e.target.checked ? "true" : null })}
-            className="h-4 w-4 accent-neutral-900"
+            className="h-4 w-4 rounded border-neutral-300 bg-white accent-neutral-900"
           />
           On sale only
         </label>
@@ -262,7 +262,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
             id="plp-sort"
             value={sort}
             onChange={(e) => updateParams({ sort: e.target.value })}
-            className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            className="rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
             aria-label="Sort products"
           >
             {SORT_OPTIONS.map((opt) => (
@@ -437,7 +437,7 @@ function FilterGroup({
                 type="checkbox"
                 checked={selected.includes(item.slug)}
                 onChange={() => onToggle(item.slug)}
-                className="h-4 w-4 accent-neutral-900"
+                className="h-4 w-4 rounded border-neutral-300 bg-white accent-neutral-900"
               />
               <span>{item.label}</span>
               <span className="text-neutral-400">({item.count})</span>

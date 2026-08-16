@@ -65,8 +65,10 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [trending, setTrending] = useState<string[]>([]);
   const [cartCount, setCartCount] = useState(0);
+  const [bagBounce, setBagBounce] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const bagBounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshCartCount = useCallback(async () => {
     try {
@@ -80,9 +82,17 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   useEffect(() => {
     void refreshCartCount();
     setSignedIn(Boolean(getToken()));
-    const handler = () => void refreshCartCount();
+    const handler = () => {
+      void refreshCartCount();
+      setBagBounce(true);
+      if (bagBounceTimer.current) clearTimeout(bagBounceTimer.current);
+      bagBounceTimer.current = setTimeout(() => setBagBounce(false), 600);
+    };
     window.addEventListener("cart-updated", handler);
-    return () => window.removeEventListener("cart-updated", handler);
+    return () => {
+      window.removeEventListener("cart-updated", handler);
+      if (bagBounceTimer.current) clearTimeout(bagBounceTimer.current);
+    };
   }, [refreshCartCount]);
 
   const fetchSuggestions = useCallback(async (q: string) => {
@@ -244,11 +254,18 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             <Link
               href="/cart"
               aria-label="Cart"
-              className="relative text-neutral-700 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white"
+              id="site-header-bag"
+              data-bag-target="true"
+              className={`relative text-neutral-700 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white ${
+                bagBounce ? "animate-bag-bounce" : ""
+              }`}
             >
               <BagIcon className="h-5 w-5" />
               {cartCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-600 px-1 text-[10px] font-bold text-white">
+                <span
+                  key={cartCount}
+                  className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-600 px-1 text-[10px] font-bold text-white animate-pop"
+                >
                   {cartCount}
                 </span>
               )}
