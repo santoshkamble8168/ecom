@@ -2,11 +2,12 @@
 
 import type { NavigationSummary, SearchSuggestion } from "@ecom/types";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getToken } from "@/lib/auth";
 import { fetchCart } from "@/lib/cart";
+import { getApiUrl } from "@/lib/api-url";
 
 interface SiteHeaderProps {
   navigation: NavigationSummary;
@@ -59,6 +60,7 @@ function UserIcon({ className }: { className?: string }) {
 
 export function SiteHeader({ navigation }: SiteHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -80,8 +82,20 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   }, []);
 
   useEffect(() => {
-    void refreshCartCount();
     setSignedIn(Boolean(getToken()));
+    const syncAuth = () => setSignedIn(Boolean(getToken()));
+    window.addEventListener("storage", syncAuth);
+    window.addEventListener("focus", syncAuth);
+    window.addEventListener("auth-changed", syncAuth);
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("focus", syncAuth);
+      window.removeEventListener("auth-changed", syncAuth);
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    void refreshCartCount();
     const handler = () => {
       void refreshCartCount();
       setBagBounce(true);
@@ -101,7 +115,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
       return;
     }
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/search/suggestions?q=${encodeURIComponent(q)}`,
+      `${getApiUrl()}/search/suggestions?q=${encodeURIComponent(q)}`,
     );
     const body = await res.json();
     if (body.success) setSuggestions(body.data.suggestions);
@@ -109,7 +123,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
 
   useEffect(() => {
     if (!searchFocused) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/search/trending`)
+    fetch(`${getApiUrl()}/search/trending`)
       .then((r) => r.json())
       .then((body) => {
         if (body.success) setTrending(body.data.terms);
@@ -156,8 +170,11 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             </svg>
           </button>
 
-          <Link href="/" className="shrink-0 text-xl font-display font-bold tracking-tight">
-            ECOM<span className="text-accent-500">.</span>
+          <Link
+            href="/"
+            className="shrink-0 rounded-sm bg-accent-500 px-2 py-1 text-xl font-display font-bold tracking-tight text-neutral-950"
+          >
+            ECOM
           </Link>
 
           <nav className="hidden shrink-0 gap-5 md:flex" aria-label="Primary">
@@ -183,7 +200,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 if (e.key === "Enter") submitSearch(query);
               }}
               placeholder="Search for products, brands and more"
-              className="w-full rounded-full border border-neutral-200 bg-neutral-50 py-2 pl-9 pr-4 text-sm placeholder:text-neutral-400 focus:border-neutral-400 focus:bg-white focus:outline-none dark:border-neutral-800 dark:bg-neutral-900"
+              className="w-full rounded-sm border border-brand-200 bg-white py-2 pl-9 pr-4 text-sm placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
             />
 
             {dropdownOpen && (
@@ -264,7 +281,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               {cartCount > 0 && (
                 <span
                   key={cartCount}
-                  className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-600 px-1 text-[10px] font-bold text-white animate-pop"
+                  className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white animate-pop"
                 >
                   {cartCount}
                 </span>
@@ -274,7 +291,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
         </div>
 
         {announcement && (
-          <div className="bg-accent-600 py-2 text-center text-xs font-medium text-white">
+          <div className="bg-brand-500 py-2 text-center text-xs font-medium text-white">
             {announcement.message}
             {announcement.linkUrl && announcement.linkLabel && (
               <>

@@ -29,6 +29,11 @@ export class UsersController {
     return this.usersService.listAddresses(user.id);
   }
 
+  @Get("me/orders")
+  listOrders(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.listOrders(user.id);
+  }
+
   @Post("me/addresses")
   createAddress(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateAddressDto) {
     return this.usersService.createAddress(user.id, dto);

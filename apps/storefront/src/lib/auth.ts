@@ -1,6 +1,7 @@
+import { getApiUrl } from "@/lib/api-url";
 import type { ApiResponse } from "@ecom/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = getApiUrl();
 const TOKEN_KEY = "ecom_storefront_token";
 const REFRESH_TOKEN_KEY = "ecom_storefront_refresh_token";
 
@@ -14,18 +15,26 @@ export function getRefreshToken(): string | null {
   return localStorage.getItem(REFRESH_TOKEN_KEY);
 }
 
+function notifyAuthChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("auth-changed"));
+}
+
 export function setTokens(accessToken: string, refreshToken: string): void {
   localStorage.setItem(TOKEN_KEY, accessToken);
   localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  notifyAuthChanged();
 }
 
 export function setToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
+  notifyAuthChanged();
 }
 
 export function clearToken(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  notifyAuthChanged();
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {

@@ -11,7 +11,7 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ label: s
   if (links.length === 0) return null;
   return (
     <div>
-      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-accent-400">{title}</h3>
+      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">{title}</h3>
       <ul className="flex flex-col gap-2.5">
         {links.map((link) => (
           <li key={link.href}>
@@ -31,7 +31,7 @@ const SOCIAL_LINKS = [
   { label: "X", href: "https://twitter.com" },
 ];
 
-const PAYMENT_METHODS = ["Visa", "Mastercard", "UPI", "Net Banking", "COD"];
+const PAYMENT_METHODS = ["Visa", "Mastercard", "UPI", "Net Banking"];
 
 export function SiteFooter({ navigation }: SiteFooterProps) {
   return (
@@ -40,7 +40,7 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
         <FooterColumn title="Customer Service" links={navigation.footer.support} />
         <FooterColumn title="Company" links={navigation.footer.legal} />
         <div>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-accent-400">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">
             Connect With Us
           </h3>
           <ul className="flex flex-col gap-2.5">
@@ -59,7 +59,7 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
           </ul>
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-accent-400">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">
             Keep Up To Date
           </h3>
           <p className="text-sm text-neutral-400">Sign up for restocks, drops, and member-only offers.</p>
@@ -83,7 +83,7 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
       <div className="border-t border-neutral-800">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-6 text-center sm:flex-row sm:text-left">
           <p className="text-sm font-display font-bold text-white">
-            ECOM<span className="text-accent-400">.</span>
+            ECOM<span className="text-accent-500">.</span>
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-500">
             <span>100% secure payments</span>

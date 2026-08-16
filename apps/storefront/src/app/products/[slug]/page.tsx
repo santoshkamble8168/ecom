@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { PdpView } from "@/components/pdp/pdp-view";
+import { getApiUrl } from "@/lib/api-url";
 
 import type { ApiResponse, PdpProduct } from "@ecom/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = getApiUrl();
 
 async function getProduct(slug: string): Promise<PdpProduct | null> {
   let res: Response;

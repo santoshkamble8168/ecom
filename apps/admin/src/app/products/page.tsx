@@ -88,13 +88,13 @@ export default function ProductsPage() {
               {createMutation.isPending ? "Creating…" : "Create Draft"}
             </Button>
           </form>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-2 text-sm text-danger-600">{error}</p>}
         </CardContent>
       </Card>
 
       {isLoading && <p className="text-neutral-500">Loading products…</p>}
       {isError && (
-        <p className="text-red-600">
+        <p className="text-danger-600">
           Failed to load products. Make sure you are logged in as an admin.
         </p>
       )}

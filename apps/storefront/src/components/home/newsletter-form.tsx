@@ -3,6 +3,8 @@
 import { Button } from "@ecom/ui";
 import { useState } from "react";
 
+import { getApiUrl } from "@/lib/api-url";
+
 export function NewsletterForm({
   placeholder,
   ctaLabel,
@@ -18,14 +20,11 @@ export function NewsletterForm({
     e.preventDefault();
     setStatus("loading");
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1"}/newsletter/subscribe`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        },
-      );
+      const res = await fetch(`${getApiUrl()}/newsletter/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
       const body = await res.json();
       if (body.success) {
         setStatus("success");
@@ -58,13 +57,13 @@ export function NewsletterForm({
         <Button
           type="submit"
           disabled={status === "loading"}
-          className="bg-accent-600 text-white hover:bg-accent-700"
+          className="bg-accent-500 text-neutral-950 hover:bg-accent-600"
         >
           {status === "loading" ? "..." : ctaLabel}
         </Button>
       </form>
       {message && (
-        <p className={`mt-2 text-sm ${status === "error" ? "text-red-300" : "text-accent-300"}`}>
+        <p className={`mt-2 text-sm ${status === "error" ? "text-danger-500" : "text-accent-300"}`}>
           {message}
         </p>
       )}

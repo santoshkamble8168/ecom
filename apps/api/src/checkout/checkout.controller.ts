@@ -60,8 +60,8 @@ class UpdateShippingDto {
 }
 
 class UpdatePaymentMethodDto {
-  @IsEnum(["razorpay", "cod"])
-  paymentMethod!: "razorpay" | "cod";
+  @IsEnum(["razorpay"])
+  paymentMethod!: "razorpay";
 
   @IsOptional()
   @IsString()
@@ -74,6 +74,12 @@ class UpdatePaymentMethodDto {
 @Controller("checkout")
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService) {}
+
+  @Public()
+  @Get("pincode/:pincode")
+  lookupPincode(@Param("pincode") pincode: string) {
+    return this.checkoutService.lookupPincode(pincode);
+  }
 
   @Public()
   @Post()
@@ -175,15 +181,14 @@ export class CheckoutController {
     return this.checkoutService.review(id, user?.id, sessionId);
   }
 
-  @Public()
   @Post(":id/place-order")
   @ApiHeader({ name: "Idempotency-Key", required: true })
   placeOrder(
     @Param("id") id: string,
     @Headers("idempotency-key") idempotencyKey: string,
-    @CurrentUser() user: AuthenticatedUser | undefined,
+    @CurrentUser() user: AuthenticatedUser,
     @Query("sessionId") sessionId?: string,
   ) {
-    return this.checkoutService.placeOrder(id, idempotencyKey, user?.id, sessionId);
+    return this.checkoutService.placeOrder(id, idempotencyKey, user.id, sessionId);
   }
 }

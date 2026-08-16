@@ -9,8 +9,9 @@ import { useEffect, useState } from "react";
 import { getToken } from "@/lib/auth";
 import { moveWishlistToCart } from "@/lib/cart";
 import { getSessionId } from "@/lib/session";
+import { getApiUrl } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = getApiUrl();
 
 export default function WishlistPage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ export default function WishlistPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="mb-6 text-2xl font-display font-bold">Wishlist</h1>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-danger-600">{error}</p>}
 
       {items.length === 0 ? (
         <div className="text-center">

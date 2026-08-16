@@ -38,7 +38,7 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
 
 const FEATURE_FLAGS = [
   { key: "search.meilisearch", isEnabled: false, description: "Enable Meilisearch-backed search" },
-  { key: "payments.razorpay", isEnabled: false, description: "Enable Razorpay checkout" },
+  { key: "payments.razorpay", isEnabled: true, description: "Enable Razorpay checkout (mock mode locally)" },
 ];
 
 const ATTRIBUTES = [

@@ -2,7 +2,7 @@
 
 Theme: Address, shipping, taxes, order review  
 Primary source volumes: Volume 4, Volume 6, Volume 8, Volume 9, Volume 10, Volume 12  
-Status: In Progress
+Status: Done (functional — formal DoD deferred)
 
 ## Deferred — revisit before Sprint 17 (production readiness)
 

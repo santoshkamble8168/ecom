@@ -67,6 +67,16 @@ describe("shipping.policy", () => {
     expect(options.every((o) => o.fee === 0)).toBe(true);
   });
 
+  it("returns standard nationwide for non-metro pincode", () => {
+    const options = resolveShippingOptions({
+      pincode: "554544",
+      methods: [...methods],
+      freeShipping: false,
+    });
+    expect(options).toHaveLength(1);
+    expect(options[0]?.code).toBe("standard");
+  });
+
   it("rejects unavailable shipping code", () => {
     const options = resolveShippingOptions({
       pincode: "560001",

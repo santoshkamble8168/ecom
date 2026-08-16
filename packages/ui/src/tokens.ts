@@ -4,44 +4,48 @@
  * Source of truth for color, spacing, radius, typography, motion,
  * breakpoints, and z-index. Update here first, Tailwind preset reads
  * from these values.
+ *
+ * Storefront theme follows Flipkart-style functional colors:
+ * cool-gray page canvas, white surfaces, black type,
+ * yellow primary CTAs (black on yellow), royal blue for brand/links/login,
+ * green for savings. Danger red is reserved for errors/badges only.
  */
 export const colors = {
+  // Brand / trust blue (links, Login, search focus, secondary brand actions).
+  // 600–700 are tuned so white text meets WCAG AA on filled buttons.
   brand: {
-    50: "#fff7ed",
-    100: "#ffedd5",
-    200: "#fed7aa",
-    300: "#fdba74",
-    400: "#fb923c",
-    500: "#f97316",
-    600: "#ea580c",
-    700: "#c2410c",
-    800: "#9a3412",
-    900: "#7c2d12",
+    50: "#eef5ff",
+    100: "#d9e8ff",
+    200: "#bcd6ff",
+    300: "#8ebcff",
+    400: "#5996ff",
+    500: "#2874f0",
+    600: "#1a66d8",
+    700: "#1d4ed8",
+    800: "#1e40af",
+    900: "#1e3a8a",
   },
-  // High-contrast conversion accent for storefront primary CTAs (Add to Bag,
-  // Proceed, Subscribe) — kept distinct from `brand` (logo/link color) so the
-  // two can be themed independently. A vibrant raspberry/rose was chosen
-  // deliberately instead of the ubiquitous yellow CTA seen on competitor
-  // fashion sites, so ECOM reads as its own brand rather than a clone.
+  // Primary conversion CTAs (Buy Now, Place Order, Add to Bag).
+  // #FFE500 + near-black text clears WCAG AAA (~15:1).
   accent: {
-    50: "#fff1f2",
-    100: "#ffe4e6",
-    200: "#fecdd3",
-    300: "#fda4af",
-    400: "#fb7185",
-    500: "#f43f5e",
-    600: "#e11d48",
-    700: "#be123c",
-    800: "#9f1239",
-    900: "#881337",
+    50: "#fffceb",
+    100: "#fff8c4",
+    200: "#fff085",
+    300: "#ffe44d",
+    400: "#ffd81f",
+    500: "#ffe500",
+    600: "#f5c400",
+    700: "#d9a800",
+    800: "#b38600",
+    900: "#8f6a00",
   },
   neutral: {
     0: "#ffffff",
-    50: "#fafafa",
-    100: "#f4f4f5",
-    200: "#e4e4e7",
-    300: "#d4d4d8",
-    400: "#a1a1aa",
+    50: "#f1f3f6",
+    100: "#e7e9ee",
+    200: "#d4d7de",
+    300: "#c0c4cc",
+    400: "#9ea3ae",
     500: "#71717a",
     600: "#52525b",
     700: "#3f3f46",
@@ -49,10 +53,12 @@ export const colors = {
     900: "#18181b",
     950: "#09090b",
   },
-  success: { 50: "#f0fdf4", 100: "#dcfce7", 500: "#22c55e", 600: "#16a34a", 700: "#15803d" },
-  warning: { 500: "#f59e0b", 600: "#d97706" },
-  danger: { 500: "#ef4444", 600: "#dc2626" },
-  info: { 500: "#3b82f6", 600: "#2563eb" },
+  // Discount / savings / success
+  success: { 50: "#e8f5e9", 100: "#c8e6c9", 500: "#2e7d32", 600: "#1b873f", 700: "#15803d" },
+  warning: { 50: "#fffbeb", 100: "#fef3c7", 500: "#f59e0b", 600: "#d97706" },
+  danger: { 50: "#fef2f2", 100: "#fee2e2", 500: "#ef4444", 600: "#dc2626" },
+  // Interactive text links (same family as brand blue)
+  info: { 50: "#eef5ff", 100: "#d9e8ff", 500: "#2874f0", 600: "#1a66d8" },
 } as const;
 
 export const spacing = {

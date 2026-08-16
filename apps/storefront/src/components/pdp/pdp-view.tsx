@@ -10,8 +10,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, getToken } from "@/lib/auth";
 import { addToCart } from "@/lib/cart";
 import { getSessionId } from "@/lib/session";
+import { getApiUrl } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = getApiUrl();
 
 interface PdpViewProps {
   product: PdpProduct;
@@ -105,7 +106,7 @@ function Toast({ show, message, productTitle, onGoToBag }: ToastProps) {
       aria-live="polite"
     >
       <div className="flex items-center gap-3 rounded-2xl bg-neutral-900 px-4 py-3.5 text-white shadow-2xl ring-1 ring-white/10 dark:bg-white dark:text-neutral-900 dark:ring-black/5">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-500 text-white animate-pop">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-success-500 text-white animate-pop">
           <CheckCircleIcon className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -115,7 +116,7 @@ function Toast({ show, message, productTitle, onGoToBag }: ToastProps) {
         <button
           type="button"
           onClick={onGoToBag}
-          className="flex items-center gap-1.5 rounded-lg bg-green-500 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-white transition-all hover:bg-green-600 active:scale-95"
+          className="flex items-center gap-1.5 rounded-lg bg-success-500 px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-white transition-all hover:bg-success-600 active:scale-95"
         >
           Go to Bag
           <ArrowRightIcon className="h-3.5 w-3.5" />
@@ -138,7 +139,7 @@ function CelebrationBanner({ show, savings, freeShipping }: CelebrationBannerPro
   if (!show) return null;
 
   return (
-    <div className="mt-4 animate-fade-in overflow-hidden rounded-xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 px-5 py-3.5 text-white shadow-lg">
+    <div className="mt-4 animate-fade-in overflow-hidden rounded-xl bg-brand-600 px-5 py-3.5 text-white shadow-lg">
       <div className="flex items-center gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20 animate-pop">
           {freeShipping ? <TruckIcon className="h-5 w-5" /> : <PartyIcon className="h-5 w-5" />}
@@ -578,7 +579,7 @@ export function PdpView({ product }: PdpViewProps) {
           </div>
 
           {!product.inStock && (
-            <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">Out of stock</p>
+            <p className="mt-3 rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-600">Out of stock</p>
           )}
 
           {/* Color is hidden until real per-color imagery/variants are available */}
@@ -597,7 +598,7 @@ export function PdpView({ product }: PdpViewProps) {
                     <button
                       type="button"
                       onClick={() => setSizeGuideOpen(true)}
-                      className="flex items-center gap-1 text-xs font-semibold text-accent-600 hover:text-accent-700"
+                      className="flex items-center gap-1 text-xs font-semibold text-info-600 hover:underline"
                     >
                       Size Guide
                       <span aria-hidden="true">›</span>
@@ -672,7 +673,7 @@ export function PdpView({ product }: PdpViewProps) {
               onClick={handleCtaClick}
               className={`relative flex flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-md px-6 py-3.5 text-sm font-bold uppercase tracking-wide transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
                 addedToCart
-                  ? "animate-cta-pulse bg-green-600 text-white shadow-lg shadow-green-600/25 hover:bg-green-700"
+                  ? "animate-cta-pulse bg-success-600 text-white shadow-lg shadow-success-600/25 hover:bg-success-700"
                   : "bg-accent-500 text-neutral-950 hover:bg-accent-600"
               }`}
             >
@@ -702,7 +703,7 @@ export function PdpView({ product }: PdpViewProps) {
               onClick={() => void toggleWishlist()}
               className={`flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-md border transition-all duration-200 ${
                 wishlisted
-                  ? "border-accent-600 bg-accent-50 text-accent-600 scale-110"
+                  ? "border-danger-500 bg-danger-50 text-danger-500 scale-110"
                   : "border-neutral-300 text-neutral-700 hover:border-neutral-500 hover:scale-105"
               }`}
               aria-label={wishlisted ? "Saved to wishlist" : "Add to wishlist"}
@@ -744,7 +745,7 @@ export function PdpView({ product }: PdpViewProps) {
               </button>
             </div>
             {delivery && <p className="mt-2 text-sm font-medium text-success-600">{delivery.message}</p>}
-            {deliveryError && <p className="mt-2 text-sm text-red-600">{deliveryError}</p>}
+            {deliveryError && <p className="mt-2 text-sm text-danger-600">{deliveryError}</p>}
             <p className="mt-2 text-xs text-neutral-500">Free shipping on orders above ₹999 · Cash on delivery available</p>
           </div>
 
@@ -884,7 +885,7 @@ export function PdpView({ product }: PdpViewProps) {
             disabled={!product.inStock || addingToCart}
             onClick={handleCtaClick}
             className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-sm font-bold uppercase tracking-wide transition-all duration-300 disabled:opacity-50 ${
-              addedToCart ? "bg-green-600 text-white" : "bg-accent-500 text-neutral-950"
+              addedToCart ? "bg-success-600 text-white" : "bg-accent-500 text-neutral-950"
             }`}
           >
             {addedToCart ? (

@@ -5,9 +5,10 @@ import type {
   PreparedOrderResult,
   ShippingOption,
 } from "@ecom/types";
-import { ConflictError, NotFoundError, ValidationError } from "@ecom/shared";
+import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from "@ecom/shared";
+import { lookupPincode as resolvePincodeLookup, validateCheckoutAddress } from "@ecom/validation";
 import { Injectable } from "@nestjs/common";
-import type { CheckoutPaymentMethod, CheckoutStatus, Prisma } from "@prisma/client";
+import { Prisma, type CheckoutPaymentMethod, type CheckoutStatus } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 import { AuditService } from "../audit/audit.service";
@@ -116,7 +117,13 @@ export class CheckoutService {
       addressId = address.id;
     } else if (params.guestAddress) {
       this.validateGuestAddress(params.guestAddress);
-      guestAddress = params.guestAddress as unknown as Prisma.InputJsonValue;
+      if (userId) {
+        // Persist to address book for logged-in shoppers (standard ecommerce behavior)
+        const saved = await this.persistGuestAddress(userId, params.guestAddress);
+        addressId = saved.id;
+      } else {
+        guestAddress = params.guestAddress as unknown as Prisma.InputJsonValue;
+      }
     } else {
       throw new ValidationError("addressId or guestAddress is required");
     }
@@ -125,7 +132,7 @@ export class CheckoutService {
       where: { id: session.id },
       data: {
         addressId,
-        guestAddress: guestAddress ?? undefined,
+        guestAddress: addressId ? Prisma.DbNull : guestAddress,
         status: "address_selected",
       },
     });
@@ -226,6 +233,10 @@ export class CheckoutService {
     const session = await this.loadAuthorizedSession(id, userId, sessionId);
     this.assertActive(session);
 
+    if (paymentMethod === "cod") {
+      throw new ValidationError("Cash on Delivery is not available. Please pay online.");
+    }
+
     if (!session.shippingMethodCode) {
       throw new ValidationError("Select a delivery option before payment method");
     }
@@ -289,6 +300,10 @@ export class CheckoutService {
     userId?: string,
     sessionId?: string,
   ): Promise<PreparedOrderResult> {
+    if (!userId) {
+      throw new UnauthorizedError("Login required to place your order");
+    }
+
     if (!idempotencyKey || idempotencyKey.length < 8) {
       throw new ValidationError("Idempotency-Key header is required");
     }
@@ -308,7 +323,7 @@ export class CheckoutService {
         preparedOrderRef: session.preparedOrderRef,
         total: session.total.toString(),
         paymentMethod: session.paymentMethod!,
-        message: "Order already prepared — proceed to payment in Sprint 8",
+        message: "Order already prepared — continue to payment",
       };
       await this.storeIdempotency(id, idempotencyKey, result);
       return result;
@@ -337,7 +352,7 @@ export class CheckoutService {
       preparedOrderRef,
       total: updated.total.toString(),
       paymentMethod: updated.paymentMethod!,
-      message: "Order prepared — payment execution arrives in Sprint 8",
+      message: "Order prepared — complete payment to confirm",
     };
 
     await this.storeIdempotency(id, idempotencyKey, result);
@@ -429,23 +444,67 @@ export class CheckoutService {
     return guest.postalCode;
   }
 
-  private validateGuestAddress(address: GuestAddressInput): void {
-    const required: Array<keyof GuestAddressInput> = [
-      "fullName",
-      "phone",
-      "line1",
-      "city",
-      "state",
-      "postalCode",
-      "country",
-    ];
-    for (const field of required) {
-      if (!address[field]) {
-        throw new ValidationError(`${field} is required`);
-      }
+  lookupPincode(pincode: string) {
+    return resolvePincodeLookup(pincode);
+  }
+
+  private async persistGuestAddress(userId: string, guest: GuestAddressInput) {
+    const existing = await this.prisma.address.findFirst({
+      where: {
+        userId,
+        fullName: guest.fullName.trim(),
+        phone: guest.phone.trim(),
+        line1: guest.line1.trim(),
+        postalCode: guest.postalCode.trim(),
+        city: guest.city.trim(),
+        state: guest.state.trim(),
+      },
+    });
+    if (existing) return existing;
+
+    const count = await this.prisma.address.count({ where: { userId } });
+    const makeDefault = count === 0 || guest.isDefault === true;
+
+    if (makeDefault) {
+      await this.prisma.address.updateMany({
+        where: { userId, isDefault: true },
+        data: { isDefault: false },
+      });
     }
-    if (!/^\d{6}$/.test(address.postalCode)) {
-      throw new ValidationError("postalCode must be 6 digits");
+
+    return this.prisma.address.create({
+      data: {
+        userId,
+        label: guest.label ?? "Home",
+        fullName: guest.fullName.trim(),
+        phone: guest.phone.trim(),
+        line1: guest.line1.trim(),
+        line2: guest.line2?.trim() || null,
+        city: guest.city.trim(),
+        state: guest.state.trim(),
+        postalCode: guest.postalCode.trim(),
+        country: guest.country || "IN",
+        isDefault: makeDefault,
+      },
+    });
+  }
+
+  private validateGuestAddress(address: GuestAddressInput): void {
+    const issues = validateCheckoutAddress({
+      fullName: address.fullName,
+      phone: address.phone,
+      line1: address.line1,
+      line2: address.line2,
+      city: address.city,
+      state: address.state,
+      postalCode: address.postalCode,
+      country: address.country,
+    });
+    if (issues.length > 0) {
+      throw new ValidationError(issues.map((i) => i.message).join(". "));
+    }
+    if (address.country && address.country !== "IN") {
+      throw new ValidationError("Only Indian addresses (IN) are supported");
     }
   }
 

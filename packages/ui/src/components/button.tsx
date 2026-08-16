@@ -8,14 +8,13 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        // brand-700 (not brand-600) is required so white text clears the
-        // WCAG AA 4.5:1 contrast threshold for normal-size text; caught by
-        // the Storybook a11y addon during Sprint 0 hardening.
-        primary: "bg-brand-700 text-white hover:bg-brand-800",
-        secondary: "bg-neutral-100 text-neutral-900 hover:bg-neutral-200",
+        // Conversion CTAs: black on Flipkart yellow (accent) — WCAG AAA.
+        // Brand blue + white is for Login / secondary brand actions (override via className).
+        primary: "bg-accent-500 text-neutral-950 hover:bg-accent-600",
+        secondary: "bg-white text-neutral-900 border border-neutral-300 hover:bg-neutral-50",
         outline: "border border-neutral-300 bg-transparent hover:bg-neutral-50",
         ghost: "bg-transparent hover:bg-neutral-100",
-        destructive: "bg-danger-600 text-white hover:bg-danger-700",
+        destructive: "bg-danger-600 text-white hover:bg-danger-600/90",
       },
       size: {
         sm: "h-8 px-3 text-xs",

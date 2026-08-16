@@ -17,10 +17,47 @@ async function bootstrap() {
   logger.setContext("Bootstrap");
   app.useLogger(logger);
 
-  app.use(helmet());
+  app.use(
+    helmet({
+      // Allow storefront (different origin) to read API responses in the browser.
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
+
+  // Development: reflect any Origin so localhost/127.0.0.1 never fail CORS.
+  // Production: allow only configured storefront/admin URLs.
+  const isDev = (process.env.NODE_ENV ?? "development") !== "production";
+  const configuredOrigins = [
+    process.env.STOREFRONT_URL,
+    process.env.ADMIN_URL,
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+  ].filter((value): value is string => Boolean(value));
+
   app.enableCors({
-    origin: [process.env.STOREFRONT_URL ?? "http://localhost:3000", process.env.ADMIN_URL ?? "http://localhost:3001"],
+    origin: isDev
+      ? true
+      : (origin, callback) => {
+          if (!origin) {
+            callback(null, true);
+            return;
+          }
+          const normalized = origin.replace(/\/$/, "");
+          const allowed = configuredOrigins.some((o) => o.replace(/\/$/, "") === normalized);
+          callback(null, allowed ? normalized : false);
+        },
     credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Idempotency-Key",
+      "X-Requested-With",
+      "Accept",
+    ],
+    exposedHeaders: ["X-Request-Id"],
   });
 
   const apiPrefix = process.env.API_PREFIX ?? "api/v1";

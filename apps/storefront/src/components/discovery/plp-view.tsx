@@ -10,8 +10,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getToken } from "@/lib/auth";
 import { SORT_OPTIONS } from "@/lib/discovery";
 import { getSessionId } from "@/lib/session";
+import { getApiUrl } from "@/lib/api-url";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = getApiUrl();
 
 interface PlpViewProps {
   title: string;
@@ -284,7 +285,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
               <button
                 type="button"
                 onClick={clearAllFilters}
-                className="text-xs font-semibold text-accent-600 hover:text-accent-700"
+                className="text-xs font-semibold text-info-600 hover:text-info-600/80"
               >
                 Clear All
               </button>
@@ -303,7 +304,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
           )}
 
           {error && (
-            <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+            <p className="rounded-lg border border-danger-500/30 bg-danger-50 p-4 text-danger-600">
               Failed to load products. {error}
             </p>
           )}
@@ -376,7 +377,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
               <h2 className="font-semibold">Filters{activeFilterCount > 0 && ` (${activeFilterCount})`}</h2>
               <div className="flex items-center gap-3">
                 {activeFilterCount > 0 && (
-                  <button type="button" onClick={clearAllFilters} className="text-sm font-semibold text-accent-600">
+                  <button type="button" onClick={clearAllFilters} className="text-sm font-semibold text-info-600">
                     Clear All
                   </button>
                 )}

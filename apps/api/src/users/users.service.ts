@@ -1,4 +1,4 @@
-import type { CustomerAddress, CustomerPreferences, UserProfile } from "@ecom/types";
+import type { CustomerAddress, CustomerOrderSummary, CustomerPreferences, UserProfile } from "@ecom/types";
 import { NotFoundError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
 import type { Address, Prisma } from "@prisma/client";
@@ -76,6 +76,36 @@ export class UsersService {
       orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
     });
     return addresses.map((address) => this.toAddress(address));
+  }
+
+  async listOrders(userId: string): Promise<CustomerOrderSummary[]> {
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+        },
+      },
+    });
+
+    return orders.map((order) => {
+      const items = Array.isArray(order.lineItems) ? order.lineItems : [];
+      const payment = order.payments[0];
+      return {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status as CustomerOrderSummary["status"],
+        total: order.total.toString(),
+        currency: order.currency,
+        paymentMethod: order.paymentMethod as CustomerOrderSummary["paymentMethod"],
+        paymentStatus: payment?.status ?? null,
+        itemCount: items.length,
+        confirmedAt: order.confirmedAt?.toISOString() ?? null,
+        createdAt: order.createdAt.toISOString(),
+      };
+    });
   }
 
   async createAddress(userId: string, dto: CreateAddressDto): Promise<CustomerAddress> {

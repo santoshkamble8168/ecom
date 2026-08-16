@@ -13,7 +13,9 @@ export interface ResolvedShipping {
 export function matchZone(pincode: string, zones: ShippingZone[]): ShippingZone | null {
   const prefix = pincode.slice(0, 2);
   return (
-    zones.find((zone) => zone.isServiceable && zone.pincodePrefixes.includes(prefix)) ?? null
+    zones.find((zone) => zone.isServiceable && zone.pincodePrefixes.includes(prefix)) ??
+    zones.find((zone) => zone.isServiceable && zone.pincodePrefixes.includes("*")) ??
+    null
   );
 }
 
@@ -22,8 +24,8 @@ export function resolveShippingOptions(params: {
   methods: Array<ShippingMethod & { zones: ShippingZone[] }>;
   freeShipping: boolean;
 }): ResolvedShipping[] {
-  if (!/^\d{6}$/.test(params.pincode)) {
-    throw new ValidationError("Pincode must be 6 digits");
+  if (!/^[1-9]\d{5}$/.test(params.pincode)) {
+    throw new ValidationError("Pincode must be a valid 6-digit Indian pincode");
   }
 
   return params.methods
@@ -31,7 +33,11 @@ export function resolveShippingOptions(params: {
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((method) => {
       const zone = matchZone(params.pincode, method.zones);
-      const serviceable = zone !== null || method.zones.length === 0;
+      // Standard: nationwide for any valid Indian pincode.
+      // Express / others: require a matching zone.
+      const nationwide = method.code === "standard";
+      const serviceable =
+        zone !== null || method.zones.length === 0 || (nationwide && zone === null);
       const baseFee = zone?.feeOverride != null ? Number(zone.feeOverride) : Number(method.baseFee);
       const fee = params.freeShipping ? 0 : baseFee;
 

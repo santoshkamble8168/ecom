@@ -77,7 +77,7 @@ export default function LoginPage() {
               className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
             />
           )}
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-danger-600">{error}</p>}
           {step === "request" ? (
             <Button onClick={() => void requestOtp()} disabled={loading}>
               {loading ? "Sending…" : "Send OTP"}

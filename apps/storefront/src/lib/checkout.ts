@@ -1,3 +1,4 @@
+import { getApiUrl } from "@/lib/api-url";
 import type {
   ApiResponse,
   CheckoutReviewResult,
@@ -10,7 +11,7 @@ import type {
 import { getToken } from "./auth";
 import { getSessionId } from "./session";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+const API_URL = getApiUrl();
 
 function authHeaders(): HeadersInit {
   const token = getToken();
@@ -64,10 +65,19 @@ export async function updateCheckoutAddress(
   id: string,
   params: { addressId?: string; guestAddress?: Omit<CustomerAddress, "id" | "createdAt" | "updatedAt"> },
 ): Promise<CheckoutSession> {
+  const guestAddress = params.guestAddress
+    ? {
+        ...params.guestAddress,
+        label: params.guestAddress.label?.trim() || undefined,
+        line2: params.guestAddress.line2?.trim() || undefined,
+        country: params.guestAddress.country || "IN",
+      }
+    : undefined;
+
   const response = await fetch(`${API_URL}/checkout/${id}/address`, {
     method: "PATCH",
     headers: authHeaders(),
-    body: JSON.stringify({ ...params, ...sessionBody() }),
+    body: JSON.stringify({ addressId: params.addressId, guestAddress, ...sessionBody() }),
   });
   return parseResponse(response);
 }
@@ -86,12 +96,26 @@ export async function updateCheckoutShipping(
 
 export async function updateCheckoutPayment(
   id: string,
-  paymentMethod: "razorpay" | "cod",
+  paymentMethod: "razorpay",
 ): Promise<CheckoutSession> {
   const response = await fetch(`${API_URL}/checkout/${id}/payment-method`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ paymentMethod, ...sessionBody() }),
+  });
+  return parseResponse(response);
+}
+
+export async function lookupPincode(pincode: string): Promise<{
+  pincode: string;
+  valid: boolean;
+  city: string | null;
+  state: string | null;
+  serviceable: boolean;
+  message: string;
+}> {
+  const response = await fetch(`${API_URL}/checkout/pincode/${encodeURIComponent(pincode)}`, {
+    headers: authHeaders(),
   });
   return parseResponse(response);
 }

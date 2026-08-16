@@ -2,7 +2,16 @@
 
 Theme: Razorpay, COD, payment lifecycle, webhooks  
 Primary source volumes: Volume 6, Volume 8, Volume 9, Volume 10, Volume 12  
-Status: Not Started
+Status: In Progress
+
+## Deferred — revisit before Sprint 17 (production readiness)
+
+- Storybook, E2E, full accessibility audit
+- Real Razorpay live keys / production webhook verification hardening
+- Queue-backed webhook processor (inline handling for now)
+- Settlement ledger, refunds UI, payment incident runbook
+- OpenAPI docs, ADR, sprint summary, security review doc
+- Alerting for payment failure spikes
 
 ## Sprint Goal
 

@@ -57,7 +57,7 @@ export default function UsersPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-display font-bold">Users & Roles</h1>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-danger-600">{error}</p>}
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Roles</h2>

@@ -27,8 +27,8 @@ const STATUS_LABELS: Record<ProductStatus, string> = {
 
 const STATUS_COLORS: Record<ProductStatus, string> = {
   draft: "bg-neutral-100 text-neutral-600",
-  review: "bg-amber-100 text-amber-800",
-  published: "bg-green-100 text-green-800",
+  review: "bg-warning-100 text-warning-600",
+  published: "bg-success-100 text-success-700",
   archived: "bg-neutral-200 text-neutral-500",
 };
 
@@ -85,8 +85,8 @@ export function ProductCard({
             aria-pressed={wishlisted}
             onClick={onToggleWishlist}
             className={cn(
-              "absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:text-accent-600 dark:bg-neutral-900/90",
-              wishlisted ? "text-accent-600" : "text-neutral-700",
+              "absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition-colors hover:text-danger-500 dark:bg-neutral-900/90",
+              wishlisted ? "text-danger-500" : "text-neutral-700",
             )}
           >
             <svg
@@ -152,7 +152,7 @@ export function PriceDisplay({
         </span>
       )}
       {discount && (
-        <span className="text-sm font-semibold text-green-600">{discount}% OFF</span>
+        <span className="text-sm font-semibold text-success-600">{discount}% OFF</span>
       )}
     </div>
   );

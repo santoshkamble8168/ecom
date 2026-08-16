@@ -1,13 +1,15 @@
 "use client";
 
-import type { CustomerAddress, UserProfile } from "@ecom/types";
+import type { CustomerAddress, CustomerOrderSummary, UserProfile } from "@ecom/types";
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 import { apiFetch, clearToken, getRefreshToken, getToken, setTokens } from "@/lib/auth";
-import { mergeCartOnLogin } from "@/lib/cart";
+import { formatInr, mergeCartOnLogin } from "@/lib/cart";
 
-type Tab = "profile" | "addresses";
+type Tab = "orders" | "profile" | "addresses";
 
 const EMPTY_ADDRESS = {
   label: "Home",
@@ -22,38 +24,96 @@ const EMPTY_ADDRESS = {
   isDefault: false,
 };
 
+const ADDRESS_FIELD_LABELS: Record<keyof typeof EMPTY_ADDRESS, string> = {
+  label: "Label",
+  fullName: "Full name",
+  phone: "Phone",
+  line1: "Address line 1",
+  line2: "Address line 2",
+  city: "City",
+  state: "State",
+  postalCode: "Pincode",
+  country: "Country",
+  isDefault: "Default",
+};
+
+function formatOrderDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function orderStatusLabel(status: CustomerOrderSummary["status"]): string {
+  switch (status) {
+    case "confirmed":
+      return "Confirmed";
+    case "pending_payment":
+      return "Pending payment";
+    case "cancelled":
+      return "Cancelled";
+    case "failed":
+      return "Failed";
+    default:
+      return status;
+  }
+}
+
 export default function AccountPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-3xl px-4 py-12 text-neutral-500">Loading account…</div>}>
+      <AccountPageContent />
+    </Suspense>
+  );
+}
+
+function AccountPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next");
   const [email, setEmail] = useState("customer@ecom.local");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"request" | "verify">("request");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [tab, setTab] = useState<Tab>("profile");
+  const [tab, setTab] = useState<Tab>("orders");
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
+  const [orders, setOrders] = useState<CustomerOrderSummary[]>([]);
   const [displayName, setDisplayName] = useState("");
   const [newsletter, setNewsletter] = useState(false);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS);
   const [showAddressForm, setShowAddressForm] = useState(false);
 
   async function loadAccount() {
-    const [userProfile, userAddresses] = await Promise.all([
+    const [userProfile, userAddresses, userOrders] = await Promise.all([
       apiFetch<UserProfile>("/me"),
       apiFetch<CustomerAddress[]>("/me/addresses"),
+      apiFetch<CustomerOrderSummary[]>("/me/orders"),
     ]);
     setProfile(userProfile);
     setDisplayName(userProfile.displayName ?? "");
     setNewsletter(Boolean(userProfile.profile.preferences.newsletter));
     setAddresses(userAddresses);
+    setOrders(userOrders);
     setLoggedIn(true);
+  }
+
+  function redirectAfterLogin() {
+    const redirectTo = nextPath && nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : null;
+    if (redirectTo) router.replace(redirectTo);
   }
 
   useEffect(() => {
     if (getToken()) {
-      void loadAccount().catch(() => clearToken());
+      void loadAccount()
+        .then(() => redirectAfterLogin())
+        .catch(() => clearToken());
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on mount / next change
+  }, [nextPath]);
 
   async function requestOtp() {
     setLoading(true);
@@ -84,6 +144,7 @@ export default function AccountPage() {
       await loadAccount();
       setStep("request");
       setCode("");
+      redirectAfterLogin();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify OTP");
     } finally {
@@ -145,6 +206,7 @@ export default function AccountPage() {
     setLoggedIn(false);
     setProfile(null);
     setAddresses([]);
+    setOrders([]);
   }
 
   if (!loggedIn) {
@@ -155,6 +217,11 @@ export default function AccountPage() {
             <CardTitle>Sign In</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
+            {nextPath === "/checkout" && (
+              <p className="rounded-md border border-brand-200 bg-brand-50 px-3 py-2 text-sm text-neutral-800">
+                Sign in to place your order. Your bag will stay saved.
+              </p>
+            )}
             <p className="text-sm text-neutral-500">
               OTP login. In development, use <code className="rounded bg-neutral-100 px-1">123456</code> for{" "}
               <code className="rounded bg-neutral-100 px-1">customer@ecom.local</code>.
@@ -175,7 +242,7 @@ export default function AccountPage() {
                 className="rounded-md border border-neutral-300 px-3 py-2 text-sm"
               />
             )}
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-danger-600">{error}</p>}
             {step === "request" ? (
               <Button onClick={() => void requestOtp()} disabled={loading}>
                 {loading ? "Sending…" : "Send OTP"}
@@ -191,6 +258,12 @@ export default function AccountPage() {
     );
   }
 
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "orders", label: "Orders" },
+    { id: "addresses", label: "Addresses" },
+    { id: "profile", label: "Profile" },
+  ];
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="mb-6 flex items-center justify-between">
@@ -203,24 +276,79 @@ export default function AccountPage() {
         </Button>
       </div>
 
-      <div className="mb-6 flex gap-2">
-        <button
-          type="button"
-          className={`rounded-md px-4 py-2 text-sm ${tab === "profile" ? "bg-brand-700 text-white" : "border"}`}
-          onClick={() => setTab("profile")}
-        >
-          Profile
-        </button>
-        <button
-          type="button"
-          className={`rounded-md px-4 py-2 text-sm ${tab === "addresses" ? "bg-brand-700 text-white" : "border"}`}
-          onClick={() => setTab("addresses")}
-        >
-          Addresses
-        </button>
+      <div className="mb-6 flex flex-wrap gap-2">
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`rounded-md px-4 py-2 text-sm ${
+              tab === item.id ? "bg-brand-700 text-white" : "border border-neutral-300"
+            }`}
+            onClick={() => setTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
       </div>
 
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm text-danger-600">{error}</p>}
+
+      {tab === "orders" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Your orders</h2>
+          {orders.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-sm text-neutral-500">
+                <p>No orders yet.</p>
+                <Link href="/" className="mt-3 inline-block text-info-600 hover:underline">
+                  Continue shopping
+                </Link>
+              </CardContent>
+            </Card>
+          ) : (
+            orders.map((order) => (
+              <Card key={order.id}>
+                <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="text-sm">
+                    <p className="font-semibold text-neutral-900">
+                      Order {order.orderNumber}
+                    </p>
+                    <p className="mt-1 text-neutral-500">
+                      {formatOrderDate(order.createdAt)} · {order.itemCount} item
+                      {order.itemCount === 1 ? "" : "s"}
+                    </p>
+                    <p className="mt-1">
+                      <span
+                        className={
+                          order.status === "confirmed"
+                            ? "text-success-600"
+                            : order.status === "pending_payment"
+                              ? "text-neutral-600"
+                              : "text-danger-600"
+                        }
+                      >
+                        {orderStatusLabel(order.status)}
+                      </span>
+                      {order.paymentStatus ? (
+                        <span className="text-neutral-400"> · Payment {order.paymentStatus}</span>
+                      ) : null}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <p className="text-base font-bold">{formatInr(order.total)}</p>
+                    <Link
+                      href={`/order/confirmation?order=${encodeURIComponent(order.orderNumber)}`}
+                      className="text-sm font-medium text-info-600 hover:underline"
+                    >
+                      View details
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+      )}
 
       {tab === "profile" && (
         <Card>
@@ -263,9 +391,11 @@ export default function AccountPage() {
           {showAddressForm && (
             <Card>
               <CardContent className="grid gap-3 pt-6 sm:grid-cols-2">
-                {(["fullName", "phone", "line1", "line2", "city", "state", "postalCode"] as const).map((field) => (
+                {(
+                  ["fullName", "phone", "line1", "line2", "city", "state", "postalCode"] as const
+                ).map((field) => (
                   <label key={field} className="text-sm sm:col-span-1">
-                    {field}
+                    {ADDRESS_FIELD_LABELS[field]}
                     <input
                       value={addressForm[field]}
                       onChange={(e) => setAddressForm((prev) => ({ ...prev, [field]: e.target.value }))}
@@ -289,13 +419,16 @@ export default function AccountPage() {
           )}
 
           {addresses.length === 0 ? (
-            <p className="text-sm text-neutral-500">No addresses saved yet.</p>
+            <p className="text-sm text-neutral-500">
+              No addresses saved yet. Add one here, or enter an address at checkout while logged in.
+            </p>
           ) : (
             addresses.map((address) => (
               <Card key={address.id}>
                 <CardContent className="pt-6 text-sm">
                   <p className="font-medium">
-                    {address.fullName} {address.isDefault && <span className="text-brand-700">(Default)</span>}
+                    {address.fullName}{" "}
+                    {address.isDefault && <span className="text-brand-700">(Default)</span>}
                   </p>
                   <p>{address.line1}</p>
                   {address.line2 && <p>{address.line2}</p>}

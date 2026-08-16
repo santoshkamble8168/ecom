@@ -77,12 +77,12 @@ export default function CategoriesPage() {
               {createMutation.isPending ? "Creating…" : "Create"}
             </Button>
           </form>
-          {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-2 text-sm text-danger-600">{error}</p>}
         </CardContent>
       </Card>
 
       {isLoading && <p className="text-neutral-500">Loading categories…</p>}
-      {isError && <p className="text-red-600">Failed to load categories. Log in as admin first.</p>}
+      {isError && <p className="text-danger-600">Failed to load categories. Log in as admin first.</p>}
 
       <div className="overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-800">
         <table className="w-full text-sm">

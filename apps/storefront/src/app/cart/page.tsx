@@ -225,13 +225,13 @@ export default function CartPage() {
       </h1>
 
       {totalSavings > 0 && (
-        <div className="mb-6 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-2.5 text-sm font-medium text-green-700 dark:bg-green-950/40 dark:text-green-300">
+        <div className="mb-6 flex items-center gap-2 rounded-lg bg-success-50 px-4 py-2.5 text-sm font-medium text-success-700">
           <span aria-hidden="true">%</span>
           You are saving {formatInr(totalSavings)} on this order
         </div>
       )}
 
-      {error && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mb-4 rounded-md bg-danger-50 px-3 py-2 text-sm text-danger-600">{error}</p>}
 
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
@@ -293,7 +293,7 @@ export default function CartPage() {
                     </p>
                   )}
 
-                  {!item.available && <p className="mt-1 text-sm text-red-600">Unavailable</p>}
+                  {!item.available && <p className="mt-1 text-sm text-danger-600">Unavailable</p>}
 
                   <div className="mt-3 flex flex-wrap items-center gap-4">
                     <div className="flex items-center rounded border border-neutral-300 dark:border-neutral-700">
@@ -348,7 +348,7 @@ export default function CartPage() {
               </button>
             </div>
             {delivery && <p className="mt-2 text-sm font-medium text-success-600">{delivery.message}</p>}
-            {deliveryError && <p className="mt-2 text-sm text-red-600">{deliveryError}</p>}
+            {deliveryError && <p className="mt-2 text-sm text-danger-600">{deliveryError}</p>}
           </div>
 
           {cart.savedForLater.length > 0 && (
@@ -406,7 +406,7 @@ export default function CartPage() {
                     <span className="font-semibold">{c.code} applied</span>
                     <button
                       type="button"
-                      className="text-red-600 hover:underline"
+                      className="text-danger-600 hover:underline"
                       onClick={() => void runAction(() => removeCoupon(c.code))}
                     >
                       Remove

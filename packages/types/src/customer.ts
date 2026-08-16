@@ -42,3 +42,16 @@ export interface RoleSummary {
   description: string | null;
   permissionKeys: string[];
 }
+
+export interface CustomerOrderSummary {
+  id: string;
+  orderNumber: string;
+  status: "pending_payment" | "confirmed" | "cancelled" | "failed";
+  total: string;
+  currency: string;
+  paymentMethod: "razorpay" | "cod";
+  paymentStatus: string | null;
+  itemCount: number;
+  confirmedAt: string | null;
+  createdAt: string;
+}

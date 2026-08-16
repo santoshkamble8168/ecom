@@ -42,6 +42,8 @@ model User {
   recentlyViewed RecentlyViewed[]
   carts         Cart[]
   checkoutSessions CheckoutSession[]
+  orders        Order[]
+  payments      Payment[]
 
   @@map("users")
 }
@@ -715,6 +717,8 @@ model CheckoutSession {
   cart            Cart                  @relation(fields: [cartId], references: [id], onDelete: Cascade)
   user            User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   idempotencyKeys CheckoutIdempotency[]
+  payments        Payment[]
+  order           Order?
 
   @@index([userId])
   @@index([sessionId])
@@ -780,4 +784,134 @@ model TaxRule {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("tax_rules")
+}
+
+// ---------------------------------------------------------------------------
+// Payments + minimal Order (Sprint 8; Orders expanded in Sprint 9)
+// ---------------------------------------------------------------------------
+
+enum OrderStatus {
+  pending_payment
+  confirmed
+  cancelled
+  failed
+}
+
+enum PaymentStatus {
+  created
+  pending
+  authorized
+  captured
+  failed
+  cancelled
+  refunded
+}
+
+enum PaymentProvider {
+  razorpay
+  cod
+}
+
+model Order {
+  id               String      @id @default(uuid())
+  orderNumber      String      @unique @map("order_number")
+  checkoutId       String      @unique @map("checkout_id")
+  userId           String?     @map("user_id")
+  sessionId        String?     @map("session_id")
+  status           OrderStatus @default(pending_payment)
+  subtotal         Decimal     @db.Decimal(10, 2)
+  discount         Decimal     @db.Decimal(10, 2)
+  shippingFee      Decimal     @map("shipping_fee") @db.Decimal(10, 2)
+  taxAmount        Decimal     @map("tax_amount") @db.Decimal(10, 2)
+  total            Decimal     @db.Decimal(10, 2)
+  currency         String      @default("INR")
+  paymentMethod    CheckoutPaymentMethod @map("payment_method")
+  shippingAddress  Json        @map("shipping_address")
+  lineItems        Json        @map("line_items")
+  confirmedAt      DateTime?   @map("confirmed_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  checkout CheckoutSession @relation(fields: [checkoutId], references: [id], onDelete: Restrict)
+  user     User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  payments Payment[]
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model Payment {
+  id               String          @id @default(uuid())
+  reference        String          @unique
+  checkoutId       String          @map("checkout_id")
+  orderId          String?         @map("order_id")
+  userId           String?         @map("user_id")
+  provider         PaymentProvider
+  method           CheckoutPaymentMethod
+  status           PaymentStatus   @default(created)
+  amount           Decimal         @db.Decimal(10, 2)
+  currency         String          @default("INR")
+  providerOrderId  String?         @map("provider_order_id")
+  providerPaymentId String?        @map("provider_payment_id")
+  failureCode      String?         @map("failure_code")
+  failureMessage   String?         @map("failure_message")
+  attemptCount     Int             @default(0) @map("attempt_count")
+  expiresAt        DateTime?       @map("expires_at")
+  capturedAt       DateTime?       @map("captured_at")
+  metadata         Json?
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  checkout CheckoutSession  @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  order    Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  user     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  attempts PaymentAttempt[]
+  webhooks PaymentWebhook[]
+
+  @@index([checkoutId])
+  @@index([orderId])
+  @@index([status])
+  @@index([providerOrderId])
+  @@index([providerPaymentId])
+  @@map("payments")
+}
+
+model PaymentAttempt {
+  id                String        @id @default(uuid())
+  paymentId         String        @map("payment_id")
+  status            PaymentStatus
+  providerOrderId   String?       @map("provider_order_id")
+  providerPaymentId String?       @map("provider_payment_id")
+  rawResponse       Json?         @map("raw_response")
+  errorMessage      String?       @map("error_message")
+  createdAt         DateTime      @default(now()) @map("created_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("payment_attempts")
+}
+
+model PaymentWebhook {
+  id              String   @id @default(uuid())
+  provider        PaymentProvider
+  eventId         String   @map("event_id")
+  eventType       String   @map("event_type")
+  paymentId       String?  @map("payment_id")
+  signatureValid  Boolean  @map("signature_valid")
+  processed       Boolean  @default(false)
+  payload         Json
+  errorMessage    String?  @map("error_message")
+  createdAt       DateTime @default(now()) @map("created_at")
+  processedAt     DateTime? @map("processed_at")
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, eventId])
+  @@index([paymentId])
+  @@index([processed])
+  @@map("payment_webhooks")
 }
