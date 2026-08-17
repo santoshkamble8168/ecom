@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { CartStripBanner } from "@/components/cms/cart-strip-banner";
 import { apiFetch } from "@/lib/auth";
 import {
   applyCoupon,
@@ -184,15 +185,18 @@ export default function CartPage() {
 
   if (!cart || (cart.itemCount === 0 && cart.savedForLater.length === 0)) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <h1 className="text-2xl font-display font-bold">Your bag is empty</h1>
-        <p className="mt-2 text-neutral-500">Add items from the shop to get started.</p>
-        <Link
-          href="/men"
-          className="mt-6 inline-block rounded-md bg-accent-500 px-6 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
-        >
-          Continue Shopping
-        </Link>
+      <div>
+        <CartStripBanner />
+        <div className="mx-auto max-w-lg px-4 py-24 text-center">
+          <h1 className="text-2xl font-display font-bold">Your bag is empty</h1>
+          <p className="mt-2 text-neutral-500">Add items from the shop to get started.</p>
+          <Link
+            href="/men"
+            className="mt-6 inline-block rounded-md bg-accent-500 px-6 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
+          >
+            Continue Shopping
+          </Link>
+        </div>
       </div>
     );
   }
@@ -210,6 +214,7 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
+      <CartStripBanner />
       <nav className="mb-3 text-xs text-neutral-500">
         <Link href="/" className="hover:underline">
           Home

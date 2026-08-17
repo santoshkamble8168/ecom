@@ -73,6 +73,13 @@ export class ProductController {
   ) {}
 
   @Public()
+  @Get("products/by-sku")
+  getProductsBySku(@Query("skus") skus?: string) {
+    const list = skus ? skus.split(",").map((s) => s.trim()).filter(Boolean) : [];
+    return this.productService.getSummariesBySkus(list);
+  }
+
+  @Public()
   @Get("products/:slug")
   getProduct(@Param("slug") slug: string) {
     return this.productService.getPdp(slug);

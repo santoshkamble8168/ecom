@@ -13,12 +13,18 @@ import { randomUUID } from "node:crypto";
 
 import { AuditService } from "../audit/audit.service";
 import { CartService } from "../cart/cart.service";
-import { validateCoupon } from "../cart/policies/coupon.policy";
+import { InventoryService } from "../inventory/inventory.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { PromotionsService } from "../promotions/promotions.service";
 
-import { preReserveInventory, validateInventory } from "./policies/inventory.policy";
+import { validateInventory } from "./policies/inventory.policy";
 import { resolveShippingOptions, selectShippingOption } from "./policies/shipping.policy";
 import { calculateTax, resolveActiveTaxRate } from "./policies/tax.policy";
+
+/** Stock reservations outlive the checkout session by a small buffer so an
+ * in-flight payment retry doesn't lose its hold; the worker's expired-
+ * reservation job cleans these up automatically either way. */
+const RESERVATION_BUFFER_MINUTES = 15;
 
 const CHECKOUT_TTL_MINUTES = Number(process.env.CHECKOUT_TTL_MINUTES ?? 30);
 const IDEMPOTENCY_TTL_HOURS = Number(process.env.CHECKOUT_IDEMPOTENCY_TTL_HOURS ?? 24);
@@ -32,6 +38,8 @@ export class CheckoutService {
     private readonly prisma: PrismaService,
     private readonly cartService: CartService,
     private readonly auditService: AuditService,
+    private readonly inventoryService: InventoryService,
+    private readonly promotionsService: PromotionsService,
   ) {}
 
   async create(userId?: string, sessionId?: string): Promise<CheckoutSession> {
@@ -266,7 +274,7 @@ export class CheckoutService {
     const unavailable = cartSummary.items.filter((i) => !i.available);
     if (unavailable.length > 0) issues.push("Some items are no longer available");
 
-    await this.revalidateCoupons(session.cartId, cartSummary);
+    await this.revalidateCoupons(session.cartId, cartSummary, userId, sessionId);
 
     const recalculated = await this.recalculateTotals(session, cartSummary);
     const reviewValidAt = new Date(Date.now() + REVIEW_VALID_MINUTES * 60 * 1000);
@@ -336,7 +344,7 @@ export class CheckoutService {
       throw new ValidationError(review.issues.join("; "));
     }
 
-    preReserveInventory(session.id);
+    await this.reserveInventoryForCheckout(session.id, review.session.items);
     const preparedOrderRef = randomUUID();
 
     const updated = await this.prisma.checkoutSession.update({
@@ -387,21 +395,74 @@ export class CheckoutService {
     }
   }
 
-  private async revalidateCoupons(cartId: string, cartSummary: Awaited<ReturnType<CartService["getSummaryForCartId"]>>) {
+  private async revalidateCoupons(
+    cartId: string,
+    cartSummary: Awaited<ReturnType<CartService["getSummaryForCartId"]>>,
+    userId?: string,
+    sessionId?: string,
+  ) {
     const cart = await this.prisma.cart.findUniqueOrThrow({
       where: { id: cartId },
       include: { coupons: true },
     });
+    if (cart.coupons.length === 0) return;
+
+    const otherCodes = cart.coupons.map((c) => c.code);
 
     for (const cc of cart.coupons) {
-      const coupon = await this.prisma.coupon.findUnique({ where: { code: cc.code } });
-      if (!coupon) {
+      try {
+        await this.promotionsService.validateCouponForUser(cc.code, {
+          subtotal: Number(cartSummary.subtotal),
+          userId,
+          sessionId,
+          otherAppliedCodes: otherCodes.filter((code) => code !== cc.code),
+        });
+      } catch (error) {
         await this.prisma.cartCoupon.delete({
           where: { cartId_code: { cartId, code: cc.code } },
         });
-        throw new ValidationError(`Coupon ${cc.code} is no longer valid`);
+        const message = error instanceof ValidationError ? error.message : `Coupon ${cc.code} is no longer valid`;
+        throw new ValidationError(message);
       }
-      validateCoupon(coupon, Number(cartSummary.subtotal));
+    }
+  }
+
+  /**
+   * Places a short-lived stock hold for every line item so two shoppers
+   * can't both "buy" the last unit while one of them is still filling in
+   * payment details. Idempotent: re-running `placeOrder` (retry, page
+   * refresh) reuses any reservations already held for this checkout. If a
+   * later item in the cart can't be reserved, everything reserved so far
+   * for this attempt is rolled back so we never hold partial stock.
+   */
+  private async reserveInventoryForCheckout(
+    checkoutId: string,
+    items: Array<{ variantSku: string; quantity: number }>,
+  ): Promise<void> {
+    const existing = await this.prisma.stockReservation.findMany({
+      where: { checkoutId, status: "active" },
+    });
+    if (existing.length > 0) return;
+
+    const reserved: string[] = [];
+    try {
+      for (const item of items) {
+        const { reservationId } = await this.inventoryService.reserveStock({
+          variantSku: item.variantSku,
+          quantity: item.quantity,
+          checkoutId,
+          ttlMinutes: CHECKOUT_TTL_MINUTES + RESERVATION_BUFFER_MINUTES,
+        });
+        reserved.push(reservationId);
+      }
+    } catch (error) {
+      for (const reservationId of reserved) {
+        await this.inventoryService.releaseReservation(reservationId).catch(() => undefined);
+      }
+      if (error instanceof ValidationError) {
+        throw new ValidationError(`Some items in your cart are no longer available: ${error.message}`);
+      }
+      throw error;
     }
   }
 

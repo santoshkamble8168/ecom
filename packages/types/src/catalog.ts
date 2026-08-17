@@ -10,6 +10,13 @@ export interface ProductSummary {
   primaryImage: ProductMediaSummary | null;
   categorySlugs: string[];
   publishedAt: string | null;
+  /** Sprint 10 pricing enrichment — the currently effective price (accounts
+   * for scheduled sales), when resolvable. Falls back to `basePrice` when absent. */
+  effectivePrice?: string;
+  /** True when a scheduled sale is currently active for this product's default variant. */
+  saleActive?: boolean;
+  /** Short label (e.g. "15% OFF", "Flash Sale") when an active campaign covers this product. */
+  campaignBadge?: string | null;
 }
 
 export interface ProductDetail extends ProductSummary {
@@ -27,6 +34,11 @@ export interface ProductVariantSummary {
   compareAtPrice: string | null;
   isActive: boolean;
   options: VariantOptionSummary[];
+  /** Sprint 10 pricing enrichment — the currently effective price for this
+   * variant (accounts for scheduled sales), when resolvable. Falls back to `price` when absent. */
+  effectivePrice?: string;
+  /** True when a scheduled sale is currently active for this variant. */
+  saleActive?: boolean;
 }
 
 export interface VariantOptionSummary {

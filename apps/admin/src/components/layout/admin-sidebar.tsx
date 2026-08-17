@@ -13,7 +13,6 @@ const NAV_SECTIONS = [
       { href: "/products", label: "Products" },
       { href: "/categories", label: "Categories" },
       { href: "/collections", label: "Collections" },
-      { href: "/inventory", label: "Inventory" },
     ],
   },
   {
@@ -24,8 +23,43 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    title: "Inventory",
+    items: [
+      { href: "/inventory", label: "Stock" },
+      { href: "/inventory/movements", label: "Movements" },
+      { href: "/inventory/warehouses", label: "Warehouses" },
+      { href: "/inventory/suppliers", label: "Suppliers" },
+      { href: "/inventory/purchase-orders", label: "Purchase Orders" },
+    ],
+  },
+  {
+    title: "Pricing",
+    items: [
+      { href: "/pricing", label: "Prices" },
+      { href: "/pricing/price-lists", label: "Price Lists" },
+      { href: "/pricing/tax-rules", label: "Tax Rules" },
+    ],
+  },
+  {
     title: "Administration",
     items: [{ href: "/users", label: "Users & Roles" }],
+  },
+  {
+    title: "Content",
+    items: [
+      { href: "/pages", label: "Pages" },
+      { href: "/banners", label: "Banners" },
+      { href: "/menus", label: "Menus" },
+      { href: "/blog", label: "Blog Posts" },
+    ],
+  },
+  {
+    title: "Marketing",
+    items: [
+      { href: "/marketing", label: "Referrals, Gift Cards & Loyalty" },
+      { href: "/coupons", label: "Coupons" },
+      { href: "/campaigns", label: "Campaigns" },
+    ],
   },
 ];
 

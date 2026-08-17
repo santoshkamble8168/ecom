@@ -385,8 +385,11 @@ export function PdpView({ product }: PdpViewProps) {
 
   const displayPrice = selectedVariant?.price ?? product.basePrice;
   const displayCompare = selectedVariant?.compareAtPrice ?? product.compareAtPrice;
-  const savings = displayCompare && displayPrice
-    ? Math.max(0, Number(displayCompare) - Number(displayPrice))
+  const displayEffectivePrice = selectedVariant?.effectivePrice ?? product.effectivePrice ?? null;
+  const displaySaleActive = selectedVariant ? selectedVariant.saleActive : product.saleActive;
+  const actualPrice = displayEffectivePrice ?? displayPrice;
+  const savings = displayCompare && actualPrice
+    ? Math.max(0, Number(displayCompare) - Number(actualPrice))
     : 0;
   const fabricHighlight = product.highlights.find((h) => h.label === "Fabric")?.value;
   const selectedSizeGuideRow = SIZE_GUIDE_ROWS.find(
@@ -569,8 +572,18 @@ export function PdpView({ product }: PdpViewProps) {
           </div>
 
           <div className="mt-4">
-            <PriceDisplay price={displayPrice} compareAtPrice={displayCompare} />
+            <PriceDisplay
+              price={displayPrice}
+              compareAtPrice={displayCompare}
+              effectivePrice={displayEffectivePrice}
+              saleActive={displaySaleActive}
+            />
             <p className="mt-1 text-xs text-neutral-500">Inclusive of all taxes</p>
+            {product.campaignBadge && (
+              <span className="mt-2 inline-block rounded bg-danger-500 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+                {product.campaignBadge}
+              </span>
+            )}
             {fabricHighlight && (
               <span className="mt-2 inline-block rounded bg-neutral-100 px-2 py-1 text-xs font-medium text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
                 {fabricHighlight}
@@ -641,7 +654,7 @@ export function PdpView({ product }: PdpViewProps) {
             ))}
 
           {/* Celebration banner — shown after add-to-cart success */}
-          <CelebrationBanner show={showCelebration} savings={savings} freeShipping={Number(displayPrice) >= 999} />
+          <CelebrationBanner show={showCelebration} savings={savings} freeShipping={Number(actualPrice) >= 999} />
 
           {/* <div className="mt-6">
             <p className="mb-2 text-sm font-semibold">Quantity</p>

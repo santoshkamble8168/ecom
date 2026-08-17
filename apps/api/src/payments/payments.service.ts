@@ -11,7 +11,9 @@ import type { Payment, PaymentStatus, Prisma, RefundRequest } from "@prisma/clie
 import { randomUUID } from "node:crypto";
 
 import { AuditService } from "../audit/audit.service";
+import { InventoryService } from "../inventory/inventory.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { PromotionsService } from "../promotions/promotions.service";
 
 import {
   assertCodEligible,
@@ -30,6 +32,8 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly razorpay: RazorpayProvider,
     private readonly auditService: AuditService,
+    private readonly inventoryService: InventoryService,
+    private readonly promotionsService: PromotionsService,
   ) {}
 
   async initiate(
@@ -600,6 +604,7 @@ export class PaymentsService {
       addressId: string | null;
       guestAddress: Prisma.JsonValue | null;
       lineItemsSnapshot: Prisma.JsonValue;
+      couponsSnapshot: Prisma.JsonValue;
     },
     paymentId: string,
     method: "razorpay" | "cod",
@@ -618,8 +623,9 @@ export class PaymentsService {
     }
 
     const address = await this.resolveAddress(checkout);
+    let order;
     try {
-      return await this.prisma.order.create({
+      order = await this.prisma.order.create({
         data: {
           orderNumber: generateOrderNumber(),
           checkoutId: checkout.id,
@@ -639,6 +645,61 @@ export class PaymentsService {
       });
     } catch {
       throw new ConflictError("Order already exists for this checkout");
+    }
+
+    // Turn the checkout's stock holds into a real sale, and record coupon
+    // redemptions now that payment has actually succeeded. Both are
+    // best-effort: a failure here shouldn't roll back a captured payment or
+    // block the confirmation response, since stale holds self-heal via the
+    // worker's expiry sweep and coupon usage is an audit trail, not a gate.
+    await this.consumeReservationsForCheckout(checkout.id).catch((error: unknown) => {
+      console.error(`Failed to consume stock reservations for checkout ${checkout.id}`, error);
+    });
+    await this.recordCouponUsagesForOrder(checkout.couponsSnapshot, order.id, checkout.userId, checkout.sessionId).catch(
+      (error: unknown) => {
+        console.error(`Failed to record coupon usage for order ${order.id}`, error);
+      },
+    );
+
+    return order;
+  }
+
+  private async consumeReservationsForCheckout(checkoutId: string): Promise<void> {
+    const reservations = await this.prisma.stockReservation.findMany({
+      where: { checkoutId, status: "active" },
+    });
+    for (const reservation of reservations) {
+      try {
+        await this.inventoryService.consumeReservation(reservation.id);
+      } catch (error) {
+        // The worker may have already expired/released this hold (e.g. a
+        // slow payment gateway callback) — log and continue rather than
+        // failing order confirmation over a stock bookkeeping race.
+        console.error(`Failed to consume stock reservation ${reservation.id}`, error);
+      }
+    }
+  }
+
+  private async recordCouponUsagesForOrder(
+    couponsSnapshot: Prisma.JsonValue,
+    orderId: string,
+    userId: string | null,
+    sessionId: string | null,
+  ): Promise<void> {
+    const applied = Array.isArray(couponsSnapshot)
+      ? (couponsSnapshot as unknown as Array<{ code: string; discountAmount: string }>)
+      : [];
+    if (applied.length === 0) return;
+
+    for (const coupon of applied) {
+      const record = await this.prisma.coupon.findUnique({ where: { code: coupon.code } });
+      if (!record) continue;
+      await this.promotionsService.recordCouponUsage(record.id, {
+        userId: userId ?? undefined,
+        sessionId: sessionId ?? undefined,
+        orderId,
+        discountAmount: Number(coupon.discountAmount),
+      });
     }
   }
 
@@ -670,6 +731,11 @@ export class PaymentsService {
   }
 
   private async markFailed(paymentId: string, code: string, message: string) {
+    // Note: the stock reservation from checkout is deliberately left active
+    // on failure — `retry()` reuses the same checkout/reservation, so
+    // releasing here would let stock sell out from under a shopper who's
+    // about to retry. Abandoned holds still self-heal via the reservation's
+    // own TTL and the worker's expiry sweep.
     await this.prisma.payment.update({
       where: { id: paymentId },
       data: {

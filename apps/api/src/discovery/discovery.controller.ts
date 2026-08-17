@@ -33,6 +33,12 @@ export class DiscoveryController {
   }
 
   @Public()
+  @Get("campaigns/:slug/products")
+  campaignProducts(@Param("slug") slug: string, @Query() query: DiscoveryQueryDto) {
+    return this.discoveryService.getCampaignProducts(slug, query);
+  }
+
+  @Public()
   @Get("search")
   search(@Query() query: DiscoveryQueryDto) {
     return this.discoveryService.searchProducts(query);

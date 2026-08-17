@@ -4,7 +4,7 @@
 Production-grade commerce platform monorepo (storefront, admin, API, worker) plus a reusable AI Engineering Framework for planning, implementation, testing, review, deployment, and release.
 
 ## Platform Status
-Sprint 0 (Project Foundation) is scaffolded: monorepo, shared packages, Next.js storefront and admin shells, a NestJS API with an auth skeleton, a NestJS worker, Prisma schema for identity/platform/audit, Docker Compose for all local dependencies, and CI. See `documents/sprint-planning/README.md` for the full sprint tracker.
+Sprints 0–11 are implemented: identity, catalog, storefront, discovery, PDP, cart, checkout, payments, orders, inventory/pricing/promotions, and CMS/blog/marketing foundations. See `documents/sprint-planning/README.md` for the tracker and `docs/sprints/` for per-sprint summaries.
 
 ## Monorepo Layout
 
@@ -75,8 +75,10 @@ scripts/        AI framework generation/validation scripts
    ```
 
    - Storefront: http://localhost:3000
-   - Admin: http://localhost:3001
+   - Admin: http://localhost:3001 (OTP login `admin@ecom.local` / `123456` in development)
    - API: http://localhost:4000/api/v1 (Swagger at `/api/v1/docs`)
+   - Storybook: `pnpm --filter @ecom/ui run storybook` (port 6006)
+   - CMS preview: `http://localhost:3000/pages/{slug}/preview?token=` + `CMS_PREVIEW_TOKEN`
    - API health: http://localhost:4000/health, `/health/live`, `/health/ready`
    - Mailpit UI (captured emails): http://localhost:8025
    - MinIO console: http://localhost:9001

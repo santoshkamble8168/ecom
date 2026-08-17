@@ -24,6 +24,12 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/privacy-policy", destination: "/pages/privacy-policy", permanent: false },
+      { source: "/faq", destination: "/pages/faq", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

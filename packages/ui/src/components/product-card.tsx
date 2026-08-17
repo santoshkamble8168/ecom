@@ -16,6 +16,9 @@ export interface ProductCardProps {
    * wishlist quick-add without leaving the grid. Omit to hide the control. */
   wishlisted?: boolean;
   onToggleWishlist?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  /** Optional override for the corner campaign badge (e.g. "15% OFF", "Flash Sale").
+   * Defaults to `product.campaignBadge` when omitted; pass `null` to force-hide it. */
+  campaignBadge?: string | null;
 }
 
 const STATUS_LABELS: Record<ProductStatus, string> = {
@@ -51,8 +54,13 @@ export function ProductCard({
   showStatus = true,
   wishlisted,
   onToggleWishlist,
+  campaignBadge,
 }: ProductCardProps) {
-  const discount = discountPercent(product.basePrice, product.compareAtPrice);
+  const displayPrice = product.effectivePrice ?? product.basePrice;
+  const isSale = !!product.saleActive && !!product.effectivePrice && product.effectivePrice !== product.basePrice;
+  const struckThrough = product.compareAtPrice ?? (isSale ? product.basePrice : null);
+  const discount = discountPercent(displayPrice, struckThrough);
+  const badge = campaignBadge !== undefined ? campaignBadge : product.campaignBadge;
 
   return (
     <Card className={cn("group overflow-hidden border-neutral-100 shadow-none", className)}>
@@ -68,15 +76,24 @@ export function ProductCard({
             No image
           </div>
         )}
-        {showStatus && (
-          <span
-            className={cn(
-              "absolute left-2 top-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
-              STATUS_COLORS[product.status],
+        {(showStatus || badge) && (
+          <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+            {showStatus && (
+              <span
+                className={cn(
+                  "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium",
+                  STATUS_COLORS[product.status],
+                )}
+              >
+                {STATUS_LABELS[product.status]}
+              </span>
             )}
-          >
-            {STATUS_LABELS[product.status]}
-          </span>
+            {badge && (
+              <span className="shrink-0 rounded-full bg-danger-500 px-2 py-0.5 text-xs font-semibold text-white shadow-sm">
+                {badge}
+              </span>
+            )}
+          </div>
         )}
         {onToggleWishlist && (
           <button
@@ -116,15 +133,18 @@ export function ProductCard({
         </h3>
         <div className="mt-1.5 flex items-baseline gap-2">
           <span className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
-            {formatPrice(product.basePrice)}
+            {formatPrice(displayPrice)}
           </span>
-          {product.compareAtPrice && (
+          {struckThrough && (
             <span className="text-xs text-neutral-400 line-through">
-              {formatPrice(product.compareAtPrice)}
+              {formatPrice(struckThrough)}
             </span>
           )}
           {discount && (
             <span className="text-xs font-semibold text-success-600">{discount}% off</span>
+          )}
+          {isSale && (
+            <span className="text-xs font-semibold uppercase tracking-wide text-danger-500">Sale</span>
           )}
         </div>
       </div>
@@ -135,24 +155,37 @@ export function ProductCard({
 export function PriceDisplay({
   price,
   compareAtPrice,
+  effectivePrice,
+  saleActive,
   className,
 }: {
   price: string | null;
   compareAtPrice?: string | null;
+  /** Sprint 10 pricing enrichment — the currently effective (post-sale) price.
+   * When omitted, behavior is identical to before (falls back to `price`/`compareAtPrice`). */
+  effectivePrice?: string | null;
+  /** Whether a scheduled sale is currently active. Only used together with `effectivePrice`. */
+  saleActive?: boolean;
   className?: string;
 }) {
-  const discount = discountPercent(price, compareAtPrice ?? null);
+  const displayPrice = effectivePrice ?? price;
+  const isSale = !!saleActive && !!effectivePrice && effectivePrice !== price;
+  const struckThrough = compareAtPrice ?? (isSale ? price : null) ?? null;
+  const discount = discountPercent(displayPrice, struckThrough);
 
   return (
     <div className={cn("flex items-baseline gap-2", className)}>
-      <span className="text-lg font-bold">{formatPrice(price)}</span>
-      {compareAtPrice && (
+      <span className="text-lg font-bold">{formatPrice(displayPrice)}</span>
+      {struckThrough && (
         <span className="text-sm text-neutral-400 line-through">
-          {formatPrice(compareAtPrice)}
+          {formatPrice(struckThrough)}
         </span>
       )}
       {discount && (
         <span className="text-sm font-semibold text-success-600">{discount}% OFF</span>
+      )}
+      {isSale && (
+        <span className="text-sm font-semibold uppercase tracking-wide text-danger-500">Sale</span>
       )}
     </div>
   );

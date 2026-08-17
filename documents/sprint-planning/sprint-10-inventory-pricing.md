@@ -2,7 +2,7 @@
 
 Theme: Stock, warehouses, promotions, scheduled pricing  
 Primary source volumes: Volume 1, Volume 5, Volume 6, Volume 8, Volume 9, Volume 10  
-Status: Not Started
+Status: Done
 
 ## Sprint Goal
 

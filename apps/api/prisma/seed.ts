@@ -1,5 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 
+import { seedBlog } from "./seeds/blog.seed";
+import { seedCms } from "./seeds/cms.seed";
+import { seedInventory } from "./seeds/inventory.seed";
+import { seedPricing } from "./seeds/pricing.seed";
+import { seedPromotions } from "./seeds/promotions.seed";
+
 const prisma = new PrismaClient();
 
 const PERMISSIONS = [
@@ -10,6 +16,12 @@ const PERMISSIONS = [
   { key: "admin:access", description: "Access the admin dashboard" },
   { key: "user:read", description: "View users and roles" },
   { key: "user:write", description: "Manage users and role assignments" },
+  { key: "inventory:read", description: "View warehouses, stock, and purchase orders" },
+  { key: "inventory:write", description: "Manage warehouses, stock, and purchase orders" },
+  { key: "pricing:read", description: "View price lists, prices, and tax rules" },
+  { key: "pricing:write", description: "Manage price lists, prices, and tax rules" },
+  { key: "promotion:read", description: "View coupons and campaigns" },
+  { key: "promotion:write", description: "Manage coupons and campaigns" },
 ];
 
 const ROLES: Array<{ name: string; description: string; permissionKeys: string[] }> = [
@@ -31,8 +43,24 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
   },
   {
     name: "marketing_manager",
-    description: "Manages campaigns and storefront content",
-    permissionKeys: ["catalog:read", "admin:access"],
+    description: "Manages campaigns and storefront content (CMS/marketing endpoints require full admin:access — no dedicated CMS permission yet)",
+    permissionKeys: [
+      "catalog:read",
+      "promotion:read",
+      "promotion:write",
+      "admin:access",
+    ],
+  },
+  {
+    name: "inventory_manager",
+    description: "Manages warehouses, stock, and pricing",
+    permissionKeys: [
+      "inventory:read",
+      "inventory:write",
+      "pricing:read",
+      "pricing:write",
+      "admin:access",
+    ],
   },
 ];
 
@@ -699,11 +727,16 @@ async function main() {
   const categoryIds = await seedCategories();
   const collectionIds = await seedCollections();
   await seedProducts(categoryIds, collectionIds, valueMap);
+  await seedCms(prisma);
   await seedStorefront();
   await seedReviews();
   await seedCoupons();
+  await seedPromotions(prisma);
   await seedCheckoutConfig();
   await seedOrdersFulfillment();
+  await seedInventory(prisma);
+  await seedPricing(prisma);
+  await seedBlog(prisma);
 
   // eslint-disable-next-line no-console
   console.log("Seed complete: roles, permissions, catalog, storefront CMS, checkout config, and sample products are ready.");

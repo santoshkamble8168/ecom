@@ -58,6 +58,38 @@ input[type="radio"] {
   @apply border-accent-500 bg-accent-500;
 }
 
+/* ── CMS/blog rich-text HTML rendering (no typography plugin installed) ── */
+.rich-text-content :where(h1, h2, h3, h4) {
+  @apply mb-3 mt-6 font-display font-bold first:mt-0;
+}
+.rich-text-content h1 {
+  @apply text-3xl;
+}
+.rich-text-content h2 {
+  @apply text-2xl;
+}
+.rich-text-content h3 {
+  @apply text-xl;
+}
+.rich-text-content p {
+  @apply mb-4 leading-relaxed text-neutral-700 dark:text-neutral-300;
+}
+.rich-text-content a {
+  @apply text-brand-700 underline hover:text-brand-800 dark:text-brand-300;
+}
+.rich-text-content ul {
+  @apply mb-4 list-disc space-y-1 pl-6;
+}
+.rich-text-content ol {
+  @apply mb-4 list-decimal space-y-1 pl-6;
+}
+.rich-text-content img {
+  @apply my-6 rounded-lg;
+}
+.rich-text-content blockquote {
+  @apply my-4 border-l-4 border-neutral-300 pl-4 italic text-neutral-600 dark:border-neutral-700 dark:text-neutral-400;
+}
+
 /* ── PDP add-to-cart animations ── */
 @keyframes pop {
   0%   { transform: scale(0.5); opacity: 0; }

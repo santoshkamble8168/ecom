@@ -179,13 +179,27 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
 
           <nav className="hidden shrink-0 gap-5 md:flex" aria-label="Primary">
             {navigation.header.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-sm font-semibold uppercase tracking-wide text-neutral-700 transition-colors hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white"
-              >
-                {link.label}
-              </Link>
+              <div key={link.href} className="group relative">
+                <Link
+                  href={link.href}
+                  className="text-sm font-semibold uppercase tracking-wide text-neutral-700 transition-colors hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white"
+                >
+                  {link.label}
+                </Link>
+                {link.children && link.children.length > 0 && (
+                  <div className="invisible absolute left-0 top-full z-10 min-w-[180px] rounded-md border border-neutral-200 bg-white py-2 opacity-0 shadow-lg transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 dark:border-neutral-800 dark:bg-neutral-950">
+                    {link.children.map((child) => (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        className="block px-4 py-2 text-sm normal-case text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-900"
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -337,6 +351,21 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                   >
                     {link.label}
                   </Link>
+                  {link.children && link.children.length > 0 && (
+                    <ul className="mt-2 flex flex-col gap-2 border-l border-neutral-200 pl-4 dark:border-neutral-800">
+                      {link.children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            className="text-sm font-medium text-neutral-600 dark:text-neutral-400"
+                            onClick={() => setMenuOpen(false)}
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

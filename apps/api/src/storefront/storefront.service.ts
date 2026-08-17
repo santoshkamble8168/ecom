@@ -5,6 +5,7 @@ import type {
   NavigationNode,
   NavigationSummary,
   NewsletterSubscribeResult,
+  ProductSummary,
   SearchSuggestion,
   SearchSuggestionsResponse,
   TrendingSearchesResponse,
@@ -13,6 +14,7 @@ import { Injectable } from "@nestjs/common";
 
 import { productInclude, toCollectionSummary, toProductSummary } from "../catalog/mappers/catalog.mapper";
 import { AppLogger } from "../logger/logger.service";
+import { PricingService } from "../pricing/pricing.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 import type { NewsletterSubscribeDto } from "./dto/newsletter-subscribe.dto";
@@ -22,6 +24,7 @@ export class StorefrontService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLogger,
+    private readonly pricingService: PricingService,
   ) {
     this.logger.setContext("StorefrontService");
   }
@@ -70,10 +73,11 @@ export class StorefrontService {
             orderBy: { publishedAt: "desc" },
             take: limit,
           });
+          const summaries = await this.enrichWithPricing(products, products.map(toProductSummary));
           resolved.push({
             type: "product-rail",
             title: (content.title as string) ?? block.title ?? "",
-            products: products.map(toProductSummary),
+            products: summaries,
           });
           break;
         }
@@ -194,6 +198,48 @@ export class StorefrontService {
     await this.prisma.newsletterSubscriber.create({ data: { email: dto.email } });
     this.logger.log(`Newsletter subscription: ${dto.email}`);
     return { email: dto.email, subscribed: true };
+  }
+
+  /**
+   * Sprint 10 pricing enrichment for homepage product rails (additive,
+   * best-effort — mirrors `DiscoveryService`'s PLP enrichment). Never throws;
+   * falls back to unenriched summaries so the homepage never breaks on it.
+   */
+  private async enrichWithPricing(
+    products: Parameters<typeof toProductSummary>[0][],
+    summaries: ProductSummary[],
+  ): Promise<ProductSummary[]> {
+    try {
+      const defaultSkus = products.map((p) => p.variants[0]?.sku);
+      const skus = [...new Set(defaultSkus.filter((sku): sku is string => !!sku))];
+      if (skus.length === 0) return summaries;
+
+      const collectionIdsBySku = new Map<string, string[]>();
+      products.forEach((p, i) => {
+        const sku = defaultSkus[i];
+        if (sku) collectionIdsBySku.set(sku, p.collections.map((c) => c.collection.id));
+      });
+
+      const [priceMap, badgeMap] = await Promise.all([
+        this.pricingService.getEffectivePricesForSkus(skus),
+        this.pricingService.getCampaignBadgesForSkus(skus, collectionIdsBySku),
+      ]);
+
+      return summaries.map((summary, i) => {
+        const sku = defaultSkus[i];
+        if (!sku) return summary;
+        const price = priceMap.get(sku);
+        const badge = badgeMap.get(sku);
+        return {
+          ...summary,
+          ...(price ? { effectivePrice: price.effectivePrice, saleActive: price.saleActive } : {}),
+          ...(badge !== undefined ? { campaignBadge: badge } : {}),
+        };
+      });
+    } catch (error) {
+      this.logger.warn(`Pricing enrichment failed for homepage rail, serving base prices: ${String(error)}`);
+      return summaries;
+    }
   }
 
   private buildNavTree(

@@ -1,22 +1,24 @@
 import type { CartSummary, CartLineItem } from "@ecom/types";
 import { NotFoundError, ValidationError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
-import type { CartItem, Coupon } from "@prisma/client";
+import type { CartItem } from "@prisma/client";
 
 import { productInclude, toProductSummary } from "../catalog/mappers/catalog.mapper";
+import { PricingService } from "../pricing/pricing.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { PromotionsService } from "../promotions/promotions.service";
 
-import {
-  FREE_SHIPPING_THRESHOLD,
-  calculateCartTotals,
-  validateCoupon,
-} from "./policies/coupon.policy";
+import { FREE_SHIPPING_THRESHOLD, calculateCartTotals } from "./policies/coupon.policy";
 
 const CART_TTL_DAYS = 30;
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pricingService: PricingService,
+    private readonly promotionsService: PromotionsService,
+  ) {}
 
   async getCart(userId?: string, sessionId?: string): Promise<CartSummary> {
     const cart = await this.resolveCart(userId, sessionId, false);
@@ -112,26 +114,66 @@ export class CartService {
     const cart = await this.resolveCart(userId, sessionId, false);
     if (!cart) throw new NotFoundError("Cart not found");
 
-    const coupon = await this.prisma.coupon.findUnique({
-      where: { code: code.toUpperCase() },
-    });
-    if (!coupon) throw new ValidationError("Invalid coupon code");
-
+    const normalizedCode = code.toUpperCase();
     const summary = await this.buildSummary(cart.id);
     const subtotal = Number(summary.subtotal);
-    const validated = validateCoupon(coupon, subtotal);
+
+    const otherAppliedCodes = summary.appliedCoupons
+      .map((c) => c.code)
+      .filter((existingCode) => existingCode !== normalizedCode);
+    const { cartCategoryIds, cartCollectionIds } = await this.getCartEligibilityIds(cart.id);
+
+    const validated = await this.promotionsService.validateCouponForUser(normalizedCode, {
+      subtotal,
+      userId,
+      sessionId,
+      otherAppliedCodes,
+      cartCategoryIds,
+      cartCollectionIds,
+    });
 
     await this.prisma.cartCoupon.upsert({
-      where: { cartId_code: { cartId: cart.id, code: coupon.code } },
+      where: { cartId_code: { cartId: cart.id, code: validated.code } },
       update: { discountAmount: validated.discountAmount },
       create: {
         cartId: cart.id,
-        code: coupon.code,
+        code: validated.code,
         discountAmount: validated.discountAmount,
       },
     });
 
     return this.buildSummary(cart.id);
+  }
+
+  /**
+   * Category/collection ids for products currently in the (non-saved-for-later)
+   * cart, used to evaluate `Coupon.eligibleCategoryIds`/`eligibleCollectionIds`
+   * restrictions. Kept separate from `enrichItems`/`ProductSummary` (which only
+   * carries category *slugs*, not ids) to avoid changing that shared shape.
+   */
+  private async getCartEligibilityIds(
+    cartId: string,
+  ): Promise<{ cartCategoryIds: string[]; cartCollectionIds: string[] }> {
+    const items = await this.prisma.cartItem.findMany({
+      where: { cartId, savedForLater: false },
+      select: { productSlug: true },
+    });
+    const slugs = [...new Set(items.map((i) => i.productSlug))];
+    if (slugs.length === 0) return { cartCategoryIds: [], cartCollectionIds: [] };
+
+    const products = await this.prisma.product.findMany({
+      where: { slug: { in: slugs } },
+      select: {
+        categories: { select: { categoryId: true } },
+        collections: { select: { collectionId: true } },
+      },
+    });
+
+    const cartCategoryIds = [...new Set(products.flatMap((p) => p.categories.map((c) => c.categoryId)))];
+    const cartCollectionIds = [
+      ...new Set(products.flatMap((p) => p.collections.map((c) => c.collectionId))),
+    ];
+    return { cartCategoryIds, cartCollectionIds };
   }
 
   async removeCoupon(code: string, userId?: string, sessionId?: string): Promise<CartSummary> {
@@ -390,9 +432,24 @@ export class CartService {
     const productMap = new Map(products.map((p) => [p.slug, toProductSummary(p)]));
     const variantMap = new Map(variants.map((v) => [v.sku, v]));
 
+    // Pricing (Sprint 10): a `ProductPrice` row, when present, is the source
+    // of truth for what a customer pays — it carries scheduled/sale pricing
+    // that `ProductVariant.price` doesn't. Fall back to the variant's own
+    // price for variants that haven't been backfilled into the pricing
+    // module yet, so cart/checkout never breaks on missing pricing data.
+    const effectivePrices = await Promise.all(
+      skus.map((sku) => this.pricingService.getEffectivePrice(sku)),
+    );
+    const effectivePriceMap = new Map(skus.map((sku, i) => [sku, effectivePrices[i]]));
+
     return items.map((item) => {
       const variant = variantMap.get(item.variantSku);
-      const unitPrice = variant ? Number(variant.price) : 0;
+      const effectivePrice = effectivePriceMap.get(item.variantSku);
+      const unitPrice = effectivePrice
+        ? Number(effectivePrice.effectivePrice)
+        : variant
+          ? Number(variant.price)
+          : 0;
       const variantLabel = variant
         ? variant.options.map((o) => o.attributeValue.value).join(" / ")
         : null;

@@ -46,6 +46,8 @@ model User {
   payments         Payment[]
   returnRequests   ReturnRequest[]
   exchangeRequests ExchangeRequest[]
+  referralCode     ReferralCode?
+  loyaltyAccount   LoyaltyAccount?
 
   @@map("users")
 }
@@ -260,6 +262,7 @@ model Category {
   ancestors   CategoryClosure[] @relation("Descendant")
   descendants CategoryClosure[] @relation("Ancestor")
   products    ProductCategory[]
+  taxRules    TaxRule[]
 
   @@index([parentId])
   @@index([slug])
@@ -326,7 +329,8 @@ model Collection {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  products ProductCollection[]
+  products  ProductCollection[]
+  campaigns CampaignCollection[]
 
   @@index([slug])
   @@index([isActive])
@@ -611,18 +615,48 @@ enum CouponType {
 }
 
 model Coupon {
-  id           String     @id @default(uuid())
-  code         String     @unique
-  type         CouponType
-  value        Decimal    @db.Decimal(10, 2)
-  minCartValue Decimal?   @map("min_cart_value") @db.Decimal(10, 2)
-  maxUses      Int?       @map("max_uses")
-  usedCount    Int        @default(0) @map("used_count")
-  expiresAt    DateTime?  @map("expires_at")
-  isActive     Boolean    @default(true) @map("is_active")
-  createdAt    DateTime   @default(now()) @map("created_at")
+  id                    String     @id @default(uuid())
+  code                  String     @unique
+  description           String?
+  type                  CouponType
+  value                 Decimal    @db.Decimal(10, 2)
+  minCartValue          Decimal?   @map("min_cart_value") @db.Decimal(10, 2)
+  maxUses               Int?       @map("max_uses")
+  usedCount             Int        @default(0) @map("used_count")
+  /// Max times a single customer may use this coupon; null = unlimited.
+  perUserLimit          Int?       @map("per_user_limit")
+  /// Whether this coupon can be stacked with other active coupons on the same cart.
+  combinable            Boolean    @default(false)
+  /// Empty array = no category restriction (applies sitewide).
+  eligibleCategoryIds   String[]   @default([]) @map("eligible_category_ids")
+  /// Empty array = no collection restriction (applies sitewide).
+  eligibleCollectionIds String[]   @default([]) @map("eligible_collection_ids")
+  expiresAt             DateTime?  @map("expires_at")
+  isActive              Boolean    @default(true) @map("is_active")
+  createdAt             DateTime   @default(now()) @map("created_at")
+
+  usages CouponUsage[]
 
   @@map("coupons")
+}
+
+/// Append-only record of every successful coupon redemption, for per-user
+/// limit enforcement and marketing reporting. Never updated or deleted.
+model CouponUsage {
+  id             String   @id @default(uuid())
+  couponId       String   @map("coupon_id")
+  userId         String?  @map("user_id")
+  sessionId      String?  @map("session_id")
+  orderId        String?  @map("order_id")
+  discountAmount Decimal  @map("discount_amount") @db.Decimal(10, 2)
+  usedAt         DateTime @default(now()) @map("used_at")
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([orderId])
+  @@map("coupon_usages")
 }
 
 model Cart {
@@ -777,14 +811,21 @@ model ShippingZone {
 }
 
 model TaxRule {
-  id        String   @id @default(uuid())
-  name      String
-  rate      Decimal  @db.Decimal(5, 4)
-  appliesTo String   @default("all") @map("applies_to")
-  isActive  Boolean  @default(true) @map("is_active")
-  priority  Int      @default(0)
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())
+  name       String
+  rate       Decimal  @db.Decimal(5, 4)
+  appliesTo  String   @default("all") @map("applies_to")
+  /// Optional category scope; null means the rule applies regardless of category
+  /// (subject to `appliesTo` and `priority`).
+  categoryId String?  @map("category_id")
+  isActive   Boolean  @default(true) @map("is_active")
+  priority   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
 
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId])
+  @@index([isActive])
   @@map("tax_rules")
 }
 
@@ -1213,4 +1254,538 @@ model ExchangeRequest {
   @@index([userId])
   @@index([status])
   @@map("exchange_requests")
+}
+
+// ---------------------------------------------------------------------------
+// Inventory domain (Sprint 10)
+// ---------------------------------------------------------------------------
+
+enum StockMovementType {
+  purchase_in
+  sale_out
+  return_in
+  adjustment_in
+  adjustment_out
+  transfer_in
+  transfer_out
+  reservation
+  release
+}
+
+enum StockReservationStatus {
+  active
+  released
+  consumed
+  expired
+}
+
+enum PurchaseOrderStatus {
+  draft
+  ordered
+  partially_received
+  received
+  cancelled
+}
+
+model Warehouse {
+  id         String   @id @default(uuid())
+  code       String   @unique
+  name       String
+  line1      String
+  line2      String?
+  city       String
+  state      String
+  postalCode String   @map("postal_code")
+  country    String   @default("IN")
+  isDefault  Boolean  @default(false) @map("is_default")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  stockItems     StockItem[]
+  movements      StockMovement[]
+  reservations   StockReservation[]
+  purchaseOrders PurchaseOrder[]
+
+  @@index([isActive])
+  @@map("warehouses")
+}
+
+/// Current on-hand/reserved snapshot per warehouse+variant. `onHand - reserved`
+/// is the sellable quantity; the source of truth for history is `StockMovement`.
+model StockItem {
+  id                String   @id @default(uuid())
+  warehouseId       String   @map("warehouse_id")
+  variantSku        String   @map("variant_sku")
+  onHand            Int      @default(0) @map("on_hand")
+  reserved          Int      @default(0) @map("reserved")
+  safetyStock       Int      @default(0) @map("safety_stock")
+  lowStockThreshold Int      @default(5) @map("low_stock_threshold")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, variantSku])
+  @@index([variantSku])
+  @@index([onHand])
+  @@map("stock_items")
+}
+
+/// Append-only ledger of every stock change. Never updated or deleted —
+/// `StockItem.onHand`/`reserved` are derived caches maintained alongside it.
+model StockMovement {
+  id            String            @id @default(uuid())
+  warehouseId   String            @map("warehouse_id")
+  variantSku    String            @map("variant_sku")
+  type          StockMovementType
+  /// Always positive; `type` determines the direction applied to `StockItem`.
+  quantity      Int
+  referenceType String?           @map("reference_type")
+  referenceId   String?           @map("reference_id")
+  note          String?
+  actorType     OrderActorType    @default(system) @map("actor_type")
+  actorId       String?           @map("actor_id")
+  createdAt     DateTime          @default(now()) @map("created_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId, variantSku])
+  @@index([variantSku])
+  @@index([createdAt])
+  @@map("stock_movements")
+}
+
+/// Short-lived hold on stock while a cart/checkout is in progress. Released
+/// automatically on expiry by a worker job, or consumed when the order confirms.
+model StockReservation {
+  id          String                 @id @default(uuid())
+  warehouseId String                 @map("warehouse_id")
+  variantSku  String                 @map("variant_sku")
+  quantity    Int
+  cartId      String?                @map("cart_id")
+  checkoutId  String?                @map("checkout_id")
+  status      StockReservationStatus @default(active)
+  expiresAt   DateTime               @map("expires_at")
+  releasedAt  DateTime?              @map("released_at")
+  createdAt   DateTime               @default(now()) @map("created_at")
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+  @@index([variantSku])
+  @@index([cartId])
+  @@map("stock_reservations")
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  email     String?
+  phone     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model PurchaseOrder {
+  id          String              @id @default(uuid())
+  poNumber    String              @unique @map("po_number")
+  supplierId  String              @map("supplier_id")
+  warehouseId String              @map("warehouse_id")
+  status      PurchaseOrderStatus @default(draft)
+  expectedAt  DateTime?           @map("expected_at")
+  note        String?
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  supplier  Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  warehouse Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  items     PurchaseOrderItem[]
+
+  @@index([status])
+  @@index([supplierId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id               String  @id @default(uuid())
+  purchaseOrderId  String  @map("purchase_order_id")
+  variantSku       String  @map("variant_sku")
+  quantityOrdered  Int     @map("quantity_ordered")
+  quantityReceived Int     @default(0) @map("quantity_received")
+  unitCost         Decimal @map("unit_cost") @db.Decimal(10, 2)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@index([variantSku])
+  @@map("purchase_order_items")
+}
+
+// ---------------------------------------------------------------------------
+// Pricing domain (Sprint 10)
+// ---------------------------------------------------------------------------
+
+model PriceList {
+  id        String   @id @default(uuid())
+  code      String   @unique
+  name      String
+  currency  String   @default("INR")
+  isDefault Boolean  @default(false) @map("is_default")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  prices ProductPrice[]
+
+  @@map("price_lists")
+}
+
+/// The pricing source of truth per price-list+variant. Superseches
+/// `ProductVariant.price` for storefront display once a row exists;
+/// `ProductVariant.price`/`compareAtPrice` remain the catalog-authoring
+/// fallback for variants with no explicit `ProductPrice` row yet.
+model ProductPrice {
+  id           String    @id @default(uuid())
+  priceListId  String    @map("price_list_id")
+  variantSku   String    @map("variant_sku")
+  mrp          Decimal   @db.Decimal(10, 2)
+  sellingPrice Decimal   @map("selling_price") @db.Decimal(10, 2)
+  salePrice    Decimal?  @map("sale_price") @db.Decimal(10, 2)
+  saleStartsAt DateTime? @map("sale_starts_at")
+  saleEndsAt   DateTime? @map("sale_ends_at")
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  priceList PriceList      @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  history   PriceHistory[]
+
+  @@unique([priceListId, variantSku])
+  @@index([variantSku])
+  @@map("product_prices")
+}
+
+/// Append-only. One row per price change, written by PricingService whenever
+/// mrp/sellingPrice change. Never updated or deleted.
+model PriceHistory {
+  id              String   @id @default(uuid())
+  productPriceId  String   @map("product_price_id")
+  variantSku      String   @map("variant_sku")
+  oldMrp          Decimal? @map("old_mrp") @db.Decimal(10, 2)
+  newMrp          Decimal  @map("new_mrp") @db.Decimal(10, 2)
+  oldSellingPrice Decimal? @map("old_selling_price") @db.Decimal(10, 2)
+  newSellingPrice Decimal  @map("new_selling_price") @db.Decimal(10, 2)
+  reason          String?
+  changedBy       String?  @map("changed_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  productPrice ProductPrice @relation(fields: [productPriceId], references: [id], onDelete: Cascade)
+
+  @@index([variantSku])
+  @@index([createdAt])
+  @@map("price_history")
+}
+
+// ---------------------------------------------------------------------------
+// Promotion / campaign domain (Sprint 10)
+// ---------------------------------------------------------------------------
+
+enum CampaignType {
+  sitewide
+  collection
+  product
+}
+
+enum CampaignStatus {
+  scheduled
+  active
+  ended
+  cancelled
+}
+
+/// A scheduled, discount-bearing promotion (flash sale, seasonal sale) distinct
+/// from a one-off `Coupon` code — activation/expiry is time-driven, not
+/// code-redemption-driven. A Sprint 11 CMS landing page may reference a
+/// Campaign's `slug` to render "shop the sale" content without duplicating
+/// the discount rule itself.
+model Campaign {
+  id            String         @id @default(uuid())
+  name          String
+  slug          String         @unique
+  type          CampaignType
+  status        CampaignStatus @default(scheduled)
+  discountType  CouponType?    @map("discount_type")
+  discountValue Decimal?       @map("discount_value") @db.Decimal(10, 2)
+  startsAt      DateTime       @map("starts_at")
+  endsAt        DateTime       @map("ends_at")
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  products    CampaignProduct[]
+  collections CampaignCollection[]
+
+  @@index([status])
+  @@index([startsAt, endsAt])
+  @@map("campaigns")
+}
+
+model CampaignProduct {
+  campaignId String @map("campaign_id")
+  variantSku String @map("variant_sku")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, variantSku])
+  @@map("campaign_products")
+}
+
+model CampaignCollection {
+  campaignId   String @map("campaign_id")
+  collectionId String @map("collection_id")
+
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, collectionId])
+  @@map("campaign_collections")
+}
+
+// ---------------------------------------------------------------------------
+// CMS domain (Sprint 11) — fixed content-type templates, not a freeform
+// block/drag-drop builder. Each `PageType` has its own expected `fields` JSON
+// shape, documented in the CMS authoring guide, and validated by a per-type
+// DTO/schema in the API layer (Prisma stores it as `Json` since the shape
+// varies by type).
+// ---------------------------------------------------------------------------
+
+enum ContentStatus {
+  draft
+  scheduled
+  published
+  archived
+}
+
+enum PageType {
+  landing
+  policy
+  faq
+  homepage
+  campaign
+}
+
+model Page {
+  id              String        @id @default(uuid())
+  type            PageType
+  slug            String        @unique
+  title           String
+  status          ContentStatus @default(draft)
+  /// Structured content for this page's fixed template — shape depends on `type`.
+  fields          Json
+  seoTitle        String?       @map("seo_title")
+  seoDescription  String?       @map("seo_description")
+  seoCanonicalUrl String?       @map("seo_canonical_url")
+  seoOgImage      String?       @map("seo_og_image")
+  scheduledAt     DateTime?     @map("scheduled_at")
+  publishedAt     DateTime?     @map("published_at")
+  archivedAt      DateTime?     @map("archived_at")
+  createdBy       String?       @map("created_by")
+  updatedBy       String?       @map("updated_by")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  versions PageVersion[]
+
+  @@index([type])
+  @@index([status])
+  @@index([slug])
+  @@map("pages")
+}
+
+/// Append-only snapshot taken every time a page is published — powers admin
+/// version history / rollback. Never updated or deleted.
+model PageVersion {
+  id          String   @id @default(uuid())
+  pageId      String   @map("page_id")
+  title       String
+  fields      Json
+  seoSnapshot Json     @map("seo_snapshot")
+  publishedBy String?  @map("published_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@map("page_versions")
+}
+
+enum BannerPlacement {
+  homepage_hero
+  homepage_strip
+  category_top
+  cart_strip
+}
+
+model Banner {
+  id             String          @id @default(uuid())
+  title          String
+  imageUrl       String          @map("image_url")
+  mobileImageUrl String?         @map("mobile_image_url")
+  linkUrl        String?         @map("link_url")
+  altText        String?         @map("alt_text")
+  placement      BannerPlacement
+  status         ContentStatus   @default(draft)
+  sortOrder      Int             @default(0) @map("sort_order")
+  startsAt       DateTime?       @map("starts_at")
+  endsAt         DateTime?       @map("ends_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@index([placement, status])
+  @@index([sortOrder])
+  @@map("banners")
+}
+
+model BlogCategory {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  posts BlogPostCategory[]
+
+  @@map("blog_categories")
+}
+
+model BlogTag {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+
+  posts BlogPostTag[]
+
+  @@map("blog_tags")
+}
+
+model BlogPost {
+  id                 String        @id @default(uuid())
+  slug               String        @unique
+  title              String
+  excerpt            String?
+  coverImageUrl      String?       @map("cover_image_url")
+  contentHtml        String        @map("content_html")
+  authorName         String        @map("author_name")
+  status             ContentStatus @default(draft)
+  scheduledAt        DateTime?     @map("scheduled_at")
+  publishedAt        DateTime?     @map("published_at")
+  seoTitle           String?       @map("seo_title")
+  seoDescription     String?       @map("seo_description")
+  seoCanonicalUrl    String?       @map("seo_canonical_url")
+  seoOgImage         String?       @map("seo_og_image")
+  /// SKUs to show as "related products" for internal-linking/SEO purposes.
+  relatedProductSkus String[]      @default([]) @map("related_product_skus")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  categories BlogPostCategory[]
+  tags       BlogPostTag[]
+
+  @@index([status])
+  @@index([slug])
+  @@map("blog_posts")
+}
+
+model BlogPostCategory {
+  blogPostId String @map("blog_post_id")
+  categoryId String @map("category_id")
+
+  blogPost BlogPost     @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  category BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([blogPostId, categoryId])
+  @@map("blog_post_categories")
+}
+
+model BlogPostTag {
+  blogPostId String @map("blog_post_id")
+  tagId      String @map("tag_id")
+
+  blogPost BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+  tag      BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([blogPostId, tagId])
+  @@map("blog_post_tags")
+}
+
+model Menu {
+  id   String @id @default(uuid())
+  code String @unique
+  name String
+
+  items MenuItem[]
+
+  @@map("menus")
+}
+
+model MenuItem {
+  id            String   @id @default(uuid())
+  menuId        String   @map("menu_id")
+  parentId      String?  @map("parent_id")
+  label         String
+  url           String
+  sortOrder     Int      @default(0) @map("sort_order")
+  opensInNewTab Boolean  @default(false) @map("opens_in_new_tab")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  menu     Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent   MenuItem?  @relation("MenuItemTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children MenuItem[] @relation("MenuItemTree")
+
+  @@index([menuId])
+  @@index([parentId])
+  @@map("menu_items")
+}
+
+// ---------------------------------------------------------------------------
+// Marketing foundation placeholders (Sprint 11) — deliberately minimal.
+// These exist so referral/gift-card/loyalty features have a schema and an
+// admin view to build on, per the Sprint 11 plan's "foundation hooks... without
+// full advanced program rollout." No earn/redeem/reward rule engine yet.
+// ---------------------------------------------------------------------------
+
+model ReferralCode {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_codes")
+}
+
+model GiftCard {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  initialValue Decimal   @map("initial_value") @db.Decimal(10, 2)
+  balance      Decimal   @db.Decimal(10, 2)
+  isActive     Boolean   @default(true) @map("is_active")
+  expiresAt    DateTime? @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@map("gift_cards")
+}
+
+model LoyaltyAccount {
+  userId        String   @id @map("user_id")
+  pointsBalance Int      @default(0) @map("points_balance")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("loyalty_accounts")
 }

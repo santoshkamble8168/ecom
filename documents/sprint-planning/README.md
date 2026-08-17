@@ -33,8 +33,8 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | 7 | Checkout | `sprint-07-checkout.md` | Done (functional — formal DoD deferred) | Address, shipping, tax, review, checkout session complete |
 | 8 | Payments | `sprint-08-payments.md` | Done (COD intentionally disabled pending fraud-control decision) | Razorpay, COD, lifecycle, webhooks, payment hardening complete |
 | 9 | Orders | `sprint-09-orders.md` | Done (Storybook/E2E deferred) | Order history, tracking, cancellation, returns, invoices complete |
-| 10 | Inventory & Pricing | `sprint-10-inventory-pricing.md` | Not Started | Stock ledger, warehouses, promotions, scheduled pricing complete |
-| 11 | CMS & Marketing | `sprint-11-cms-marketing.md` | Not Started | Banners, blogs, landing pages, collections, campaigns complete |
+| 10 | Inventory & Pricing | `sprint-10-inventory-pricing.md` | Done | Stock ledger, warehouses, promotions, scheduled pricing complete |
+| 11 | CMS & Marketing | `sprint-11-cms-marketing.md` | Done | Banners, blogs, landing pages, collections, campaigns complete |
 | 12 | Admin Dashboard | `sprint-12-admin-dashboard.md` | Not Started | Reports, customer management, audit logs, admin control center complete |
 | 13 | Notifications | `sprint-13-notifications.md` | Not Started | Email/SMS templates, queue processing, delivery logs complete |
 | 14 | Analytics | `sprint-14-analytics.md` | Not Started | Dashboards, KPIs, funnels, reports, event governance complete |
@@ -52,6 +52,8 @@ exist before the status changes (see Definition of Done):
 | 0 | `docs/sprints/sprint-00-project-foundation-summary.md` | `docs/release-notes/v0.1.0-sprint-0.md` |
 | 8 | `docs/sprints/sprint-08-payments-summary.md` | — |
 | 9 | `docs/sprints/sprint-09-orders-summary.md` | — |
+| 10 | `docs/sprints/sprint-10-inventory-pricing-summary.md` | — |
+| 11 | `docs/sprints/sprint-11-cms-marketing-summary.md` | — |
 
 ## Activity Tracking Model
 

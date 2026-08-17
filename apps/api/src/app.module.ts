@@ -5,13 +5,19 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { AdminModule } from "./admin/admin.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
+import { BlogModule } from "./blog/blog.module";
 import { CartModule } from "./cart/cart.module";
 import { CatalogModule } from "./catalog/catalog.module";
 import { CheckoutModule } from "./checkout/checkout.module";
+import { CmsModule } from "./cms/cms.module";
 import { DiscoveryModule } from "./discovery/discovery.module";
+import { InventoryModule } from "./inventory/inventory.module";
+import { MarketingModule } from "./marketing/marketing.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
+import { PricingModule } from "./pricing/pricing.module";
 import { ProductModule } from "./product/product.module";
+import { PromotionsModule } from "./promotions/promotions.module";
 import { StorefrontModule } from "./storefront/storefront.module";
 import { UsersModule } from "./users/users.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
@@ -47,6 +53,12 @@ import { RedisModule } from "./redis/redis.module";
     DiscoveryModule,
     ProductModule,
     StorefrontModule,
+    InventoryModule,
+    PricingModule,
+    PromotionsModule,
+    CmsModule,
+    BlogModule,
+    MarketingModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

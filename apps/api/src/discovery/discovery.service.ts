@@ -1,10 +1,11 @@
 import { NotFoundError, buildPaginationMeta, paginationSkip } from "@ecom/shared";
-import type { ProductFacets, ProductListResult, ProductSortKey } from "@ecom/types";
+import type { ProductFacets, ProductListResult, ProductSortKey, ProductSummary } from "@ecom/types";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import { productInclude, toProductSummary } from "../catalog/mappers/catalog.mapper";
 import { AppLogger } from "../logger/logger.service";
+import { PricingService } from "../pricing/pricing.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 import type { DiscoveryQueryDto } from "./dto/discovery-query.dto";
@@ -19,6 +20,7 @@ export class DiscoveryService {
     private readonly prisma: PrismaService,
     private readonly meilisearch: MeilisearchService,
     private readonly logger: AppLogger,
+    private readonly pricingService: PricingService,
   ) {
     this.logger.setContext("DiscoveryService");
   }
@@ -40,7 +42,9 @@ export class DiscoveryService {
 
     const facets = await this.buildFacets(where);
 
-    return this.toListResult(products, totalItems, query, sort, facets, "postgres");
+    const result = this.toListResult(products, totalItems, query, sort, facets, "postgres");
+    result.items = await this.enrichWithPricing(products, result.items);
+    return result;
   }
 
   async searchProducts(query: DiscoveryQueryDto): Promise<ProductListResult> {
@@ -70,6 +74,62 @@ export class DiscoveryService {
     const collection = await this.prisma.collection.findFirst({ where: { slug, isActive: true } });
     if (!collection) throw new NotFoundError("Collection not found");
     return this.listProducts(query, { collectionSlug: slug });
+  }
+
+  /**
+   * Public product listing for a CMS `campaign_grid` section. Resolves the
+   * union of a live campaign's directly-attached SKUs and any products in
+   * its attached collections. Returns an empty list (not a 404) for a
+   * campaign that exists but isn't currently live, so CMS pages don't break
+   * before/after the campaign window.
+   */
+  async getCampaignProducts(slug: string, query: DiscoveryQueryDto): Promise<ProductListResult> {
+    const now = new Date();
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { slug },
+      include: { products: true, collections: true },
+    });
+    if (!campaign) throw new NotFoundError("Campaign not found");
+
+    const emptyFacets: ProductFacets = {
+      sizes: [],
+      colors: [],
+      brands: [],
+      priceRange: { min: 0, max: 0 },
+    };
+
+    const isLive = campaign.isActive && campaign.status === "active" && campaign.startsAt <= now && campaign.endsAt >= now;
+    const skus = campaign.products.map((p) => p.variantSku);
+    const collectionIds = campaign.collections.map((c) => c.collectionId);
+
+    if (!isLive || (skus.length === 0 && collectionIds.length === 0)) {
+      return this.toListResult([], 0, query, parseSortKey(query.sort), emptyFacets, "postgres");
+    }
+
+    const where: Prisma.ProductWhereInput = {
+      status: "published",
+      OR: [
+        ...(skus.length ? [{ variants: { some: { sku: { in: skus } } } }] : []),
+        ...(collectionIds.length ? [{ collections: { some: { collectionId: { in: collectionIds } } } }] : []),
+      ],
+    };
+
+    const sort = parseSortKey(query.sort);
+    const [totalItems, products] = await Promise.all([
+      this.prisma.product.count({ where }),
+      this.prisma.product.findMany({
+        where,
+        include: productInclude,
+        orderBy: buildProductOrderBy(sort),
+        skip: paginationSkip(query.page, query.pageSize),
+        take: query.pageSize,
+      }),
+    ]);
+
+    const facets = await this.buildFacets(where);
+    const result = this.toListResult(products, totalItems, query, sort, facets, "postgres");
+    result.items = await this.enrichWithPricing(products, result.items);
+    return result;
   }
 
   async logSearchAnalytics(dto: SearchAnalyticsDto) {
@@ -118,7 +178,9 @@ export class DiscoveryService {
     const facets = await this.buildFacets({ status: "published" });
     await this.logSearch(q, estimatedTotalHits, query);
 
-    return this.toListResult(products, estimatedTotalHits, query, sort, facets, "meilisearch");
+    const result = this.toListResult(products, estimatedTotalHits, query, sort, facets, "meilisearch");
+    result.items = await this.enrichWithPricing(products, result.items);
+    return result;
   }
 
   private async buildWhere(
@@ -274,6 +336,49 @@ export class DiscoveryService {
         searchEngine,
       },
     };
+  }
+
+  /**
+   * Sprint 10 pricing enrichment (additive, best-effort). Uses each product's
+   * default (first) variant SKU to resolve an effective/sale price and any
+   * live campaign badge. Never throws — a pricing lookup failure just leaves
+   * these fields unset so PLP/search never breaks on it.
+   */
+  private async enrichWithPricing(
+    products: Parameters<typeof toProductSummary>[0][],
+    summaries: ProductSummary[],
+  ): Promise<ProductSummary[]> {
+    try {
+      const defaultSkus = products.map((p) => p.variants[0]?.sku);
+      const skus = [...new Set(defaultSkus.filter((sku): sku is string => !!sku))];
+      if (skus.length === 0) return summaries;
+
+      const collectionIdsBySku = new Map<string, string[]>();
+      products.forEach((p, i) => {
+        const sku = defaultSkus[i];
+        if (sku) collectionIdsBySku.set(sku, p.collections.map((c) => c.collection.id));
+      });
+
+      const [priceMap, badgeMap] = await Promise.all([
+        this.pricingService.getEffectivePricesForSkus(skus),
+        this.pricingService.getCampaignBadgesForSkus(skus, collectionIdsBySku),
+      ]);
+
+      return summaries.map((summary, i) => {
+        const sku = defaultSkus[i];
+        if (!sku) return summary;
+        const price = priceMap.get(sku);
+        const badge = badgeMap.get(sku);
+        return {
+          ...summary,
+          ...(price ? { effectivePrice: price.effectivePrice, saleActive: price.saleActive } : {}),
+          ...(badge !== undefined ? { campaignBadge: badge } : {}),
+        };
+      });
+    } catch (error) {
+      this.logger.warn(`Pricing enrichment failed, serving base prices: ${String(error)}`);
+      return summaries;
+    }
   }
 
   private async logSearch(query: string, resultCount: number, filters?: unknown) {
