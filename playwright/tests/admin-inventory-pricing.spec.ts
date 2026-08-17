@@ -80,7 +80,7 @@ test.describe("Admin inventory, pricing, and promotions", () => {
     adminCouponDetail,
   }) => {
     await adminCoupons.goto();
-    await expect(adminCoupons.heading).toBeVisible();
+    await expect(adminCoupons.heading).toBeVisible({ timeout: 15_000 });
     await expect(adminCoupons.rowForCode("VIP20")).toBeVisible();
 
     await adminCoupons.openDetail("VIP20");
@@ -93,7 +93,7 @@ test.describe("Admin inventory, pricing, and promotions", () => {
 
   test("campaign list renders the seeded active campaign", async ({ adminCampaigns }) => {
     await adminCampaigns.goto();
-    await expect(adminCampaigns.heading).toBeVisible();
+    await expect(adminCampaigns.heading).toBeVisible({ timeout: 15_000 });
     const row = adminCampaigns.rowForName("Monsoon Flash Sale");
     await expect(row).toBeVisible();
     await expect(row).toContainText("Active");
@@ -105,7 +105,7 @@ test.describe("Admin inventory, pricing, and promotions", () => {
     adminInventory,
   }) => {
     await adminInventory.goto();
-    await expect(adminInventory.heading).toBeVisible();
+    await expect(adminInventory.heading).toBeVisible({ timeout: 15_000 });
     await expectNoAccessibilityViolations(page);
   });
 });

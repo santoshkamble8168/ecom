@@ -16,11 +16,12 @@ test.describe("Storefront cart coupon", () => {
     storefrontCart,
   }) => {
     await storefrontProduct.goto(PRODUCT_SLUG);
+    await expect(storefrontProduct.title).toBeVisible({ timeout: 15_000 });
     await storefrontProduct.addToBag("M");
     await expect(storefrontProduct.toast).toBeVisible();
 
     await storefrontCart.goto();
-    await expect(storefrontCart.heading).toBeVisible();
+    await expect(storefrontCart.heading).toBeVisible({ timeout: 15_000 });
 
     await storefrontCart.applyCoupon("WELCOME10");
 

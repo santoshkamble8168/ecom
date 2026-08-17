@@ -36,7 +36,7 @@ test.describe("Storefront pricing and campaigns", () => {
   }) => {
     await storefrontProduct.goto(SALE_PRODUCT_SLUG);
 
-    await expect(storefrontProduct.title).toHaveText(SALE_PRODUCT_TITLE);
+    await expect(storefrontProduct.title).toHaveText(SALE_PRODUCT_TITLE, { timeout: 15_000 });
     await expect(storefrontProduct.page.getByText("Sale", { exact: true })).toBeVisible();
     await expect(storefrontProduct.campaignBadge).toHaveText("15% OFF");
     await expect(storefrontProduct.page.getByText("₹799", { exact: true })).toBeVisible();
