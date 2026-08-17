@@ -46,7 +46,18 @@ export interface RoleSummary {
 export interface CustomerOrderSummary {
   id: string;
   orderNumber: string;
-  status: "pending_payment" | "confirmed" | "cancelled" | "failed";
+  status:
+    | "pending_payment"
+    | "confirmed"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "return_requested"
+    | "returned"
+    | "exchange_requested"
+    | "exchanged"
+    | "cancelled"
+    | "failed";
   total: string;
   currency: string;
   paymentMethod: "razorpay" | "cod";

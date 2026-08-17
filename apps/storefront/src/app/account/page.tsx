@@ -8,6 +8,7 @@ import { Suspense, useEffect, useState } from "react";
 
 import { apiFetch, clearToken, getRefreshToken, getToken, setTokens } from "@/lib/auth";
 import { formatInr, mergeCartOnLogin } from "@/lib/cart";
+import { orderStatusMeta } from "@/lib/orders";
 
 type Tab = "orders" | "profile" | "addresses";
 
@@ -46,18 +47,7 @@ function formatOrderDate(iso: string): string {
 }
 
 function orderStatusLabel(status: CustomerOrderSummary["status"]): string {
-  switch (status) {
-    case "confirmed":
-      return "Confirmed";
-    case "pending_payment":
-      return "Pending payment";
-    case "cancelled":
-      return "Cancelled";
-    case "failed":
-      return "Failed";
-    default:
-      return status;
-  }
+  return orderStatusMeta(status).label;
 }
 
 export default function AccountPage() {
@@ -318,15 +308,7 @@ function AccountPageContent() {
                       {order.itemCount === 1 ? "" : "s"}
                     </p>
                     <p className="mt-1">
-                      <span
-                        className={
-                          order.status === "confirmed"
-                            ? "text-success-600"
-                            : order.status === "pending_payment"
-                              ? "text-neutral-600"
-                              : "text-danger-600"
-                        }
-                      >
+                      <span className={orderStatusMeta(order.status).textClassName}>
                         {orderStatusLabel(order.status)}
                       </span>
                       {order.paymentStatus ? (
@@ -337,7 +319,7 @@ function AccountPageContent() {
                   <div className="flex items-center gap-4">
                     <p className="text-base font-bold">{formatInr(order.total)}</p>
                     <Link
-                      href={`/order/confirmation?order=${encodeURIComponent(order.orderNumber)}`}
+                      href={`/account/orders/${order.id}`}
                       className="text-sm font-medium text-info-600 hover:underline"
                     >
                       View details

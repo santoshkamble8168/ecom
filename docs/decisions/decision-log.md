@@ -15,8 +15,10 @@ Starter documentation for decision log in a reusable AI engineering workspace.
 | [0006](./0006-meilisearch-for-product-search.md) | Meilisearch for product search | Accepted | Sprint 0 |
 | [0007](./0007-minio-for-object-storage.md) | MinIO (S3-compatible) for object storage | Accepted | Sprint 0 |
 | [0008](./0008-tailwind-and-shadcn-style-design-system.md) | Tailwind CSS + shadcn/ui-style component architecture for `@ecom/ui` | Accepted | Sprint 0 |
+| [0009](./0009-orders-domain-and-fulfillment-state-machine.md) | Orders domain, fulfillment model, and order state machine | Accepted | Sprint 9 |
 
-See also: [Sprint 0 security review](../security/sprint-00-security-review.md).
+See also: [Sprint 0 security review](../security/sprint-00-security-review.md),
+[Sprint 8/9 security review](../security/sprint-08-09-payments-orders-security-review.md).
 
 ## Responsibilities
 - Provide a durable source of truth.

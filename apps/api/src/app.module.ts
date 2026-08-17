@@ -9,6 +9,7 @@ import { CartModule } from "./cart/cart.module";
 import { CatalogModule } from "./catalog/catalog.module";
 import { CheckoutModule } from "./checkout/checkout.module";
 import { DiscoveryModule } from "./discovery/discovery.module";
+import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { ProductModule } from "./product/product.module";
 import { StorefrontModule } from "./storefront/storefront.module";
@@ -41,6 +42,7 @@ import { RedisModule } from "./redis/redis.module";
     CartModule,
     CheckoutModule,
     PaymentsModule,
+    OrdersModule,
     CatalogModule,
     DiscoveryModule,
     ProductModule,

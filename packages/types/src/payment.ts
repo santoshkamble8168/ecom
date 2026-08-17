@@ -1,3 +1,9 @@
+// `OrderStatus` (full lifecycle incl. fulfillment/returns) is defined in ./order
+// to avoid a duplicate/narrower definition here.
+import type { OrderStatus } from "./order";
+
+export type { OrderStatus };
+
 export type PaymentStatus =
   | "created"
   | "pending"
@@ -8,8 +14,6 @@ export type PaymentStatus =
   | "refunded";
 
 export type PaymentProvider = "razorpay" | "cod";
-
-export type OrderStatus = "pending_payment" | "confirmed" | "cancelled" | "failed";
 
 export interface PaymentSummary {
   id: string;
@@ -58,4 +62,20 @@ export interface CodConfirmationResult {
 export interface RazorpayMockCaptureResult {
   payment: PaymentSummary;
   order: OrderConfirmation;
+}
+
+export type RefundStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface RefundSummary {
+  id: string;
+  paymentId: string;
+  orderId: string;
+  amount: string;
+  currency: string;
+  status: RefundStatus;
+  reason: string;
+  providerRefundId: string | null;
+  failureMessage: string | null;
+  initiatedAt: string;
+  completedAt: string | null;
 }

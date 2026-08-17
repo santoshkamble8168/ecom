@@ -10,12 +10,15 @@ import {
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
+import { PERMISSIONS } from "@ecom/types";
 import { IsOptional, IsString, Length } from "class-validator";
 
 import type { AuthenticatedUser } from "../auth/types/authenticated-user";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
+import { Permissions } from "../common/decorators/permissions.decorator";
 import { Public } from "../common/decorators/public.decorator";
 
+import { CreateRefundDto } from "./dto/create-refund.dto";
 import { PaymentsService } from "./payments.service";
 
 class InitiatePaymentDto {
@@ -122,6 +125,28 @@ export class PaymentsController {
     @Body() body?: { sessionId?: string },
   ) {
     return this.paymentsService.confirmCod(id, user?.id, sessionId ?? body?.sessionId);
+  }
+
+  @Get("admin/payments/:id/refunds")
+  @Permissions(PERMISSIONS.ORDER_READ)
+  listRefunds(@Param("id") id: string) {
+    return this.paymentsService.listRefunds(id);
+  }
+
+  @Get("admin/payments/:id/settlements")
+  @Permissions(PERMISSIONS.ORDER_READ)
+  listSettlements(@Param("id") id: string) {
+    return this.paymentsService.listSettlements(id);
+  }
+
+  @Post("admin/payments/:id/refunds")
+  @Permissions(PERMISSIONS.ORDER_WRITE)
+  createRefund(
+    @Param("id") id: string,
+    @CurrentUser() admin: AuthenticatedUser,
+    @Body() dto: CreateRefundDto,
+  ) {
+    return this.paymentsService.adminCreateRefund(id, dto.amount, dto.reason, admin.id);
   }
 
   @Public()

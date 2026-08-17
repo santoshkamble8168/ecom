@@ -74,4 +74,32 @@ export class RazorpayProvider {
       mock: false,
     };
   }
+
+  async refundPayment(params: {
+    providerPaymentId: string;
+    amountPaise: number;
+    notes?: Record<string, string>;
+  }): Promise<{ providerRefundId: string; mock: boolean }> {
+    if (this.isMockMode()) {
+      return { providerRefundId: `rfnd_mock_${randomUUID().replace(/-/g, "").slice(0, 14)}`, mock: true };
+    }
+
+    const auth = Buffer.from(`${this.getKeyId()}:${this.getKeySecret()}`).toString("base64");
+    const response = await fetch(`https://api.razorpay.com/v1/payments/${params.providerPaymentId}/refund`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount: params.amountPaise, notes: params.notes ?? {} }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Razorpay refund failed: ${text}`);
+    }
+
+    const data = (await response.json()) as { id: string };
+    return { providerRefundId: data.id, mock: false };
+  }
 }

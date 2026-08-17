@@ -589,6 +589,56 @@ async function seedCheckoutConfig() {
   });
 }
 
+const COURIERS = [
+  { name: "Delhivery", code: "delhivery", trackingUrlTemplate: "https://www.delhivery.com/track/package/{trackingNumber}" },
+  { name: "Bluedart", code: "bluedart", trackingUrlTemplate: "https://www.bluedart.com/tracking?trackingNumber={trackingNumber}" },
+  { name: "Ekart", code: "ekart", trackingUrlTemplate: "https://ekartlogistics.com/track/{trackingNumber}" },
+];
+
+const RETURN_REASONS = [
+  { code: "size_issue", label: "Size doesn't fit", sortOrder: 0 },
+  { code: "quality_issue", label: "Product quality not as expected", sortOrder: 1 },
+  { code: "wrong_item", label: "Received wrong item", sortOrder: 2 },
+  { code: "damaged", label: "Item arrived damaged", sortOrder: 3 },
+  { code: "not_as_described", label: "Not as described / pictured", sortOrder: 4 },
+  { code: "changed_mind", label: "Changed my mind", sortOrder: 5 },
+  { code: "other", label: "Other", sortOrder: 6 },
+];
+
+const EXCHANGE_REASONS = [
+  { code: "size_too_small", label: "Size too small", sortOrder: 0 },
+  { code: "size_too_large", label: "Size too large", sortOrder: 1 },
+  { code: "wrong_color", label: "Wrong color / prefer different color", sortOrder: 2 },
+  { code: "defective", label: "Defective — need replacement", sortOrder: 3 },
+  { code: "other", label: "Other", sortOrder: 4 },
+];
+
+async function seedOrdersFulfillment() {
+  for (const courier of COURIERS) {
+    await prisma.courier.upsert({
+      where: { code: courier.code },
+      update: { name: courier.name, trackingUrlTemplate: courier.trackingUrlTemplate },
+      create: courier,
+    });
+  }
+
+  for (const reason of RETURN_REASONS) {
+    await prisma.returnReason.upsert({
+      where: { code: reason.code },
+      update: { label: reason.label, sortOrder: reason.sortOrder },
+      create: reason,
+    });
+  }
+
+  for (const reason of EXCHANGE_REASONS) {
+    await prisma.exchangeReason.upsert({
+      where: { code: reason.code },
+      update: { label: reason.label, sortOrder: reason.sortOrder },
+      create: reason,
+    });
+  }
+}
+
 async function main() {
   for (const permission of PERMISSIONS) {
     await prisma.permission.upsert({
@@ -653,6 +703,7 @@ async function main() {
   await seedReviews();
   await seedCoupons();
   await seedCheckoutConfig();
+  await seedOrdersFulfillment();
 
   // eslint-disable-next-line no-console
   console.log("Seed complete: roles, permissions, catalog, storefront CMS, checkout config, and sample products are ready.");

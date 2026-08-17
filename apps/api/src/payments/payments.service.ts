@@ -3,10 +3,11 @@ import type {
   OrderConfirmation,
   PaymentSummary,
   RazorpayMockCaptureResult,
+  RefundSummary,
 } from "@ecom/types";
 import { ConflictError, NotFoundError, UnauthorizedError, ValidationError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
-import type { Payment, PaymentStatus, Prisma } from "@prisma/client";
+import type { Payment, PaymentStatus, Prisma, RefundRequest } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
 import { AuditService } from "../audit/audit.service";
@@ -17,6 +18,7 @@ import {
   canRetryPayment,
   generateOrderNumber,
   PAYMENT_EXPIRY_MINUTES,
+  toPaise,
   verifyRazorpayPaymentSignature,
   verifyRazorpayWebhookSignature,
 } from "./policies/payment.policy";
@@ -185,6 +187,7 @@ export class PaymentsService {
     });
 
     await this.clearCart(checkout.cartId);
+    await this.recordSettlement(payment.id, "razorpay", Number(updated.amount));
     await this.auditService.log({
       userId,
       action: "OrderPaymentConfirmed",
@@ -234,6 +237,7 @@ export class PaymentsService {
     });
 
     await this.clearCart(checkout.cartId);
+    await this.recordSettlement(payment.id, "razorpay", Number(updated.amount));
     return {
       payment: this.toPaymentSummary(updated),
       order: this.toOrderConfirmation(order, "captured"),
@@ -348,6 +352,7 @@ export class PaymentsService {
           },
         });
         await this.clearCart(checkout.cartId);
+        await this.recordSettlement(payment.id, "razorpay", Number(payment.amount));
       }
     } else if (eventType.includes("failed")) {
       await this.markFailed(payment.id, "webhook_failed", "Payment failed via webhook");
@@ -467,6 +472,117 @@ export class PaymentsService {
     });
 
     return this.toPaymentSummary(payment);
+  }
+
+  async adminCreateRefund(
+    paymentId: string,
+    amount: string | undefined,
+    reason: string,
+    adminId: string,
+  ): Promise<RefundSummary> {
+    const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundError("Payment not found");
+    if (!payment.orderId) throw new ValidationError("Payment is not linked to an order");
+    if (payment.status !== "captured") {
+      throw new ValidationError("Only captured payments can be refunded");
+    }
+
+    const refundAmount = amount ?? payment.amount.toString();
+    if (Number(refundAmount) <= 0 || Number(refundAmount) > Number(payment.amount)) {
+      throw new ValidationError("Refund amount must be greater than zero and not exceed the payment amount");
+    }
+
+    let providerRefundId: string | null = null;
+    if (payment.provider === "razorpay" && payment.providerPaymentId) {
+      const refund = await this.razorpay.refundPayment({
+        providerPaymentId: payment.providerPaymentId,
+        amountPaise: toPaise(Number(refundAmount)),
+        notes: { reason },
+      });
+      providerRefundId = refund.providerRefundId;
+    }
+
+    const pending = await this.prisma.refundRequest.findFirst({
+      where: { paymentId: payment.id, status: "pending" },
+      orderBy: { initiatedAt: "asc" },
+    });
+
+    const refundRequest = pending
+      ? await this.prisma.refundRequest.update({
+          where: { id: pending.id },
+          data: { amount: refundAmount, reason, status: "completed", providerRefundId, completedAt: new Date() },
+        })
+      : await this.prisma.refundRequest.create({
+          data: {
+            paymentId: payment.id,
+            orderId: payment.orderId,
+            amount: refundAmount,
+            currency: payment.currency,
+            reason,
+            status: "completed",
+            providerRefundId,
+            completedAt: new Date(),
+          },
+        });
+
+    const isFullRefund = Number(refundAmount) >= Number(payment.amount);
+    if (isFullRefund) {
+      await this.prisma.payment.update({ where: { id: payment.id }, data: { status: "refunded" } });
+    }
+
+    await this.auditService.log({
+      userId: adminId,
+      action: "AdminRefundIssued",
+      entityType: "payment",
+      entityId: payment.id,
+      metadata: { amount: refundAmount, reason, providerRefundId },
+    });
+
+    return this.toRefundSummary(refundRequest);
+  }
+
+  async listSettlements(paymentId: string) {
+    const settlements = await this.prisma.settlement.findMany({
+      where: { paymentId },
+      orderBy: { createdAt: "desc" },
+    });
+    return settlements.map((s) => ({
+      id: s.id,
+      paymentId: s.paymentId,
+      provider: s.provider,
+      grossAmount: s.grossAmount.toString(),
+      feeAmount: s.feeAmount.toString(),
+      taxOnFee: s.taxOnFee.toString(),
+      netAmount: s.netAmount.toString(),
+      utr: s.utr,
+      status: s.status,
+      settledAt: s.settledAt?.toISOString() ?? null,
+      createdAt: s.createdAt.toISOString(),
+    }));
+  }
+
+  async listRefunds(paymentId: string): Promise<RefundSummary[]> {
+    const refunds = await this.prisma.refundRequest.findMany({
+      where: { paymentId },
+      orderBy: { initiatedAt: "desc" },
+    });
+    return refunds.map((r) => this.toRefundSummary(r));
+  }
+
+  private toRefundSummary(refund: RefundRequest): RefundSummary {
+    return {
+      id: refund.id,
+      paymentId: refund.paymentId,
+      orderId: refund.orderId,
+      amount: refund.amount.toString(),
+      currency: refund.currency,
+      status: refund.status,
+      reason: refund.reason,
+      providerRefundId: refund.providerRefundId,
+      failureMessage: refund.failureMessage,
+      initiatedAt: refund.initiatedAt.toISOString(),
+      completedAt: refund.completedAt?.toISOString() ?? null,
+    };
   }
 
   private async finalizeOrder(
@@ -596,6 +712,34 @@ export class PaymentsService {
     }
 
     return checkout;
+  }
+
+  /**
+   * Mock settlement ledger entry created at capture time. Real integrations would
+   * instead ingest Razorpay's settlement reports/webhooks asynchronously (T+2 payout
+   * cycle) — this synchronous mock keeps local/dev environments self-contained.
+   */
+  private async recordSettlement(paymentId: string, provider: "razorpay" | "cod", grossAmount: number): Promise<void> {
+    if (provider !== "razorpay") return; // COD has no gateway settlement to reconcile
+    const feeRate = 0.02;
+    const gstRate = 0.18;
+    const feeAmount = Math.round(grossAmount * feeRate * 100) / 100;
+    const taxOnFee = Math.round(feeAmount * gstRate * 100) / 100;
+    const netAmount = Math.round((grossAmount - feeAmount - taxOnFee) * 100) / 100;
+
+    await this.prisma.settlement.create({
+      data: {
+        paymentId,
+        provider: "razorpay",
+        grossAmount,
+        feeAmount,
+        taxOnFee,
+        netAmount,
+        utr: `MOCKUTR${randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`,
+        status: "settled",
+        settledAt: new Date(),
+      },
+    });
   }
 
   private toPaymentSummary(payment: Payment): PaymentSummary {

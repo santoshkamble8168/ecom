@@ -31,8 +31,8 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | 5 | Product Details | `sprint-05-product-details.md` | Done | PDP, gallery, reviews shell, wishlist, related products complete |
 | 6 | Cart & Wishlist | `sprint-06-cart-wishlist.md` | Done | Guest/user cart, save for later, coupons, wishlist flows complete |
 | 7 | Checkout | `sprint-07-checkout.md` | Done (functional — formal DoD deferred) | Address, shipping, tax, review, checkout session complete |
-| 8 | Payments | `sprint-08-payments.md` | In Progress | Razorpay, COD, lifecycle, webhooks, payment hardening complete |
-| 9 | Orders | `sprint-09-orders.md` | Not Started | Order history, tracking, cancellation, returns, invoices complete |
+| 8 | Payments | `sprint-08-payments.md` | Done (COD intentionally disabled pending fraud-control decision) | Razorpay, COD, lifecycle, webhooks, payment hardening complete |
+| 9 | Orders | `sprint-09-orders.md` | Done (Storybook/E2E deferred) | Order history, tracking, cancellation, returns, invoices complete |
 | 10 | Inventory & Pricing | `sprint-10-inventory-pricing.md` | Not Started | Stock ledger, warehouses, promotions, scheduled pricing complete |
 | 11 | CMS & Marketing | `sprint-11-cms-marketing.md` | Not Started | Banners, blogs, landing pages, collections, campaigns complete |
 | 12 | Admin Dashboard | `sprint-12-admin-dashboard.md` | Not Started | Reports, customer management, audit logs, admin control center complete |
@@ -50,6 +50,8 @@ exist before the status changes (see Definition of Done):
 | Sprint | Summary | Release Notes |
 | --- | --- | --- |
 | 0 | `docs/sprints/sprint-00-project-foundation-summary.md` | `docs/release-notes/v0.1.0-sprint-0.md` |
+| 8 | `docs/sprints/sprint-08-payments-summary.md` | — |
+| 9 | `docs/sprints/sprint-09-orders-summary.md` | — |
 
 ## Activity Tracking Model
 
