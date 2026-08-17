@@ -14,16 +14,29 @@ export class StorefrontProductPage {
 
   constructor(page: Page) {
     this.page = page;
+    // `PdpView` renders `product.brand ?? product.title` in the h1 (every
+    // seeded product has a brand of "ECOM"), with the actual product title
+    // shown underneath in a sibling `<p>`. Use `productTitle(title)` below
+    // to assert on the real title text; this locator is only useful to
+    // confirm *a* product page rendered (e.g. before adding to the bag).
     this.title = page.getByRole("heading", { level: 1 });
     // Two "Add to Bag" buttons render (main CTA + sticky mobile bar); both
     // trigger the same handler, so the first is sufficient.
     this.addToBagButton = page.getByRole("button", { name: "Add to Bag" }).first();
     this.campaignBadge = page.getByText(/% OFF/);
-    this.toast = page.getByText("Added to your bag!");
+    // Adding to the bag also shows an inline "Added to your bag! 🎉"
+    // celebration banner, so this must be an exact match to avoid matching
+    // both toasts.
+    this.toast = page.getByText("Added to your bag!", { exact: true });
   }
 
   async goto(slug: string) {
     await this.page.goto(`/products/${slug}`);
+  }
+
+  /** Locates the actual product title text (see note on `title` above). */
+  productTitle(title: string): Locator {
+    return this.page.getByText(title, { exact: true });
   }
 
   /** Clicks "Add to Bag", picks a size in the picker modal if it opens

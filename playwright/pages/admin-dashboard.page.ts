@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
-/** Encapsulates the admin dashboard shell (sidebar + metric cards). */
+/** Encapsulates the admin dashboard shell (sidebar + live KPI cards). */
 export class AdminDashboardPage {
   readonly page: Page;
   readonly sidebarNav: Locator;
@@ -18,5 +18,9 @@ export class AdminDashboardPage {
 
   sidebarLink(label: string): Locator {
     return this.sidebarNav.getByRole("link", { name: label, exact: true });
+  }
+
+  kpiMatching(pattern: RegExp): Locator {
+    return this.page.getByText(pattern);
   }
 }

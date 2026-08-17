@@ -9,6 +9,7 @@ import { InventoryJobsModule } from "./inventory-jobs/inventory-jobs.module";
 import { PricingJobsModule } from "./pricing-jobs/pricing-jobs.module";
 import { PromotionJobsModule } from "./promotion-jobs/promotion-jobs.module";
 import { CmsJobsModule } from "./cms-jobs/cms-jobs.module";
+import { AdminJobsModule } from "./admin-jobs/admin-jobs.module";
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CmsJobsModule } from "./cms-jobs/cms-jobs.module";
     PricingJobsModule,
     PromotionJobsModule,
     CmsJobsModule,
+    AdminJobsModule,
   ],
 })
 export class AppModule {}

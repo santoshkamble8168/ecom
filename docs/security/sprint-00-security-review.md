@@ -34,7 +34,7 @@ as accepted risks with an owning future sprint.
 | 7 | Nginx edge config (`infrastructure/nginx/nginx.conf`) has no `limit_req` zones and relies on default `client_max_body_size`. | Low | Fine for current static-shell traffic. Add rate-limit zones and a larger body-size allowance once file uploads (product images, Sprint 2/11) and checkout endpoints exist and are reachable through the edge. |
 | 8 | Docker Compose ships convenience default credentials (`ecom`/`ecom` Postgres, `devMasterKeyChangeMe` Meilisearch, `ecomminio`/`ecomminio123` MinIO) via `${VAR:-default}` interpolation. | Low | Local-dev only; verified `.env` files are gitignored and never committed. Any real deployment must override every `*_default` value through the deployment platform's secret store — call this out explicitly in the deployment guide (Sprint 17). |
 | 9 | `RolesGuard` allows any authenticated user through when a route has no `@Roles()` metadata (i.e., "authenticated" is the default, not "deny by default per role"). | Low | Intentional for Sprint 0 — there are no role-gated routes yet. Must be revisited as admin-only endpoints land (Sprint 2+ catalog/admin CRUD) to confirm every admin route explicitly declares required roles. |
-| 10 | No audit-log table or write path exists yet, though the Sprint 0 plan calls out an "audit" cross-cutting module. | Low | Scoped out of Sprint 0 to avoid speculative schema design before there are mutating admin actions to audit. Tracked for Sprint 12 (Admin Dashboard), which explicitly requires audit logs. |
+| 10 | No audit-log table or write path exists yet, though the Sprint 0 plan calls out an "audit" cross-cutting module. | Low | Closed in Sprint 12: `AuditLog` (+ `ipAddress`/`before`/`after`/`requestId`), list/export APIs, and retention job. See [Sprint 12 security review](./sprint-12-admin-security-review.md). |
 | 11 | Google OAuth env vars (`GOOGLE_CLIENT_ID`/`SECRET`/`CALLBACK_URL`) exist in config validation but no OAuth flow is implemented. | Informational | Expected — Sprint 0 explicitly scopes OAuth implementation out ("without completing customer-facing auth flows"). Implementation lands in Sprint 1. |
 
 ## Dependency Vulnerability Scan (`pnpm audit`)
@@ -100,7 +100,7 @@ beyond the manual per-sprint audit.
       requirements (finding #5).
 - [ ] Sprint 2/11: add Nginx `limit_req` zones and revisit
       `client_max_body_size` once upload endpoints exist (finding #7).
-- [ ] Sprint 12: implement the audit-log module (finding #10).
+- [x] Sprint 12: implement the audit-log module (finding #10).
 - [ ] Sprint 15 (or sooner, if a third-party script is introduced first):
       define an explicit Content-Security-Policy (finding #6).
 - [ ] Ongoing: re-run `pnpm audit` each sprint and revisit the transitive

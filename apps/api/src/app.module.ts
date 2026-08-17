@@ -10,6 +10,8 @@ import { CartModule } from "./cart/cart.module";
 import { CatalogModule } from "./catalog/catalog.module";
 import { CheckoutModule } from "./checkout/checkout.module";
 import { CmsModule } from "./cms/cms.module";
+import { CustomersModule } from "./customers/customers.module";
+import { DashboardModule } from "./dashboard/dashboard.module";
 import { DiscoveryModule } from "./discovery/discovery.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { MarketingModule } from "./marketing/marketing.module";
@@ -18,6 +20,8 @@ import { PaymentsModule } from "./payments/payments.module";
 import { PricingModule } from "./pricing/pricing.module";
 import { ProductModule } from "./product/product.module";
 import { PromotionsModule } from "./promotions/promotions.module";
+import { PlatformModule } from "./platform/platform.module";
+import { ReportsModule } from "./reports/reports.module";
 import { StorefrontModule } from "./storefront/storefront.module";
 import { UsersModule } from "./users/users.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
@@ -59,6 +63,10 @@ import { RedisModule } from "./redis/redis.module";
     CmsModule,
     BlogModule,
     MarketingModule,
+    DashboardModule,
+    CustomersModule,
+    PlatformModule,
+    ReportsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

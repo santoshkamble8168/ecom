@@ -6,6 +6,7 @@ import type { Locator, Page } from "@playwright/test";
  */
 export class AdminBlogEditorPage {
   readonly page: Page;
+  readonly main: Locator;
   readonly heading: Locator;
   readonly categoriesLabel: Locator;
   readonly tagsLabel: Locator;
@@ -14,9 +15,13 @@ export class AdminBlogEditorPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.heading = page.getByRole("heading", { name: "Edit Blog Post" });
-    this.categoriesLabel = page.getByText("Categories", { exact: true });
-    this.tagsLabel = page.getByText("Tags", { exact: true });
+    // Scoped to the `<main>` content area: the admin sidebar (present on
+    // every admin route) also has a catalog "Categories" nav link, which
+    // would otherwise collide with the post form's "Categories" label.
+    this.main = page.getByRole("main");
+    this.heading = this.main.getByRole("heading", { name: "Edit Blog Post" });
+    this.categoriesLabel = this.main.getByText("Categories", { exact: true });
+    this.tagsLabel = this.main.getByText("Tags", { exact: true });
     this.contentInput = page.getByLabel("Content (HTML)");
     // Exact match: the SEO panel's "SEO title" label would otherwise also
     // match a substring search for "Title".

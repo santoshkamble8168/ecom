@@ -45,3 +45,7 @@ infrastructure/docker/volumes/
 
 # Storybook
 storybook-static/
+
+# Sprint 12 report export files
+tmp/exports/
+apps/api/tmp/

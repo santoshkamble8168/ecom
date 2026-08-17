@@ -48,6 +48,10 @@ model User {
   exchangeRequests ExchangeRequest[]
   referralCode     ReferralCode?
   loyaltyAccount   LoyaltyAccount?
+  supportNotes     CustomerSupportNote[] @relation("CustomerNotes")
+  authoredNotes    CustomerSupportNote[] @relation("NoteAuthor")
+  exportJobs       ExportJob[]
+  savedViews       SavedView[]
 
   @@map("users")
 }
@@ -185,12 +189,16 @@ model Address {
 // ---------------------------------------------------------------------------
 
 model FeatureFlag {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  isEnabled   Boolean  @default(false) @map("is_enabled")
-  description String?
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(uuid())
+  key             String   @unique
+  isEnabled       Boolean  @default(false) @map("is_enabled")
+  description     String?
+  /// `all` applies everywhere; otherwise matches `NODE_ENV`.
+  environment     String   @default("all")
+  rolloutPercent  Int      @default(100) @map("rollout_percent")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
+  @@index([environment, isEnabled])
   @@map("feature_flags")
 }
 
@@ -215,12 +223,18 @@ model AuditLog {
   entityId   String?  @map("entity_id")
   metadata   Json?
   requestId  String?  @map("request_id")
+  ipAddress  String?  @map("ip_address")
+  before     Json?
+  after      Json?
   createdAt  DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([requestId])
   @@map("audit_logs")
 }
 
@@ -1788,4 +1802,108 @@ model LoyaltyAccount {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("loyalty_accounts")
+}
+
+// ---------------------------------------------------------------------------
+// Admin operations domain (Sprint 12)
+// ---------------------------------------------------------------------------
+
+model CustomerSupportNote {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  authorId  String   @map("author_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  customer User @relation("CustomerNotes", fields: [userId], references: [id], onDelete: Cascade)
+  author   User @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([authorId])
+  @@map("customer_support_notes")
+}
+
+enum ReportKind {
+  sales
+  inventory
+  taxes
+  customer_retention
+  product_performance
+  category_performance
+  search
+  coupons
+  campaigns
+}
+
+model ReportDefinition {
+  id            String     @id @default(uuid())
+  slug          String     @unique
+  name          String
+  kind          ReportKind
+  description   String?
+  defaultParams Json       @default("{}") @map("default_params")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+
+  exportJobs ExportJob[]
+
+  @@index([kind])
+  @@map("report_definitions")
+}
+
+enum ExportJobStatus {
+  queued
+  running
+  completed
+  failed
+}
+
+model ExportJob {
+  id            String          @id @default(uuid())
+  reportId      String          @map("report_id")
+  requestedById String          @map("requested_by_id")
+  status        ExportJobStatus @default(queued)
+  format        String          @default("csv")
+  params        Json            @default("{}")
+  filePath      String?         @map("file_path")
+  errorMessage  String?         @map("error_message")
+  rowCount      Int?            @map("row_count")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  startedAt     DateTime?       @map("started_at")
+  completedAt   DateTime?       @map("completed_at")
+  expiresAt     DateTime?       @map("expires_at")
+
+  report      ReportDefinition @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  requestedBy User             @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([requestedById])
+  @@index([reportId])
+  @@map("export_jobs")
+}
+
+model SavedView {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  entity    String
+  name      String
+  filters   Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, entity])
+  @@map("saved_views")
+}
+
+model ScheduledJobRun {
+  id         String    @id @default(uuid())
+  jobKey     String    @map("job_key")
+  status     String
+  message    String?
+  startedAt  DateTime  @default(now()) @map("started_at")
+  finishedAt DateTime? @map("finished_at")
+
+  @@index([jobKey, startedAt])
+  @@map("scheduled_job_runs")
 }

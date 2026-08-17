@@ -43,6 +43,13 @@ export const apiEnvSchema = z.object({
   ADMIN_URL: z.string().url().default("http://localhost:3001"),
 
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
+
+  // Sprint 12 — admin dashboard, exports, audit, feature flags
+  EXPORT_STORAGE_PATH: z.string().default("./tmp/exports"),
+  REPORT_RETENTION_DAYS: z.coerce.number().int().positive().default(14),
+  DASHBOARD_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
+  FEATURE_FLAG_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(30),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

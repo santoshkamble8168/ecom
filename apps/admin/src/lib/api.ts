@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@ecom/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api/v1";
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -88,4 +88,34 @@ export async function apiFetchWithMeta<T>(
   }
 
   return { data: body.data as T, meta: body.meta };
+}
+
+/** Download a non-JSON response (CSV export) using the admin bearer token. */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const token = getToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${path}`, { headers });
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!response.ok) {
+    if (contentType.includes("application/json")) {
+      const body = (await response.json()) as ApiResponse<unknown>;
+      throw new Error(body.success === false ? body.error.message : `Download failed (${response.status})`);
+    }
+    throw new Error(`Download failed (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
 }

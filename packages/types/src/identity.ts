@@ -44,9 +44,18 @@ export const PERMISSIONS = {
   PRICING_WRITE: "pricing:write",
   PROMOTION_READ: "promotion:read",
   PROMOTION_WRITE: "promotion:write",
-  // Sprint 11 — CMS & Marketing reuse ADMIN_ACCESS by design (no dedicated
-  // content-editor role in this pass); kept here as a reminder for future
-  // granular rollout rather than a functioning permission today.
+  // Sprint 12 — Admin operations
+  DASHBOARD_READ: "dashboard:read",
+  CUSTOMER_READ: "customer:read",
+  CUSTOMER_WRITE: "customer:write",
+  AUDIT_READ: "audit:read",
+  AUDIT_EXPORT: "audit:export",
+  SETTINGS_READ: "settings:read",
+  SETTINGS_WRITE: "settings:write",
+  FEATURE_FLAG_READ: "feature_flag:read",
+  FEATURE_FLAG_WRITE: "feature_flag:write",
+  REPORT_READ: "report:read",
+  REPORT_EXPORT: "report:export",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

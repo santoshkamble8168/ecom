@@ -18,10 +18,12 @@ Starter documentation for decision log in a reusable AI engineering workspace.
 | [0009](./0009-orders-domain-and-fulfillment-state-machine.md) | Orders domain, fulfillment model, and order state machine | Accepted | Sprint 9 |
 | [0010](./0010-inventory-ledger-and-price-resolution.md) | Inventory ledger and server-owned price resolution | Accepted | Sprint 10 |
 | [0011](./0011-cms-fixed-templates-and-content-lifecycle.md) | Fixed CMS templates and content lifecycle | Accepted | Sprint 11 |
+| [0012](./0012-admin-operations-control-center.md) | Admin operations control center (live KPIs, async exports, flags) | Accepted | Sprint 12 |
 
 See also: [Sprint 0 security review](../security/sprint-00-security-review.md),
 [Sprint 8/9 security review](../security/sprint-08-09-payments-orders-security-review.md),
-[Sprint 10/11 security review](../security/sprint-10-11-inventory-pricing-cms-security-review.md).
+[Sprint 10/11 security review](../security/sprint-10-11-inventory-pricing-cms-security-review.md),
+[Sprint 12 security review](../security/sprint-12-admin-security-review.md).
 
 ## Responsibilities
 - Provide a durable source of truth.

@@ -13,9 +13,14 @@ describe("validateApiEnv", () => {
     expect(env.NODE_ENV).toBe("development");
     expect(env.PORT).toBe(4000);
     expect(env.API_PREFIX).toBe("api/v1");
-    expect(env.REDIS_HOST).toBe("localhost");
+    expect(env.REDIS_HOST).toBe("127.0.0.1");
     expect(env.REDIS_PORT).toBe(6379);
     expect(env.LOG_LEVEL).toBe("info");
+    expect(env.EXPORT_STORAGE_PATH).toBe("./tmp/exports");
+    expect(env.REPORT_RETENTION_DAYS).toBe(14);
+    expect(env.DASHBOARD_CACHE_TTL_SECONDS).toBe(60);
+    expect(env.AUDIT_RETENTION_DAYS).toBe(365);
+    expect(env.FEATURE_FLAG_CACHE_TTL_SECONDS).toBe(30);
   });
 
   it("coerces numeric string values", () => {

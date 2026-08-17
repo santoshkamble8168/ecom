@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 
+import { seedAdminDashboard } from "./seeds/admin-dashboard.seed";
 import { seedBlog } from "./seeds/blog.seed";
 import { seedCms } from "./seeds/cms.seed";
 import { seedInventory } from "./seeds/inventory.seed";
@@ -22,6 +23,17 @@ const PERMISSIONS = [
   { key: "pricing:write", description: "Manage price lists, prices, and tax rules" },
   { key: "promotion:read", description: "View coupons and campaigns" },
   { key: "promotion:write", description: "Manage coupons and campaigns" },
+  { key: "dashboard:read", description: "View the admin operations dashboard" },
+  { key: "customer:read", description: "View customer profiles and history" },
+  { key: "customer:write", description: "Manage customer status, notes, and preferences" },
+  { key: "audit:read", description: "View audit logs" },
+  { key: "audit:export", description: "Export audit logs" },
+  { key: "settings:read", description: "View platform settings" },
+  { key: "settings:write", description: "Update platform settings" },
+  { key: "feature_flag:read", description: "View feature flags" },
+  { key: "feature_flag:write", description: "Toggle feature flags" },
+  { key: "report:read", description: "View report catalog" },
+  { key: "report:export", description: "Queue report export jobs" },
 ];
 
 const ROLES: Array<{ name: string; description: string; permissionKeys: string[] }> = [
@@ -34,12 +46,20 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
   {
     name: "catalog_manager",
     description: "Manages catalog content",
-    permissionKeys: ["catalog:read", "catalog:write", "admin:access"],
+    permissionKeys: ["catalog:read", "catalog:write", "admin:access", "dashboard:read"],
   },
   {
     name: "customer_support",
     description: "Handles customer support and orders",
-    permissionKeys: ["order:read", "order:write", "user:read", "admin:access"],
+    permissionKeys: [
+      "order:read",
+      "order:write",
+      "user:read",
+      "admin:access",
+      "dashboard:read",
+      "customer:read",
+      "customer:write",
+    ],
   },
   {
     name: "marketing_manager",
@@ -49,6 +69,8 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
       "promotion:read",
       "promotion:write",
       "admin:access",
+      "dashboard:read",
+      "report:read",
     ],
   },
   {
@@ -60,13 +82,42 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
       "pricing:read",
       "pricing:write",
       "admin:access",
+      "dashboard:read",
+      "report:read",
+    ],
+  },
+  {
+    name: "analyst",
+    description: "Reads dashboards, reports, and audit trails",
+    permissionKeys: [
+      "admin:access",
+      "dashboard:read",
+      "report:read",
+      "report:export",
+      "audit:read",
+      "customer:read",
+    ],
+  },
+  {
+    name: "finance",
+    description: "Reads sales, tax, and refund reports",
+    permissionKeys: [
+      "admin:access",
+      "dashboard:read",
+      "report:read",
+      "report:export",
+      "order:read",
     ],
   },
 ];
 
 const FEATURE_FLAGS = [
-  { key: "search.meilisearch", isEnabled: false, description: "Enable Meilisearch-backed search" },
-  { key: "payments.razorpay", isEnabled: true, description: "Enable Razorpay checkout (mock mode locally)" },
+  { key: "search.meilisearch", isEnabled: false, description: "Enable Meilisearch-backed search", environment: "all", rolloutPercent: 100 },
+  { key: "payments.razorpay", isEnabled: true, description: "Enable Razorpay checkout (mock mode locally)", environment: "all", rolloutPercent: 100 },
+  { key: "checkout.new_flow", isEnabled: false, description: "Enable the redesigned checkout flow", environment: "development", rolloutPercent: 0 },
+  { key: "recommendations.ai", isEnabled: false, description: "Enable AI product recommendations", environment: "all", rolloutPercent: 0 },
+  { key: "wallet.enabled", isEnabled: false, description: "Enable wallet tender", environment: "all", rolloutPercent: 0 },
+  { key: "referral.program", isEnabled: false, description: "Enable the referral program", environment: "all", rolloutPercent: 0 },
 ];
 
 const ATTRIBUTES = [
@@ -698,7 +749,12 @@ async function main() {
   for (const flag of FEATURE_FLAGS) {
     await prisma.featureFlag.upsert({
       where: { key: flag.key },
-      update: { isEnabled: flag.isEnabled, description: flag.description },
+      update: {
+        isEnabled: flag.isEnabled,
+        description: flag.description,
+        environment: flag.environment,
+        rolloutPercent: flag.rolloutPercent,
+      },
       create: flag,
     });
   }
@@ -737,6 +793,7 @@ async function main() {
   await seedInventory(prisma);
   await seedPricing(prisma);
   await seedBlog(prisma);
+  await seedAdminDashboard(prisma);
 
   // eslint-disable-next-line no-console
   console.log("Seed complete: roles, permissions, catalog, storefront CMS, checkout config, and sample products are ready.");

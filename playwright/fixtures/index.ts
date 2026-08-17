@@ -1,15 +1,20 @@
 import { test as base } from "@playwright/test";
 
+import { AdminAuditLogsPage } from "../pages/admin-audit-logs.page";
 import { AdminBannersListPage } from "../pages/admin-banners-list.page";
 import { AdminBlogEditorPage } from "../pages/admin-blog-editor.page";
 import { AdminBlogListPage } from "../pages/admin-blog-list.page";
+import { AdminCustomersPage, AdminCustomerDetailPage } from "../pages/admin-customers.page";
 import { AdminDashboardPage } from "../pages/admin-dashboard.page";
+import { AdminFeatureFlagsPage } from "../pages/admin-feature-flags.page";
 import { AdminInventoryPage } from "../pages/admin-inventory.page";
 import { AdminLoginPage } from "../pages/admin-login.page";
 import { AdminPageEditorPage } from "../pages/admin-page-editor.page";
 import { AdminPagesListPage } from "../pages/admin-pages-list.page";
 import { AdminPricingPage, AdminTaxRulesPage } from "../pages/admin-pricing.page";
 import { AdminCampaignsPage, AdminCouponDetailPage, AdminCouponsPage } from "../pages/admin-promotions.page";
+import { AdminReportsPage } from "../pages/admin-reports.page";
+import { AdminSettingsPage } from "../pages/admin-settings.page";
 import { StorefrontBlogPostPage } from "../pages/storefront-blog-post.page";
 import { StorefrontBlogPage } from "../pages/storefront-blog.page";
 import { StorefrontCartPage } from "../pages/storefront-cart.page";
@@ -27,6 +32,12 @@ interface Fixtures {
   adminCoupons: AdminCouponsPage;
   adminCouponDetail: AdminCouponDetailPage;
   adminCampaigns: AdminCampaignsPage;
+  adminCustomers: AdminCustomersPage;
+  adminCustomerDetail: AdminCustomerDetailPage;
+  adminAuditLogs: AdminAuditLogsPage;
+  adminFeatureFlags: AdminFeatureFlagsPage;
+  adminSettings: AdminSettingsPage;
+  adminReports: AdminReportsPage;
   storefrontCategory: StorefrontCategoryPage;
   storefrontProduct: StorefrontProductPage;
   storefrontCart: StorefrontCartPage;
@@ -66,6 +77,24 @@ export const test = base.extend<Fixtures>({
   },
   adminCampaigns: async ({ page }, use) => {
     await use(new AdminCampaignsPage(page));
+  },
+  adminCustomers: async ({ page }, use) => {
+    await use(new AdminCustomersPage(page));
+  },
+  adminCustomerDetail: async ({ page }, use) => {
+    await use(new AdminCustomerDetailPage(page));
+  },
+  adminAuditLogs: async ({ page }, use) => {
+    await use(new AdminAuditLogsPage(page));
+  },
+  adminFeatureFlags: async ({ page }, use) => {
+    await use(new AdminFeatureFlagsPage(page));
+  },
+  adminSettings: async ({ page }, use) => {
+    await use(new AdminSettingsPage(page));
+  },
+  adminReports: async ({ page }, use) => {
+    await use(new AdminReportsPage(page));
   },
   storefrontCategory: async ({ page }, use) => {
     await use(new StorefrontCategoryPage(page));
