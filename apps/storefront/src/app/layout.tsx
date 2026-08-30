@@ -1,12 +1,16 @@
+import { jsonLdOrganization, jsonLdWebSite } from "@ecom/shared";
 import type { MenuSummary, NavigationSummary } from "@ecom/types";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { AnalyticsPageView } from "@/components/analytics/page-view-tracker";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AppProviders } from "@/components/providers/app-providers";
+import { JsonLd } from "@/components/seo/json-ld";
 import { apiFetch } from "@/lib/api";
 import { menuItemsToNavigationNodes } from "@/lib/cms-navigation";
+import { siteOrigin } from "@/lib/seo";
 
 import "./globals.css";
 
@@ -25,11 +29,18 @@ const MAIN_NAV_MENU_CODE = "main-nav";
 const FOOTER_NAV_MENU_CODE = "footer";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin()),
   title: {
     default: "Ecom Storefront",
     template: "%s | Ecom",
   },
-  description: "Production-grade commerce storefront built with Next.js and NestJS.",
+  description: "Shop tees and essentials. Production-grade commerce storefront.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "Ecom",
+    locale: "en_IN",
+  },
 };
 
 async function loadNavigation(): Promise<NavigationSummary> {
@@ -69,10 +80,20 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow"
+        >
+          Skip to content
+        </a>
+        <JsonLd data={[jsonLdOrganization(siteOrigin()), jsonLdWebSite(siteOrigin())]} />
         <AppProviders>
+          <AnalyticsPageView />
           <div className="flex min-h-screen flex-col">
             <SiteHeader navigation={navigation} />
-            <main className="flex-1">{children}</main>
+            <main id="main-content" className="flex-1" tabIndex={-1}>
+              {children}
+            </main>
             <SiteFooter navigation={navigation} />
           </div>
         </AppProviders>

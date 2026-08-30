@@ -6,12 +6,14 @@ import type {
   PageDetail,
   PolicyPageFields,
 } from "@ecom/types";
+import { jsonLdFaq } from "@ecom/shared";
 import { FaqAccordion } from "@ecom/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CmsPageSections } from "@/components/cms/page-sections";
 import { RichHtml } from "@/components/cms/rich-html";
+import { JsonLd } from "@/components/seo/json-ld";
 
 function LandingPageView({ fields }: { fields: LandingPageFields | CampaignPageFields }) {
   return (
@@ -60,6 +62,7 @@ function FaqPageView({ title, fields }: { title: string; fields: FaqPageFields }
     .map((item) => ({ question: item.question, answer: item.answer }));
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
+      <JsonLd data={jsonLdFaq(items)} />
       <h1 className="mb-6 text-3xl font-display font-bold">{title}</h1>
       <FaqAccordion items={items} />
     </div>

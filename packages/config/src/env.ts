@@ -50,6 +50,33 @@ export const apiEnvSchema = z.object({
   DASHBOARD_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
   FEATURE_FLAG_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(30),
+
+  // Sprint 13 — notifications
+  SMTP_FROM: z.string().default("ECOM <noreply@ecom.local>"),
+  SMS_PROVIDER: z.enum(["mock", "disabled"]).default("mock"),
+  NOTIFICATION_QUEUE_CONCURRENCY: z.coerce.number().int().positive().default(5),
+  NOTIFICATION_MAX_ATTEMPTS: z.coerce.number().int().positive().default(5),
+  NOTIFICATION_BACKOFF_MS: z.coerce.number().int().positive().default(2000),
+  NOTIFICATION_DLQ_RETENTION_DAYS: z.coerce.number().int().positive().default(14),
+  UNSUBSCRIBE_URL: z.string().url().default("http://localhost:3000/account"),
+  NOTIFICATION_OPS_EMAIL: z.string().email().default("ops@ecom.local"),
+
+  // Sprint 14 — analytics
+  ANALYTICS_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((value) => value === "true"),
+  ANALYTICS_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(1),
+  ANALYTICS_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  ANALYTICS_DEBUG: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((value) => value === "true"),
+
+  // Sprint 16 — recommendations / personalization / semantic readiness
+  RECOMMENDATION_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
+  PERSONALIZATION_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  SEMANTIC_SEARCH_PROVIDER: z.enum(["none"]).default("none"),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

@@ -2,6 +2,7 @@ import type { RecentlyViewedItem, WishlistItem } from "@ecom/types";
 import { NotFoundError, ValidationError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
 
+import { AnalyticsService } from "../analytics/analytics.service";
 import { productInclude, toProductSummary } from "../catalog/mappers/catalog.mapper";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -9,7 +10,10 @@ const MAX_RECENT = 12;
 
 @Injectable()
 export class WishlistService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly analytics: AnalyticsService,
+  ) {}
 
   async list(userId?: string, sessionId?: string): Promise<WishlistItem[]> {
     if (!userId && !sessionId) return [];
@@ -48,6 +52,13 @@ export class WishlistService {
         productSlug: params.productSlug,
         variantSku: params.variantSku,
       },
+    });
+
+    void this.analytics.trackServer({
+      name: "wishlist_add",
+      userId: params.userId,
+      sessionId: params.sessionId,
+      properties: { productSlug: params.productSlug, variantSku: params.variantSku ?? null },
     });
 
     const [enriched] = await this.enrichItems([item]);

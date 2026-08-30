@@ -31,6 +31,12 @@ export class DiscoveryQueryDto {
   @MaxLength(100)
   q?: string;
 
+  @ApiPropertyOptional({ enum: ["keyword", "semantic"] })
+  @IsOptional()
+  @IsString()
+  @MaxLength(16)
+  mode?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

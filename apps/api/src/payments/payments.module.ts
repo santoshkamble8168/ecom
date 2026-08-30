@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
 
+import { AnalyticsModule } from "../analytics/analytics.module";
 import { AuditModule } from "../audit/audit.module";
 import { InventoryModule } from "../inventory/inventory.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 import { PromotionsModule } from "../promotions/promotions.module";
 
 import { PaymentsController } from "./payments.controller";
@@ -9,7 +11,7 @@ import { PaymentsService } from "./payments.service";
 import { RazorpayProvider } from "./razorpay.provider";
 
 @Module({
-  imports: [AuditModule, InventoryModule, PromotionsModule],
+  imports: [AuditModule, InventoryModule, PromotionsModule, NotificationsModule, AnalyticsModule],
   controllers: [PaymentsController],
   providers: [PaymentsService, RazorpayProvider],
   exports: [PaymentsService],

@@ -1,6 +1,7 @@
 import { test as base } from "@playwright/test";
 
 import { AdminAuditLogsPage } from "../pages/admin-audit-logs.page";
+import { AdminAnalyticsPage } from "../pages/admin-analytics.page";
 import { AdminBannersListPage } from "../pages/admin-banners-list.page";
 import { AdminBlogEditorPage } from "../pages/admin-blog-editor.page";
 import { AdminBlogListPage } from "../pages/admin-blog-list.page";
@@ -8,12 +9,17 @@ import { AdminCustomersPage, AdminCustomerDetailPage } from "../pages/admin-cust
 import { AdminDashboardPage } from "../pages/admin-dashboard.page";
 import { AdminFeatureFlagsPage } from "../pages/admin-feature-flags.page";
 import { AdminInventoryPage } from "../pages/admin-inventory.page";
+import {
+  AdminNotificationDeliveriesPage,
+  AdminNotificationTemplatesPage,
+} from "../pages/admin-notifications.page";
 import { AdminLoginPage } from "../pages/admin-login.page";
 import { AdminPageEditorPage } from "../pages/admin-page-editor.page";
 import { AdminPagesListPage } from "../pages/admin-pages-list.page";
 import { AdminPricingPage, AdminTaxRulesPage } from "../pages/admin-pricing.page";
 import { AdminCampaignsPage, AdminCouponDetailPage, AdminCouponsPage } from "../pages/admin-promotions.page";
 import { AdminReportsPage } from "../pages/admin-reports.page";
+import { AdminRecommendationsPage } from "../pages/admin-recommendations.page";
 import { AdminSettingsPage } from "../pages/admin-settings.page";
 import { StorefrontBlogPostPage } from "../pages/storefront-blog-post.page";
 import { StorefrontBlogPage } from "../pages/storefront-blog.page";
@@ -25,6 +31,7 @@ import { StorefrontProductPage } from "../pages/storefront-product.page";
 interface Fixtures {
   storefrontHome: StorefrontHomePage;
   adminDashboard: AdminDashboardPage;
+  adminAnalytics: AdminAnalyticsPage;
   adminLogin: AdminLoginPage;
   adminInventory: AdminInventoryPage;
   adminPricing: AdminPricingPage;
@@ -38,6 +45,9 @@ interface Fixtures {
   adminFeatureFlags: AdminFeatureFlagsPage;
   adminSettings: AdminSettingsPage;
   adminReports: AdminReportsPage;
+  adminRecommendations: AdminRecommendationsPage;
+  adminNotificationTemplates: AdminNotificationTemplatesPage;
+  adminNotificationDeliveries: AdminNotificationDeliveriesPage;
   storefrontCategory: StorefrontCategoryPage;
   storefrontProduct: StorefrontProductPage;
   storefrontCart: StorefrontCartPage;
@@ -56,6 +66,9 @@ export const test = base.extend<Fixtures>({
   },
   adminDashboard: async ({ page }, use) => {
     await use(new AdminDashboardPage(page));
+  },
+  adminAnalytics: async ({ page }, use) => {
+    await use(new AdminAnalyticsPage(page));
   },
   adminLogin: async ({ page }, use) => {
     await use(new AdminLoginPage(page));
@@ -95,6 +108,15 @@ export const test = base.extend<Fixtures>({
   },
   adminReports: async ({ page }, use) => {
     await use(new AdminReportsPage(page));
+  },
+  adminRecommendations: async ({ page }, use) => {
+    await use(new AdminRecommendationsPage(page));
+  },
+  adminNotificationTemplates: async ({ page }, use) => {
+    await use(new AdminNotificationTemplatesPage(page));
+  },
+  adminNotificationDeliveries: async ({ page }, use) => {
+    await use(new AdminNotificationDeliveriesPage(page));
   },
   storefrontCategory: async ({ page }, use) => {
     await use(new StorefrontCategoryPage(page));

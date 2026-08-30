@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { CartStripBanner } from "@/components/cms/cart-strip-banner";
+import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
 import { apiFetch } from "@/lib/auth";
 import {
   applyCoupon,
@@ -197,6 +198,7 @@ export default function CartPage() {
             Continue Shopping
           </Link>
         </div>
+        <StorefrontRecommendationRail slot="cart_trending" title="Trending now" />
       </div>
     );
   }
@@ -488,6 +490,13 @@ export default function CartPage() {
           </div>
         </aside>
       </div>
+
+      <StorefrontRecommendationRail
+        slot="cart_frequently_bought"
+        productSlug={cart.items[0]?.productSlug}
+        title="Frequently bought together"
+      />
+      <StorefrontRecommendationRail slot="cart_trending" title="You may also like" />
 
       {removeItem && (
         <ClearFromBagModal

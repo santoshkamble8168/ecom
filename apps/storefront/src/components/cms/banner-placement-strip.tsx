@@ -1,5 +1,6 @@
 import type { BannerSummary } from "@ecom/types";
-import Link from "next/link";
+
+import { CampaignLink } from "@/components/analytics/campaign-link";
 
 /**
  * Renders whatever currently-live banners were returned for a single
@@ -26,9 +27,9 @@ export function BannerPlacementStrip({ banners }: { banners: BannerSummary[] }) 
           return (
             <div key={banner.id}>
               {banner.linkUrl ? (
-                <Link href={banner.linkUrl} aria-label={banner.title}>
+                <CampaignLink href={banner.linkUrl} campaignId={banner.id} ariaLabel={banner.title}>
                   {image}
-                </Link>
+                </CampaignLink>
               ) : (
                 image
               )}

@@ -1,9 +1,10 @@
-export const NOTIFICATIONS_QUEUE = "notifications";
+import { NOTIFICATIONS_QUEUE } from "@ecom/types";
 
-export type NotificationJobName = "send-email" | "send-sms";
+export { NOTIFICATIONS_QUEUE };
 
-export interface NotificationJobData {
-  destination: string;
-  templateKey: string;
-  payload: Record<string, unknown>;
+export function truncateDeliveryError(message: string): string {
+  const redacted = message
+    .replace(/otpCode[=:]\s*\S+/gi, "otpCode=[redacted]")
+    .replace(/password[=:]\s*\S+/gi, "password=[redacted]");
+  return redacted.slice(0, 500);
 }

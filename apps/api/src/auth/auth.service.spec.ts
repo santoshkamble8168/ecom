@@ -8,6 +8,7 @@ import type { AppLogger } from "../logger/logger.service";
 import type { PrismaService } from "../prisma/prisma.service";
 import type { UsersService } from "../users/users.service";
 import type { AuditService } from "../audit/audit.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 
 import { AuthService } from "./auth.service";
 
@@ -29,6 +30,7 @@ describe("AuthService", () => {
   let logger: { setContext: jest.Mock; log: jest.Mock };
   let audit: { log: jest.Mock };
   let usersService: { ensureProfile: jest.Mock };
+  let notifications: { enqueueSafe: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -43,6 +45,7 @@ describe("AuthService", () => {
     logger = { setContext: jest.fn(), log: jest.fn() };
     audit = { log: jest.fn().mockResolvedValue(undefined) };
     usersService = { ensureProfile: jest.fn().mockResolvedValue(undefined) };
+    notifications = { enqueueSafe: jest.fn().mockResolvedValue(undefined) };
 
     service = new AuthService(
       prisma as unknown as PrismaService,
@@ -50,6 +53,7 @@ describe("AuthService", () => {
       logger as unknown as AppLogger,
       audit as unknown as AuditService,
       usersService as unknown as UsersService,
+      notifications as unknown as NotificationsService,
     );
   });
 

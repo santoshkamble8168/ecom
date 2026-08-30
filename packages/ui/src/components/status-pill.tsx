@@ -52,3 +52,11 @@ export const CONTENT_STATUS_PILLS = {
   published: { label: "Published", tone: "success" },
   archived: { label: "Archived", tone: "danger" },
 } as const satisfies Record<string, { label: string; tone: StatusPillTone }>;
+
+export const DELIVERY_STATUS_PILLS = {
+  queued: { label: "Queued", tone: "warning" },
+  sending: { label: "Sending", tone: "brand" },
+  sent: { label: "Sent", tone: "success" },
+  failed: { label: "Failed", tone: "danger" },
+  skipped: { label: "Skipped", tone: "neutral" },
+} as const satisfies Record<string, { label: string; tone: StatusPillTone }>;

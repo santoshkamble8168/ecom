@@ -29,6 +29,8 @@ export interface DiscoveryQuery {
   colors?: string[];
   brands?: string[];
   onSale?: boolean;
+  /** Sprint 16: `semantic` is recorded when the flag is on; retrieval stays keyword. */
+  mode?: "keyword" | "semantic";
 }
 
 export interface ProductListResult {
@@ -38,6 +40,10 @@ export interface ProductListResult {
     pagination: PaginationMeta;
     sort: ProductSortKey;
     searchEngine?: "meilisearch" | "postgres";
+    /** Always `keyword` until a vector provider is wired (Sprint 16). */
+    searchMode?: "keyword" | "semantic";
+    /** True when the client asked for semantic mode and the flag is on. */
+    semanticRequested?: boolean;
   };
 }
 

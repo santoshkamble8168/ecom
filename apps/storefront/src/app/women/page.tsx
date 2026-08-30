@@ -1,6 +1,13 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
 import { PlpView } from "@/components/discovery/plp-view";
+
+export const metadata: Metadata = {
+  title: "Women",
+  description: "Shop women's tees and essentials",
+  alternates: { canonical: "/women" },
+};
 
 export default function WomenPage() {
   return (

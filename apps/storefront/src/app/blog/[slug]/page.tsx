@@ -1,12 +1,15 @@
 import type { ApiResponse, BlogPostDetail, ProductSummary } from "@ecom/types";
+import { jsonLdArticle, jsonLdBreadcrumb } from "@ecom/shared";
 import { ProductCard } from "@ecom/ui";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { RichHtml } from "@/components/cms/rich-html";
+import { JsonLd } from "@/components/seo/json-ld";
 import { apiFetch } from "@/lib/api";
 import { getApiUrl } from "@/lib/api-url";
+import { absoluteUrl, siteOrigin } from "@/lib/seo";
 
 const API_URL = getApiUrl();
 
@@ -52,15 +55,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) return { title: "Post Not Found" };
+  if (!post) return { title: "Post Not Found", robots: { index: false } };
 
+  const path = `/blog/${post.slug}`;
   return {
     title: post.seoTitle ?? post.title,
     description: post.seoDescription ?? post.excerpt ?? undefined,
-    alternates: post.seoCanonicalUrl ? { canonical: post.seoCanonicalUrl } : undefined,
+    alternates: { canonical: post.seoCanonicalUrl ?? path },
     openGraph: post.seoOgImage
       ? { title: post.seoTitle ?? post.title, images: [post.seoOgImage] }
-      : undefined,
+      : { title: post.seoTitle ?? post.title },
   };
 }
 
@@ -70,9 +74,28 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   if (!post) notFound();
 
   const relatedProducts = await getRelatedProducts(post.relatedProductSkus);
+  const origin = siteOrigin();
+  const url = absoluteUrl(`/blog/${post.slug}`);
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
+      <JsonLd
+        data={[
+          jsonLdArticle({
+            headline: post.title,
+            description: post.excerpt,
+            image: post.coverImageUrl ?? post.seoOgImage,
+            url,
+            datePublished: post.publishedAt,
+            authorName: post.authorName,
+          }),
+          jsonLdBreadcrumb([
+            { name: "Home", url: origin },
+            { name: "Blog", url: absoluteUrl("/blog") },
+            { name: post.title, url },
+          ]),
+        ]}
+      />
       <nav className="mb-3 text-xs text-neutral-500">
         <Link href="/" className="hover:underline">
           Home

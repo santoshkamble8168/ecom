@@ -4,7 +4,7 @@
 Production-grade commerce platform monorepo (storefront, admin, API, worker) plus a reusable AI Engineering Framework for planning, implementation, testing, review, deployment, and release.
 
 ## Platform Status
-Sprints 0–11 are implemented: identity, catalog, storefront, discovery, PDP, cart, checkout, payments, orders, inventory/pricing/promotions, and CMS/blog/marketing foundations. See `documents/sprint-planning/README.md` for the tracker and `docs/sprints/` for per-sprint summaries.
+Sprints 0–16 are implemented: identity, catalog, storefront, discovery, PDP, cart, checkout, payments, orders, inventory/pricing/promotions, CMS/blog/marketing, admin operations, notifications, analytics, SEO/performance, and AI-ready recommendations (rule-based). See `documents/sprint-planning/README.md` for the tracker and `docs/sprints/` for per-sprint summaries.
 
 ## Monorepo Layout
 
@@ -15,6 +15,7 @@ apps/
   api/          NestJS modular monolith API (port 4000)
   worker/       NestJS background job processor (BullMQ)
 packages/
+  analytics/    Storefront event tracker (page views, campaign clicks)
   ui/           Design tokens, Tailwind preset, shared components
   types/        Shared TypeScript contracts
   validation/   Shared Zod schemas

@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationDispatchService } from "../notifications/notification-dispatch.service";
 
 /**
  * Sprint 10 — inventory background jobs: release expired stock reservations
@@ -11,7 +12,10 @@ import { PrismaService } from "../prisma/prisma.service";
 export class InventoryJobsService {
   private readonly logger = new Logger(InventoryJobsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationDispatchService,
+  ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async releaseExpiredReservations(): Promise<void> {
@@ -57,6 +61,11 @@ export class InventoryJobsService {
     `;
     if (lowStock.length > 0) {
       this.logger.warn(`${lowStock.length} stock item(s) at or below their low-stock threshold`);
+      await this.notifications.enqueueLowStockAlert(lowStock.length).catch((error: unknown) => {
+        this.logger.warn(
+          `Failed to enqueue low-stock notification: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
     }
   }
 }

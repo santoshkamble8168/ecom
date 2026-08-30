@@ -7,6 +7,7 @@ import helmet from "helmet";
 
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import { CacheControlInterceptor } from "./common/interceptors/cache-control.interceptor";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { AppLogger } from "./logger/logger.service";
 
@@ -61,7 +62,9 @@ async function bootstrap() {
   });
 
   const apiPrefix = process.env.API_PREFIX ?? "api/v1";
-  app.setGlobalPrefix(apiPrefix, { exclude: ["health", "health/live", "health/ready"] });
+  app.setGlobalPrefix(apiPrefix, {
+    exclude: ["health", "health/live", "health/ready", "robots.txt", "sitemap.xml"],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -72,7 +75,7 @@ async function bootstrap() {
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalInterceptors(new ResponseInterceptor());
+  app.useGlobalInterceptors(new CacheControlInterceptor(), new ResponseInterceptor());
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle("Ecom API")

@@ -93,7 +93,7 @@ export function computeRefundRate(completedRefunds: number, capturedPayments: nu
 
 export function formatInr(amount: number): string {
   const sign = amount < 0 ? "-" : "";
-  const [whole, fraction] = Math.abs(amount).toFixed(2).split(".");
+  const [whole = "0", fraction = "00"] = Math.abs(amount).toFixed(2).split(".");
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   return `${sign}₹${grouped}.${fraction}`;
 }

@@ -19,11 +19,20 @@ Starter documentation for decision log in a reusable AI engineering workspace.
 | [0010](./0010-inventory-ledger-and-price-resolution.md) | Inventory ledger and server-owned price resolution | Accepted | Sprint 10 |
 | [0011](./0011-cms-fixed-templates-and-content-lifecycle.md) | Fixed CMS templates and content lifecycle | Accepted | Sprint 11 |
 | [0012](./0012-admin-operations-control-center.md) | Admin operations control center (live KPIs, async exports, flags) | Accepted | Sprint 12 |
+| [0013](./0013-notifications-queue-and-templates.md) | Notifications: API pre-render, BullMQ send, no queue table | Accepted | Sprint 13 |
+| [0014](./0014-analytics-ingest-and-retention.md) | Analytics: ingest, sequential funnel, delete-based retention | Accepted | Sprint 14 |
+| [0015](./0015-seo-and-cache.md) | Storefront SEO surface and shared cache | Accepted | Sprint 15 |
+| [0016](./0016-rule-based-recommendations.md) | Rule-based recommendations; AI/semantic flags only | Accepted | Sprint 16 |
+| [0017](./0017-health-first-observability.md) | Health-first observability; no local Grafana yet | Accepted | Sprint 17 |
 
 See also: [Sprint 0 security review](../security/sprint-00-security-review.md),
 [Sprint 8/9 security review](../security/sprint-08-09-payments-orders-security-review.md),
 [Sprint 10/11 security review](../security/sprint-10-11-inventory-pricing-cms-security-review.md),
-[Sprint 12 security review](../security/sprint-12-admin-security-review.md).
+[Sprint 12 security review](../security/sprint-12-admin-security-review.md),
+[Sprint 13 privacy review](../security/sprint-13-notifications-privacy-review.md),
+[Sprint 14 data-quality review](../security/sprint-14-analytics-data-quality-review.md),
+[Sprint 15 accessibility conformance](../security/sprint-15-accessibility-conformance.md),
+[Sprint 16 AI risk review](../security/sprint-16-ai-risk-review.md).
 
 ## Responsibilities
 - Provide a durable source of truth.

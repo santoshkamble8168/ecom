@@ -1,6 +1,8 @@
 import { ConflictError, NotFoundError, ValidationError } from "@ecom/shared";
 
 import type { AuditService } from "../audit/audit.service";
+import type { AnalyticsService } from "../analytics/analytics.service";
+import type { NotificationsService } from "../notifications/notifications.service";
 import type { PrismaService } from "../prisma/prisma.service";
 
 import { OrdersService } from "./orders.service";
@@ -49,6 +51,8 @@ describe("OrdersService", () => {
     courier: { findMany: jest.Mock };
   };
   let audit: { log: jest.Mock };
+  let notifications: { notifyReturnUpdated: jest.Mock; notifyShipmentUpdated: jest.Mock };
+  let analytics: { trackServer: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -80,8 +84,18 @@ describe("OrdersService", () => {
       courier: { findMany: jest.fn() },
     };
     audit = { log: jest.fn().mockResolvedValue(undefined) };
+    notifications = {
+      notifyReturnUpdated: jest.fn().mockResolvedValue(undefined),
+      notifyShipmentUpdated: jest.fn().mockResolvedValue(undefined),
+    };
+    analytics = { trackServer: jest.fn().mockResolvedValue(undefined) };
 
-    service = new OrdersService(prisma as unknown as PrismaService, audit as unknown as AuditService);
+    service = new OrdersService(
+      prisma as unknown as PrismaService,
+      audit as unknown as AuditService,
+      notifications as unknown as NotificationsService,
+      analytics as unknown as AnalyticsService,
+    );
   });
 
   describe("cancel", () => {

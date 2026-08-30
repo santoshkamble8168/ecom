@@ -2,7 +2,9 @@
 
 Theme: Email, SMS, templates, queue processing  
 Primary source volumes: Volume 5, Volume 6, Volume 8, Volume 9, Volume 10, Volume 12  
-Status: Not Started
+Status: Done
+
+Implemented: email + SMS MVP (API pre-render, BullMQ send, DeliveryLog, templates/preferences). Summary: `docs/sprints/sprint-13-notifications-summary.md`.
 
 ## Sprint Goal
 

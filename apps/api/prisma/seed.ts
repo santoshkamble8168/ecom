@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
 import { seedAdminDashboard } from "./seeds/admin-dashboard.seed";
+import { seedNotifications } from "./seeds/notifications.seed";
+import { seedRecommendations } from "./seeds/recommendations.seed";
 import { seedBlog } from "./seeds/blog.seed";
 import { seedCms } from "./seeds/cms.seed";
 import { seedInventory } from "./seeds/inventory.seed";
@@ -34,6 +36,11 @@ const PERMISSIONS = [
   { key: "feature_flag:write", description: "Toggle feature flags" },
   { key: "report:read", description: "View report catalog" },
   { key: "report:export", description: "Queue report export jobs" },
+  { key: "notification:read", description: "View notification templates and delivery logs" },
+  { key: "notification:write", description: "Manage templates, preview, and test-send" },
+  { key: "analytics:read", description: "View analytics KPIs, funnels, search, and product reports" },
+  { key: "recommendation:read", description: "View recommendation slot configuration" },
+  { key: "recommendation:write", description: "Update recommendation slot rules and fallbacks" },
 ];
 
 const ROLES: Array<{ name: string; description: string; permissionKeys: string[] }> = [
@@ -59,6 +66,7 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
       "dashboard:read",
       "customer:read",
       "customer:write",
+      "notification:read",
     ],
   },
   {
@@ -71,6 +79,11 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
       "admin:access",
       "dashboard:read",
       "report:read",
+      "notification:read",
+      "notification:write",
+      "analytics:read",
+      "recommendation:read",
+      "recommendation:write",
     ],
   },
   {
@@ -96,6 +109,7 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
       "report:export",
       "audit:read",
       "customer:read",
+      "analytics:read",
     ],
   },
   {
@@ -107,6 +121,7 @@ const ROLES: Array<{ name: string; description: string; permissionKeys: string[]
       "report:read",
       "report:export",
       "order:read",
+      "analytics:read",
     ],
   },
 ];
@@ -115,7 +130,9 @@ const FEATURE_FLAGS = [
   { key: "search.meilisearch", isEnabled: false, description: "Enable Meilisearch-backed search", environment: "all", rolloutPercent: 100 },
   { key: "payments.razorpay", isEnabled: true, description: "Enable Razorpay checkout (mock mode locally)", environment: "all", rolloutPercent: 100 },
   { key: "checkout.new_flow", isEnabled: false, description: "Enable the redesigned checkout flow", environment: "development", rolloutPercent: 0 },
-  { key: "recommendations.ai", isEnabled: false, description: "Enable AI product recommendations", environment: "all", rolloutPercent: 0 },
+  { key: "recommendations.ai", isEnabled: false, description: "Enable AI product recommendations (no provider wired; rules still apply)", environment: "all", rolloutPercent: 0 },
+  { key: "search.semantic", isEnabled: false, description: "Request semantic search mode (falls back to keyword until a vector provider exists)", environment: "all", rolloutPercent: 0 },
+  { key: "personalization.profiles", isEnabled: true, description: "Aggregate logged-in recently-viewed affinities into personalization profiles", environment: "all", rolloutPercent: 100 },
   { key: "wallet.enabled", isEnabled: false, description: "Enable wallet tender", environment: "all", rolloutPercent: 0 },
   { key: "referral.program", isEnabled: false, description: "Enable the referral program", environment: "all", rolloutPercent: 0 },
 ];
@@ -794,6 +811,8 @@ async function main() {
   await seedPricing(prisma);
   await seedBlog(prisma);
   await seedAdminDashboard(prisma);
+  await seedNotifications(prisma);
+  await seedRecommendations(prisma);
 
   // eslint-disable-next-line no-console
   console.log("Seed complete: roles, permissions, catalog, storefront CMS, checkout config, and sample products are ready.");

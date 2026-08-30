@@ -21,6 +21,16 @@ describe("validateApiEnv", () => {
     expect(env.DASHBOARD_CACHE_TTL_SECONDS).toBe(60);
     expect(env.AUDIT_RETENTION_DAYS).toBe(365);
     expect(env.FEATURE_FLAG_CACHE_TTL_SECONDS).toBe(30);
+    expect(env.SMS_PROVIDER).toBe("mock");
+    expect(env.NOTIFICATION_MAX_ATTEMPTS).toBe(5);
+    expect(env.NOTIFICATION_OPS_EMAIL).toBe("ops@ecom.local");
+    expect(env.ANALYTICS_ENABLED).toBe(true);
+    expect(env.ANALYTICS_SAMPLE_RATE).toBe(1);
+    expect(env.ANALYTICS_RETENTION_DAYS).toBe(90);
+    expect(env.ANALYTICS_DEBUG).toBe(false);
+    expect(env.RECOMMENDATION_CACHE_TTL_SECONDS).toBe(60);
+    expect(env.PERSONALIZATION_RETENTION_DAYS).toBe(90);
+    expect(env.SEMANTIC_SEARCH_PROVIDER).toBe("none");
   });
 
   it("coerces numeric string values", () => {

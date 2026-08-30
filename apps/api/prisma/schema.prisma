@@ -52,6 +52,10 @@ model User {
   authoredNotes    CustomerSupportNote[] @relation("NoteAuthor")
   exportJobs       ExportJob[]
   savedViews       SavedView[]
+  notificationPreference NotificationPreference?
+  deliveryLogs     DeliveryLog[]
+  analyticsEvents  AnalyticsEvent[]
+  personalizationProfile PersonalizationProfile?
 
   @@map("users")
 }
@@ -1906,4 +1910,185 @@ model ScheduledJobRun {
 
   @@index([jobKey, startedAt])
   @@map("scheduled_job_runs")
+}
+
+// ---------------------------------------------------------------------------
+// Notifications domain (Sprint 13)
+// WhatsApp / push / in-app are channel enum values for later adapters only.
+// Queue state lives in BullMQ; DeliveryLog is the durable support record.
+// ---------------------------------------------------------------------------
+
+enum NotificationChannel {
+  email
+  sms
+  whatsapp
+  push
+  in_app
+}
+
+enum NotificationCategory {
+  transactional
+  marketing
+  operational
+}
+
+enum TemplateStatus {
+  draft
+  published
+  archived
+}
+
+enum DeliveryStatus {
+  queued
+  sending
+  sent
+  failed
+  skipped
+}
+
+model NotificationTemplate {
+  id                 String                 @id @default(uuid())
+  key                String                 @unique
+  name               String
+  description        String?
+  channel            NotificationChannel
+  category           NotificationCategory
+  status             TemplateStatus         @default(draft)
+  requiredVariables  String[]               @default([]) @map("required_variables")
+  createdAt          DateTime               @default(now()) @map("created_at")
+  updatedAt          DateTime               @updatedAt @map("updated_at")
+
+  versions NotificationTemplateVersion[]
+
+  @@index([channel, status])
+  @@index([category])
+  @@map("notification_templates")
+}
+
+model NotificationTemplateVersion {
+  id         String   @id @default(uuid())
+  templateId String   @map("template_id")
+  version    Int
+  subject    String?
+  body       String
+  createdBy  String?  @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  template NotificationTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, version])
+  @@index([templateId])
+  @@map("notification_template_versions")
+}
+
+model NotificationPreference {
+  userId              String    @id @map("user_id")
+  emailTransactional  Boolean   @default(true) @map("email_transactional")
+  emailMarketing      Boolean   @default(false) @map("email_marketing")
+  smsTransactional    Boolean   @default(true) @map("sms_transactional")
+  smsMarketing        Boolean   @default(false) @map("sms_marketing")
+  unsubscribedAt      DateTime? @map("unsubscribed_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model DeliveryLog {
+  id                String                 @id @default(uuid())
+  userId            String?                @map("user_id")
+  templateKey       String                 @map("template_key")
+  channel           NotificationChannel
+  category          NotificationCategory
+  destination       String
+  status            DeliveryStatus         @default(queued)
+  eventType         String                 @map("event_type")
+  providerMessageId String?                @map("provider_message_id")
+  errorMessage      String?                @map("error_message")
+  attempt           Int                    @default(0)
+  payloadPreview    Json?                  @map("payload_preview")
+  createdAt         DateTime               @default(now()) @map("created_at")
+  sentAt            DateTime?              @map("sent_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([destination, createdAt])
+  @@index([templateKey, status])
+  @@index([eventType, createdAt])
+  @@index([userId, createdAt])
+  @@index([channel, status])
+  @@index([status, createdAt])
+  @@map("delivery_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Analytics domain (Sprint 14)
+// ---------------------------------------------------------------------------
+
+model AnalyticsEvent {
+  id            String   @id @default(uuid())
+  clientEventId String   @unique @map("client_event_id")
+  name          String
+  sessionId     String   @map("session_id")
+  userId        String?  @map("user_id")
+  source        String   @default("client")
+  path          String?
+  properties    Json     @default("{}")
+  occurredAt    DateTime @map("occurred_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, occurredAt])
+  @@index([sessionId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([occurredAt])
+  @@map("analytics_events")
+}
+
+model AnalyticsDailyAggregate {
+  id             String   @id @default(uuid())
+  day            DateTime @db.Date
+  metric         String
+  dimension      String   @default("_")
+  count          Int
+  uniqueSessions Int      @default(0) @map("unique_sessions")
+
+  @@unique([day, metric, dimension])
+  @@index([metric, day])
+  @@map("analytics_daily_aggregates")
+}
+
+// ---------------------------------------------------------------------------
+// Recommendations / personalization (Sprint 16)
+// ---------------------------------------------------------------------------
+
+model RecommendationSlotConfig {
+  id                   String   @id @default(uuid())
+  slot                 String   @unique
+  title                String
+  strategy             String
+  isEnabled            Boolean  @default(true) @map("is_enabled")
+  fallbackProductSlugs String[] @map("fallback_product_slugs")
+  limit                Int      @default(8)
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@map("recommendation_slot_configs")
+}
+
+/// Category/product affinities for logged-in shoppers. No email, phone, or
+/// payment data — only catalog slugs and integer scores from recently viewed.
+model PersonalizationProfile {
+  id                 String   @id @default(uuid())
+  userId             String   @unique @map("user_id")
+  categoryAffinities Json     @default("[]") @map("category_affinities")
+  productAffinities  Json     @default("[]") @map("product_affinities")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+  @@map("personalization_profiles")
 }

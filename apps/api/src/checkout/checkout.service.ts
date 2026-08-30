@@ -11,6 +11,7 @@ import { Injectable } from "@nestjs/common";
 import { Prisma, type CheckoutPaymentMethod, type CheckoutStatus } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
+import { AnalyticsService } from "../analytics/analytics.service";
 import { AuditService } from "../audit/audit.service";
 import { CartService } from "../cart/cart.service";
 import { InventoryService } from "../inventory/inventory.service";
@@ -40,6 +41,7 @@ export class CheckoutService {
     private readonly auditService: AuditService,
     private readonly inventoryService: InventoryService,
     private readonly promotionsService: PromotionsService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   async create(userId?: string, sessionId?: string): Promise<CheckoutSession> {
@@ -97,6 +99,12 @@ export class CheckoutService {
       metadata: { cartId: cart.id },
     });
 
+    void this.analytics.trackServer({
+      name: "checkout_start",
+      sessionId,
+      userId,
+      properties: { checkoutId: session.id, total: String(session.total) },
+    });
     return this.toDto(session, summary.items, summary.appliedCoupons);
   }
 

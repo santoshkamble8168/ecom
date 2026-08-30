@@ -13,6 +13,10 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, unknown> {
   intercept(context: ExecutionContext, next: CallHandler<T>): Observable<unknown> {
     const request = context.switchToHttp().getRequest<Request>();
     const requestId = request.requestId ?? "unknown";
+    const url = request.originalUrl ?? request.url ?? "";
+    if (url.includes("robots.txt") || url.includes("sitemap.xml")) {
+      return next.handle();
+    }
 
     return next.handle().pipe(map((data) => buildSuccessResponse(data, requestId)));
   }

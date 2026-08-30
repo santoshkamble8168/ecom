@@ -3,6 +3,7 @@ import { NotFoundError, ValidationError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
 import type { CartItem } from "@prisma/client";
 
+import { AnalyticsService } from "../analytics/analytics.service";
 import { productInclude, toProductSummary } from "../catalog/mappers/catalog.mapper";
 import { PricingService } from "../pricing/pricing.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -18,6 +19,7 @@ export class CartService {
     private readonly prisma: PrismaService,
     private readonly pricingService: PricingService,
     private readonly promotionsService: PromotionsService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   async getCart(userId?: string, sessionId?: string): Promise<CartSummary> {
@@ -72,6 +74,12 @@ export class CartService {
       });
     }
 
+    void this.analytics.trackServer({
+      name: "add_to_cart",
+      sessionId: params.sessionId,
+      userId: params.userId,
+      properties: { productSlug: params.productSlug, variantSku: params.variantSku, quantity: params.quantity },
+    });
     return this.buildSummary(cart.id);
   }
 

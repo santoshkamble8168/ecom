@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@ecom/analytics";
 import type { DeliveryEstimate, PdpProduct, ProductReview } from "@ecom/types";
 import { PriceDisplay, ProductCard } from "@ecom/ui";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import { apiFetch, getToken } from "@/lib/auth";
 import { addToCart } from "@/lib/cart";
 import { getSessionId } from "@/lib/session";
 import { getApiUrl } from "@/lib/api-url";
+import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
 
 const API_URL = getApiUrl();
 
@@ -409,6 +411,7 @@ export function PdpView({ product }: PdpViewProps) {
 
   useEffect(() => {
     trackView();
+    track("product_view", { productSlug: product.slug });
     fetch(`${API_URL}/products/${product.slug}/reviews?pageSize=5`)
       .then((r) => r.json())
       .then((body) => {
@@ -505,6 +508,7 @@ export function PdpView({ product }: PdpViewProps) {
 
   function handleSelectSize(key: string, slug: string) {
     setSelectedOptions((prev) => ({ ...prev, [key]: slug }));
+    track("variant_select", { productSlug: product.slug, attribute: key, value: slug });
   }
 
   return (
@@ -631,7 +635,7 @@ export function PdpView({ product }: PdpViewProps) {
                         key={slug}
                         type="button"
                         disabled={!available}
-                        onClick={() => setSelectedOptions((prev) => ({ ...prev, [group.key]: slug }))}
+                        onClick={() => handleSelectSize(group.key, slug)}
                         className={`min-w-[3.25rem] rounded-lg border px-3.5 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-150 ${
                           !available
                             ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
@@ -889,6 +893,13 @@ export function PdpView({ product }: PdpViewProps) {
           </div>
         </section>
       )}
+
+      <StorefrontRecommendationRail slot="pdp_similar" productSlug={product.slug} title="Similar styles" />
+      <StorefrontRecommendationRail
+        slot="pdp_complete_the_look"
+        productSlug={product.slug}
+        title="Complete the look"
+      />
 
       {/* ─── Mobile sticky footer ─── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white p-3 md:hidden dark:border-neutral-800 dark:bg-neutral-950">

@@ -1,7 +1,13 @@
 "use client";
 
-import type { CustomerAddress, CustomerOrderSummary, UserProfile } from "@ecom/types";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
+import type {
+  CustomerAddress,
+  CustomerOrderSummary,
+  NotificationPreferences,
+  PatchNotificationPreferences,
+  UserProfile,
+} from "@ecom/types";
+import { Button, Card, CardContent, CardHeader, CardTitle, NotificationPreferenceRow } from "@ecom/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -9,8 +15,9 @@ import { Suspense, useEffect, useState } from "react";
 import { apiFetch, clearToken, getRefreshToken, getToken, setTokens } from "@/lib/auth";
 import { formatInr, mergeCartOnLogin } from "@/lib/cart";
 import { orderStatusMeta } from "@/lib/orders";
+import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
 
-type Tab = "orders" | "profile" | "addresses";
+type Tab = "orders" | "profile" | "addresses" | "preferences";
 
 const EMPTY_ADDRESS = {
   label: "Home",
@@ -74,20 +81,27 @@ function AccountPageContent() {
   const [orders, setOrders] = useState<CustomerOrderSummary[]>([]);
   const [displayName, setDisplayName] = useState("");
   const [newsletter, setNewsletter] = useState(false);
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  const [emailMarketing, setEmailMarketing] = useState(false);
+  const [smsMarketing, setSmsMarketing] = useState(false);
   const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS);
   const [showAddressForm, setShowAddressForm] = useState(false);
 
   async function loadAccount() {
-    const [userProfile, userAddresses, userOrders] = await Promise.all([
+    const [userProfile, userAddresses, userOrders, prefs] = await Promise.all([
       apiFetch<UserProfile>("/me"),
       apiFetch<CustomerAddress[]>("/me/addresses"),
       apiFetch<CustomerOrderSummary[]>("/me/orders"),
+      apiFetch<NotificationPreferences>("/me/notification-preferences").catch(() => null),
     ]);
     setProfile(userProfile);
     setDisplayName(userProfile.displayName ?? "");
     setNewsletter(Boolean(userProfile.profile.preferences.newsletter));
     setAddresses(userAddresses);
     setOrders(userOrders);
+    setPreferences(prefs);
+    setEmailMarketing(prefs?.emailMarketing ?? false);
+    setSmsMarketing(prefs?.smsMarketing ?? false);
     setLoggedIn(true);
   }
 
@@ -161,6 +175,25 @@ function AccountPageContent() {
     }
   }
 
+  async function savePreferences() {
+    setLoading(true);
+    setError(null);
+    try {
+      const body: PatchNotificationPreferences = { emailMarketing, smsMarketing };
+      const updated = await apiFetch<NotificationPreferences>("/me/notification-preferences", {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      setPreferences(updated);
+      setEmailMarketing(updated.emailMarketing);
+      setSmsMarketing(updated.smsMarketing);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update notification preferences");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function saveAddress() {
     setLoading(true);
     setError(null);
@@ -197,6 +230,9 @@ function AccountPageContent() {
     setProfile(null);
     setAddresses([]);
     setOrders([]);
+    setPreferences(null);
+    setEmailMarketing(false);
+    setSmsMarketing(false);
   }
 
   if (!loggedIn) {
@@ -252,6 +288,7 @@ function AccountPageContent() {
     { id: "orders", label: "Orders" },
     { id: "addresses", label: "Addresses" },
     { id: "profile", label: "Profile" },
+    { id: "preferences", label: "Notifications" },
   ];
 
   return (
@@ -361,6 +398,51 @@ function AccountPageContent() {
         </Card>
       )}
 
+      {tab === "preferences" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Notifications</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <p className="text-sm text-neutral-500">
+              Transactional messages stay on so you receive order updates and security codes.
+            </p>
+            <NotificationPreferenceRow
+              label="Transactional email"
+              description="Order confirmations, shipping updates, and account security."
+              checked={preferences?.emailTransactional ?? true}
+              disabled
+            />
+            <NotificationPreferenceRow
+              label="Transactional SMS"
+              description="One-time passwords and time-sensitive order alerts."
+              checked={preferences?.smsTransactional ?? true}
+              disabled
+            />
+            <NotificationPreferenceRow
+              label="Marketing email"
+              description="Promotions, product recommendations, and campaigns."
+              checked={emailMarketing}
+              onChange={setEmailMarketing}
+            />
+            <NotificationPreferenceRow
+              label="Marketing SMS"
+              description="Sale alerts and promotional offers by text message."
+              checked={smsMarketing}
+              onChange={setSmsMarketing}
+            />
+            {preferences?.unsubscribedAt ? (
+              <p className="text-sm text-neutral-500">
+                Unsubscribed {new Date(preferences.unsubscribedAt).toLocaleDateString("en-IN")}.
+              </p>
+            ) : null}
+            <Button onClick={() => void savePreferences()} disabled={loading}>
+              {loading ? "Saving…" : "Save preferences"}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {tab === "addresses" && (
         <div className="space-y-4">
           <div className="flex justify-between">
@@ -424,6 +506,8 @@ function AccountPageContent() {
           )}
         </div>
       )}
+
+      <StorefrontRecommendationRail slot="recently_viewed" title="Recently viewed" className="px-0" />
     </div>
   );
 }

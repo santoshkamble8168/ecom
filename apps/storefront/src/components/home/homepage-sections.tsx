@@ -2,6 +2,7 @@ import type { HomepageBlock } from "@ecom/types";
 import { ProductCard } from "@ecom/ui";
 import Link from "next/link";
 
+import { CampaignLink } from "@/components/analytics/campaign-link";
 import { NewsletterForm } from "./newsletter-form";
 
 function HeroSection({ block }: { block: Extract<HomepageBlock, { type: "hero" }> }) {
@@ -17,12 +18,13 @@ function HeroSection({ block }: { block: Extract<HomepageBlock, { type: "hero" }
           <h1 className="text-4xl font-display font-bold sm:text-5xl">{block.headline}</h1>
           <p className="text-lg text-neutral-300">{block.subheadline}</p>
           <div>
-            <Link
+            <CampaignLink
               href={block.ctaHref}
+              campaignId="homepage-hero"
               className="inline-flex h-12 items-center justify-center rounded-md bg-accent-500 px-6 text-base font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
             >
               {block.ctaLabel}
-            </Link>
+            </CampaignLink>
           </div>
         </div>
         <div className="aspect-[4/3] overflow-hidden rounded-2xl">

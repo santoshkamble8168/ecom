@@ -1,4 +1,5 @@
 import type { BannerSummary } from "@ecom/types";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { BannerPlacementStrip } from "@/components/cms/banner-placement-strip";
@@ -13,6 +14,20 @@ async function CategoryTopBanner() {
     banners = [];
   }
   return <BannerPlacementStrip banners={banners} />;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const title = slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return {
+    title,
+    description: `Shop ${title}`,
+    alternates: { canonical: `/categories/${slug}` },
+  };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {

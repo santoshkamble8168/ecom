@@ -56,6 +56,14 @@ export const PERMISSIONS = {
   FEATURE_FLAG_WRITE: "feature_flag:write",
   REPORT_READ: "report:read",
   REPORT_EXPORT: "report:export",
+  // Sprint 13 — Notifications
+  NOTIFICATION_READ: "notification:read",
+  NOTIFICATION_WRITE: "notification:write",
+  // Sprint 14 — Analytics
+  ANALYTICS_READ: "analytics:read",
+  // Sprint 16 — Recommendations
+  RECOMMENDATION_READ: "recommendation:read",
+  RECOMMENDATION_WRITE: "recommendation:write",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

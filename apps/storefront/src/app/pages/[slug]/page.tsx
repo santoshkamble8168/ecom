@@ -39,15 +39,16 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const page = await getPage(slug);
-  if (!page) return { title: "Page Not Found" };
+  if (!page) return { title: "Page Not Found", robots: { index: false } };
 
+  const path = `/pages/${page.slug}`;
   return {
     title: page.seoTitle ?? page.title,
     description: page.seoDescription ?? undefined,
-    alternates: page.seoCanonicalUrl ? { canonical: page.seoCanonicalUrl } : undefined,
+    alternates: { canonical: page.seoCanonicalUrl ?? path },
     openGraph: page.seoOgImage
       ? { title: page.seoTitle ?? page.title, images: [page.seoOgImage] }
-      : undefined,
+      : { title: page.seoTitle ?? page.title },
   };
 }
 

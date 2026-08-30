@@ -27,7 +27,9 @@ import type {
   TrackingEvent as TrackingEventModel,
 } from "@prisma/client";
 
+import { AnalyticsService } from "../analytics/analytics.service";
 import { AuditService } from "../audit/audit.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 import type { AddTrackingEventDto } from "./dto/add-tracking-event.dto";
@@ -91,6 +93,8 @@ export class OrdersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   // ---------------------------------------------------------------------
@@ -185,6 +189,12 @@ export class OrdersService {
       metadata: { orderId, reasonCode: dto.reasonCode },
     });
 
+    void this.notifications.notifyReturnUpdated(order, created.status);
+    void this.analytics.trackServer({
+      name: "return_request",
+      userId,
+      properties: { orderId, orderNumber: order.orderNumber },
+    });
     return this.toReturnSummary(created);
   }
 
@@ -413,6 +423,10 @@ export class OrdersService {
       metadata: { orderId, trackingNumber: dto.trackingNumber },
     });
 
+    void this.notifications.notifyShipmentUpdated(order, {
+      shipmentNumber: shipment.shipmentNumber,
+      trackingNumber: shipment.trackingNumber,
+    });
     return this.toShipmentSummaryFromModel(shipment, shipment.events);
   }
 
@@ -470,6 +484,7 @@ export class OrdersService {
           include: { reason: true },
         });
         await this.audit.log({ userId: adminId, action: "ReturnApproved", entityType: "return_request", entityId: returnId });
+        void this.notifications.notifyReturnUpdated(order, updated.status);
         return this.toReturnSummary(updated);
       }
       case "reject": {
@@ -481,6 +496,7 @@ export class OrdersService {
         });
         await this.transition(order.id, order.status, "delivered", "admin", adminId, dto.note ?? "Return rejected");
         await this.audit.log({ userId: adminId, action: "ReturnRejected", entityType: "return_request", entityId: returnId });
+        void this.notifications.notifyReturnUpdated(order, updated.status);
         return this.toReturnSummary(updated);
       }
       case "receive": {
@@ -491,6 +507,7 @@ export class OrdersService {
           include: { reason: true },
         });
         await this.audit.log({ userId: adminId, action: "ReturnItemReceived", entityType: "return_request", entityId: returnId });
+        void this.notifications.notifyReturnUpdated(order, updated.status);
         return this.toReturnSummary(updated);
       }
       case "refund": {
@@ -521,6 +538,7 @@ export class OrdersService {
         });
         await this.transition(order.id, order.status, "returned", "admin", adminId, "Refund completed");
         await this.audit.log({ userId: adminId, action: "ReturnRefunded", entityType: "return_request", entityId: returnId, metadata: { amount: refundAmount } });
+        void this.notifications.notifyReturnUpdated(order, updated.status);
         return this.toReturnSummary(updated);
       }
       default:

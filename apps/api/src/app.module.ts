@@ -1,8 +1,10 @@
+import { BullModule } from "@nestjs/bullmq";
 import { MiddlewareConsumer, Module, NestModule } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 
 import { AdminModule } from "./admin/admin.module";
+import { AnalyticsModule } from "./analytics/analytics.module";
 import { AuditModule } from "./audit/audit.module";
 import { AuthModule } from "./auth/auth.module";
 import { BlogModule } from "./blog/blog.module";
@@ -15,13 +17,16 @@ import { DashboardModule } from "./dashboard/dashboard.module";
 import { DiscoveryModule } from "./discovery/discovery.module";
 import { InventoryModule } from "./inventory/inventory.module";
 import { MarketingModule } from "./marketing/marketing.module";
+import { NotificationsModule } from "./notifications/notifications.module";
 import { OrdersModule } from "./orders/orders.module";
 import { PaymentsModule } from "./payments/payments.module";
 import { PricingModule } from "./pricing/pricing.module";
 import { ProductModule } from "./product/product.module";
 import { PromotionsModule } from "./promotions/promotions.module";
 import { PlatformModule } from "./platform/platform.module";
+import { RecommendationsModule } from "./recommendations/recommendations.module";
 import { ReportsModule } from "./reports/reports.module";
+import { SeoModule } from "./seo/seo.module";
 import { StorefrontModule } from "./storefront/storefront.module";
 import { UsersModule } from "./users/users.module";
 import { RequestIdMiddleware } from "./common/middleware/request-id.middleware";
@@ -37,6 +42,12 @@ import { RedisModule } from "./redis/redis.module";
     AppLoggerModule,
     PrismaModule,
     RedisModule,
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST ?? "127.0.0.1",
+        port: Number(process.env.REDIS_PORT ?? 6379),
+      },
+    }),
     // Global default: 60 requests/minute per IP in production. Auth OTP
     // endpoints apply stricter @Throttle() overrides. Public catalog,
     // discovery, and storefront reads use @SkipThrottle() — they are
@@ -67,6 +78,10 @@ import { RedisModule } from "./redis/redis.module";
     CustomersModule,
     PlatformModule,
     ReportsModule,
+    NotificationsModule,
+    AnalyticsModule,
+    SeoModule,
+    RecommendationsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

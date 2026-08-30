@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { AnalyticsModule } from "../analytics/analytics.module";
 import { CatalogModule } from "../catalog/catalog.module";
 import { PricingModule } from "../pricing/pricing.module";
 
@@ -9,7 +10,7 @@ import { ProductService } from "./product.service";
 import { RecentlyViewedService, WishlistService } from "./wishlist.service";
 
 @Module({
-  imports: [CatalogModule, PricingModule],
+  imports: [CatalogModule, PricingModule, AnalyticsModule],
   controllers: [ProductController],
   providers: [ProductService, DeliveryService, WishlistService, RecentlyViewedService],
 })

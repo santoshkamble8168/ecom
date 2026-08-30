@@ -3,6 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import {
   CAMPAIGN_STATUS_PILLS,
   CONTENT_STATUS_PILLS,
+  DELIVERY_STATUS_PILLS,
   PURCHASE_ORDER_STATUS_PILLS,
   StatusPill,
 } from "./status-pill";
@@ -46,6 +47,16 @@ export const ContentStatuses: Story = {
   render: () => (
     <div className="flex flex-wrap gap-2">
       {Object.values(CONTENT_STATUS_PILLS).map((pill) => (
+        <StatusPill key={pill.label} label={pill.label} tone={pill.tone} />
+      ))}
+    </div>
+  ),
+};
+
+export const DeliveryStatuses: Story = {
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      {Object.values(DELIVERY_STATUS_PILLS).map((pill) => (
         <StatusPill key={pill.label} label={pill.label} tone={pill.tone} />
       ))}
     </div>

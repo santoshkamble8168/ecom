@@ -1,4 +1,5 @@
 export * from "./admin";
+export * from "./analytics";
 export * from "./api";
 export * from "./blog";
 export * from "./cart";
@@ -10,9 +11,11 @@ export * from "./discovery";
 export * from "./identity";
 export * from "./inventory";
 export * from "./marketing";
+export * from "./notification";
 export * from "./order";
 export * from "./payment";
 export * from "./pricing";
 export * from "./product";
 export * from "./promotion";
+export * from "./recommendation";
 export * from "./storefront";

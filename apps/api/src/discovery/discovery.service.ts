@@ -1,11 +1,13 @@
-import { NotFoundError, buildPaginationMeta, paginationSkip } from "@ecom/shared";
+import { NotFoundError, buildPaginationMeta, paginationSkip, resolveSearchMode, shouldRecordSemanticRequest } from "@ecom/shared";
 import type { ProductFacets, ProductListResult, ProductSortKey, ProductSummary } from "@ecom/types";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
+import { AnalyticsService } from "../analytics/analytics.service";
 import { productInclude, toProductSummary } from "../catalog/mappers/catalog.mapper";
 import { AppLogger } from "../logger/logger.service";
 import { PricingService } from "../pricing/pricing.service";
+import { FeatureFlagsService } from "../platform/feature-flags.service";
 import { PrismaService } from "../prisma/prisma.service";
 
 import type { DiscoveryQueryDto } from "./dto/discovery-query.dto";
@@ -21,6 +23,8 @@ export class DiscoveryService {
     private readonly meilisearch: MeilisearchService,
     private readonly logger: AppLogger,
     private readonly pricingService: PricingService,
+    private readonly analytics: AnalyticsService,
+    private readonly flags: FeatureFlagsService,
   ) {
     this.logger.setContext("DiscoveryService");
   }
@@ -50,16 +54,29 @@ export class DiscoveryService {
   async searchProducts(query: DiscoveryQueryDto): Promise<ProductListResult> {
     const sort = parseSortKey(query.sort);
     const q = query.q?.trim() ?? "";
+    const semanticEnabled = await this.flags.isEnabled("search.semantic");
+    if (shouldRecordSemanticRequest(query.mode, semanticEnabled)) {
+      void this.analytics.trackServer({
+        name: "semantic_search",
+        sessionId: "search",
+        properties: { query: q, provider: "none" },
+      });
+    }
 
     if (q && this.meilisearch.isAvailable()) {
       try {
-        return await this.searchViaMeilisearch(query, q, sort);
+        const result = await this.searchViaMeilisearch(query, q, sort);
+        result.meta.searchMode = resolveSearchMode(query.mode, semanticEnabled);
+        result.meta.semanticRequested = shouldRecordSemanticRequest(query.mode, semanticEnabled);
+        return result;
       } catch (error) {
         this.logger.warn(`Meilisearch search failed, using Postgres: ${String(error)}`);
       }
     }
 
     const result = await this.listProducts(query);
+    result.meta.searchMode = resolveSearchMode(query.mode, semanticEnabled);
+    result.meta.semanticRequested = shouldRecordSemanticRequest(query.mode, semanticEnabled);
     await this.logSearch(q, result.meta.pagination.totalItems, query);
     return result;
   }
@@ -390,6 +407,11 @@ export class DiscoveryService {
           resultCount,
           filters: filters ? (filters as object) : undefined,
         },
+      });
+      void this.analytics.trackServer({
+        name: "search",
+        sessionId: "search",
+        properties: { query, resultCount },
       });
     } catch (error) {
       this.logger.warn(`Failed to log search: ${String(error)}`);

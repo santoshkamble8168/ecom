@@ -2,6 +2,7 @@ import type { BannerSummary, PageSection, ProductListResult } from "@ecom/types"
 import { ProductCard } from "@ecom/ui";
 import Link from "next/link";
 
+import { CampaignLink } from "@/components/analytics/campaign-link";
 import { apiFetch } from "@/lib/api";
 import { getBannersByIds } from "@/lib/cms";
 
@@ -26,9 +27,9 @@ function HeroBannerSection({ banner }: { banner: BannerSummary }) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-6">
       {banner.linkUrl ? (
-        <Link href={banner.linkUrl} aria-label={banner.title}>
+        <CampaignLink href={banner.linkUrl} campaignId={banner.id} ariaLabel={banner.title}>
           {image}
-        </Link>
+        </CampaignLink>
       ) : (
         image
       )}
@@ -55,9 +56,9 @@ function BannerStripSection({ banners }: { banners: BannerSummary[] }) {
           return (
             <div key={banner.id}>
               {banner.linkUrl ? (
-                <Link href={banner.linkUrl} aria-label={banner.title}>
+                <CampaignLink href={banner.linkUrl} campaignId={banner.id} ariaLabel={banner.title}>
                   {image}
-                </Link>
+                </CampaignLink>
               ) : (
                 image
               )}

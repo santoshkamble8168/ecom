@@ -31,6 +31,12 @@ export class ReportsService {
     return reports.map((report) => this.toDefinitionSummary(report));
   }
 
+  async getByType(type: string): Promise<ReportDefinitionSummary> {
+    const report = await this.findReport(type);
+    if (!report) throw new NotFoundError("Report not found");
+    return this.toDefinitionSummary(report);
+  }
+
   async queueExport(actorId: string, reportId: string, dto: ExportReportDto): Promise<ExportJobSummary> {
     const report = await this.findReport(reportId);
     if (!report) throw new NotFoundError("Report not found");

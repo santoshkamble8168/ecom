@@ -214,6 +214,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 if (e.key === "Enter") submitSearch(query);
               }}
               placeholder="Search for products, brands and more"
+              aria-label="Search products"
               className="w-full rounded-sm border border-brand-200 bg-white py-2 pl-9 pr-4 text-sm placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
             />
 
@@ -284,7 +285,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             </Link>
             <Link
               href="/cart"
-              aria-label="Cart"
+              aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
               id="site-header-bag"
               data-bag-target="true"
               className={`relative text-neutral-700 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white ${
@@ -322,7 +323,12 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
       {/* Mobile drawer */}
       {menuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+          />
           <nav className="absolute left-0 top-0 h-full w-72 bg-white p-6 dark:bg-neutral-950" aria-label="Mobile">
             <button type="button" className="mb-6" aria-label="Close menu" onClick={() => setMenuOpen(false)}>
               ✕

@@ -87,6 +87,16 @@ Retention: `AUDIT_RETENTION_DAYS` (default 365). CSV export requires
 | `GiftCardCreated` | `gift_card` | Placeholder gift cards |
 | `LoyaltyPointsAdjusted` | `loyalty` | Placeholder loyalty |
 
+## Sprint 13 — notifications
+
+| Action | Entity | When |
+| --- | --- | --- |
+| `notification.template_created` | `notification_template` | `POST /admin/notifications/templates` |
+| `notification.template_updated` | `notification_template` | `PATCH /admin/notifications/templates/:id` |
+| `notification.template_version_created` | `notification_template` | `POST /admin/notifications/templates/:id/versions` |
+| `notification.template_published` | `notification_template` | `POST /admin/notifications/templates/:id/publish` |
+| `notification.test_sent` | `notification_template` | `POST /admin/notifications/templates/:id/test-send` |
+
 ## How to investigate
 
 1. Start from the failing request’s `requestId` (response envelope or

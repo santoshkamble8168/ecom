@@ -1,5 +1,6 @@
 "use client";
 
+import { track } from "@ecom/analytics";
 import type { ProductFacets, ProductListResult, ProductSortKey } from "@ecom/types";
 import { ProductCard } from "@ecom/ui";
 import Link from "next/link";
@@ -11,6 +12,7 @@ import { getToken } from "@/lib/auth";
 import { SORT_OPTIONS } from "@/lib/discovery";
 import { getSessionId } from "@/lib/session";
 import { getApiUrl } from "@/lib/api-url";
+import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
 
 const API_URL = getApiUrl();
 
@@ -113,6 +115,19 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
 
     return () => controller.abort();
   }, [apiPath, searchMode, queryKey]);
+
+  const filterKey = `${sizes.join(",")}|${colors.join(",")}|${brands.join(",")}|${minPrice}|${maxPrice}|${onSale}`;
+  useEffect(() => {
+    if (activeFilterCount === 0) return;
+    track("filter", {
+      sizes: sizes.join(","),
+      colors: colors.join(","),
+      brands: brands.join(","),
+      minPrice,
+      maxPrice,
+      onSale,
+    });
+  }, [filterKey, activeFilterCount, sizes, colors, brands, minPrice, maxPrice, onSale]);
 
   useEffect(() => {
     fetch(`${API_URL}/wishlist?sessionId=${encodeURIComponent(getSessionId())}`, {
@@ -368,6 +383,8 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
           )}
         </div>
       </div>
+
+      <StorefrontRecommendationRail slot="plp_trending" />
 
       {mobileFiltersOpen && (
         <div className="fixed inset-0 z-50 md:hidden">

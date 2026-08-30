@@ -46,12 +46,18 @@ const NAV_SECTIONS = [
       { href: "/users", label: "Users & Roles" },
       { href: "/audit-logs", label: "Audit logs" },
       { href: "/feature-flags", label: "Feature flags" },
+      { href: "/recommendations", label: "Recommendations" },
       { href: "/settings", label: "Settings" },
+      { href: "/notifications/templates", label: "Templates" },
+      { href: "/notifications/deliveries", label: "Deliveries" },
     ],
   },
   {
     title: "Analytics",
-    items: [{ href: "/reports", label: "Reports" }],
+    items: [
+      { href: "/analytics", label: "Analytics" },
+      { href: "/reports", label: "Reports" },
+    ],
   },
   {
     title: "Content",

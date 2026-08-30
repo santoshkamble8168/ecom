@@ -10,8 +10,10 @@ import { Injectable } from "@nestjs/common";
 import type { Payment, PaymentStatus, Prisma, RefundRequest } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 
+import { AnalyticsService } from "../analytics/analytics.service";
 import { AuditService } from "../audit/audit.service";
 import { InventoryService } from "../inventory/inventory.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { PrismaService } from "../prisma/prisma.service";
 import { PromotionsService } from "../promotions/promotions.service";
 
@@ -34,6 +36,8 @@ export class PaymentsService {
     private readonly auditService: AuditService,
     private readonly inventoryService: InventoryService,
     private readonly promotionsService: PromotionsService,
+    private readonly notifications: NotificationsService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   async initiate(
@@ -78,7 +82,14 @@ export class PaymentsService {
     if (checkout.paymentMethod === "cod") {
       throw new ValidationError("Cash on Delivery is not available. Please pay online.");
     }
-    return this.createRazorpayPayment(checkout, userId);
+    const payment = await this.createRazorpayPayment(checkout, userId);
+    void this.analytics.trackServer({
+      name: "payment_attempt",
+      userId,
+      sessionId,
+      properties: { paymentId: payment.id, method: "razorpay" },
+    });
+    return payment;
   }
 
   async getById(id: string, userId?: string, sessionId?: string): Promise<PaymentSummary> {
@@ -612,7 +623,7 @@ export class PaymentsService {
     const existing = await this.prisma.order.findUnique({ where: { checkoutId: checkout.id } });
     if (existing) {
       if (existing.status === "confirmed") return existing;
-      return this.prisma.order.update({
+      const updated = await this.prisma.order.update({
         where: { id: existing.id },
         data: {
           status: "confirmed",
@@ -620,6 +631,14 @@ export class PaymentsService {
           paymentMethod: method,
         },
       });
+      void this.notifications.notifyOrderConfirmed(updated);
+      void this.analytics.trackServer({
+        name: "order_placed",
+        userId: updated.userId,
+        sessionId: updated.sessionId,
+        properties: { orderId: updated.id, orderNumber: updated.orderNumber, total: String(updated.total) },
+      });
+      return updated;
     }
 
     const address = await this.resolveAddress(checkout);
@@ -661,6 +680,13 @@ export class PaymentsService {
       },
     );
 
+    void this.notifications.notifyOrderConfirmed(order);
+    void this.analytics.trackServer({
+      name: "order_placed",
+      userId: order.userId,
+      sessionId: order.sessionId,
+      properties: { orderId: order.id, orderNumber: order.orderNumber, total: String(order.total) },
+    });
     return order;
   }
 
@@ -736,7 +762,7 @@ export class PaymentsService {
     // releasing here would let stock sell out from under a shopper who's
     // about to retry. Abandoned holds still self-heal via the reservation's
     // own TTL and the worker's expiry sweep.
-    await this.prisma.payment.update({
+    const updated = await this.prisma.payment.update({
       where: { id: paymentId },
       data: {
         status: "failed",
@@ -757,6 +783,12 @@ export class PaymentsService {
       entityType: "payment",
       entityId: paymentId,
       metadata: { code, message },
+    });
+    void this.notifications.notifyPaymentFailed(updated);
+    void this.analytics.trackServer({
+      name: "payment_attempt",
+      userId: updated.userId,
+      properties: { paymentId: updated.id, status: "failed" },
     });
   }
 

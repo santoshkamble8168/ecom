@@ -12,6 +12,8 @@
     "clean": "rimraf .next .turbo node_modules"
   },
   "dependencies": {
+    "@ecom/analytics": "workspace:*",
+    "@ecom/shared": "workspace:*",
     "@ecom/types": "workspace:*",
     "@ecom/ui": "workspace:*",
     "@ecom/validation": "workspace:*",

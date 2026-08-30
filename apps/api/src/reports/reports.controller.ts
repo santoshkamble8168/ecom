@@ -20,6 +20,12 @@ export class ReportsController {
     return this.reportsService.list();
   }
 
+  @Get("reports/:type")
+  @Permissions(PERMISSIONS.REPORT_READ)
+  getByType(@Param("type") type: string) {
+    return this.reportsService.getByType(type);
+  }
+
   @Post("reports/:id/export")
   @Permissions(PERMISSIONS.REPORT_EXPORT)
   export(

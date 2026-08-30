@@ -8,6 +8,7 @@ import { OAuthProvider, OtpChannel } from "@prisma/client";
 import { AuditService } from "../audit/audit.service";
 import { AppLogger } from "../logger/logger.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { UsersService } from "../users/users.service";
 
 import { isDevDemoOtpBypass } from "./demo-accounts";
@@ -31,6 +32,7 @@ export class AuthService {
     private readonly logger: AppLogger,
     private readonly audit: AuditService,
     private readonly usersService: UsersService,
+    private readonly notifications: NotificationsService,
   ) {
     this.logger.setContext("AuthService");
   }
@@ -51,6 +53,19 @@ export class AuthService {
     });
 
     this.logger.log(`OTP for ${destination} via ${channel}: ${code} (dev-only log)`);
+
+    const templateKey = channel === OtpChannel.email ? "otp.email" : "otp.sms";
+    const existingUser =
+      channel === OtpChannel.email
+        ? await this.prisma.user.findFirst({ where: { email: destination } })
+        : await this.prisma.user.findFirst({ where: { phone: destination } });
+    void this.notifications.enqueueSafe({
+      templateKey,
+      eventType: "auth.otp_requested",
+      destination,
+      userId: existingUser?.id,
+      variables: { otpCode: code },
+    });
 
     return { expiresInSeconds: OTP_TTL_MINUTES * 60 };
   }

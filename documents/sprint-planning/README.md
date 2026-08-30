@@ -35,12 +35,12 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | 9 | Orders | `sprint-09-orders.md` | Done (Storybook/E2E deferred) | Order history, tracking, cancellation, returns, invoices complete |
 | 10 | Inventory & Pricing | `sprint-10-inventory-pricing.md` | Done | Stock ledger, warehouses, promotions, scheduled pricing complete |
 | 11 | CMS & Marketing | `sprint-11-cms-marketing.md` | Done | Banners, blogs, landing pages, collections, campaigns complete |
-| 12 | Admin Dashboard | `sprint-12-admin-dashboard.md` | Not Started | Reports, customer management, audit logs, admin control center complete |
-| 13 | Notifications | `sprint-13-notifications.md` | Not Started | Email/SMS templates, queue processing, delivery logs complete |
-| 14 | Analytics | `sprint-14-analytics.md` | Not Started | Dashboards, KPIs, funnels, reports, event governance complete |
-| 15 | Performance & SEO | `sprint-15-performance-seo.md` | Not Started | Core Web Vitals, accessibility, caching, SEO hardening complete |
-| 16 | AI Foundation | `sprint-16-ai-foundation.md` | Not Started | Recommendation, semantic search, personalization hooks ready |
-| 17 | Production Readiness | `sprint-17-production-readiness.md` | Not Started | Security hardening, monitoring, load testing, final QA complete |
+| 12 | Admin Dashboard | `sprint-12-admin-dashboard.md` | Done | Reports, customer management, audit logs, admin control center complete |
+| 13 | Notifications | `sprint-13-notifications.md` | Done | Email/SMS templates, queue processing, delivery logs complete |
+| 14 | Analytics | `sprint-14-analytics.md` | Done | Dashboards, KPIs, funnels, reports, event governance complete |
+| 15 | Performance & SEO | `sprint-15-performance-seo.md` | Done | Core Web Vitals, accessibility, caching, SEO hardening complete |
+| 16 | AI Foundation | `sprint-16-ai-foundation.md` | Done | Recommendation, semantic search, personalization hooks ready |
+| 17 | Production Readiness | `sprint-17-production-readiness.md` | In Progress | Security hardening, monitoring, load testing, final QA complete |
 
 ## Completed Sprint Artifacts
 
@@ -54,6 +54,10 @@ exist before the status changes (see Definition of Done):
 | 9 | `docs/sprints/sprint-09-orders-summary.md` | — |
 | 10 | `docs/sprints/sprint-10-inventory-pricing-summary.md` | — |
 | 11 | `docs/sprints/sprint-11-cms-marketing-summary.md` | — |
+| 12 | `docs/sprints/sprint-12-admin-dashboard-summary.md` | — |
+| 13 | `docs/sprints/sprint-13-notifications-summary.md` | — |
+| 14 | `docs/sprints/sprint-14-analytics-summary.md` | — |
+| 16 | `docs/sprints/sprint-16-ai-foundation-summary.md` | — |
 
 ## Activity Tracking Model
 

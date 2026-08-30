@@ -1,5 +1,40 @@
 # API Documentation Guide
 
+## Notification APIs (Sprint 13)
+
+Prefix `api/v1`. JWT required. OpenAPI tags: `me-notifications`,
+`admin-notifications`.
+
+- Shopper: `GET` / `PATCH` `/me/notification-preferences` (marketing
+  opt-in only on PATCH).
+- Admin: `/admin/notifications/templates` (list/create, get/patch,
+  versions, publish, preview, test-send) and
+  `/admin/notifications/deliveries`. Permissions `notification:read`
+  / `notification:write`.
+
+See [architecture](../notifications/architecture-and-templates.md) and
+[ADR 0013](../decisions/0013-notifications-queue-and-templates.md).
+
+## Analytics APIs (Sprint 14)
+
+Prefix `api/v1`. OpenAPI tags: `analytics`, `admin-analytics`.
+
+- Public ingest: `POST /analytics/events` (optional JWT, 202).
+- Admin: `GET /admin/analytics/kpis|funnels|search|products|cohorts`
+  (`analytics:read`). Reports by type: `GET /admin/reports/:type`.
+
+See [taxonomy](../analytics/event-taxonomy.md) and
+[ADR 0014](../decisions/0014-analytics-ingest-and-retention.md).
+
+## SEO (Sprint 15)
+
+Storefront (crawler host): `/robots.txt`, `/sitemap.xml`.
+API origin (excluded from `api/v1`): `GET /robots.txt`, `GET /sitemap.xml`.
+Public catalog GETs send `Cache-Control: public, s-maxage=60`.
+
+See [SEO checklist](../seo/checklist.md) and
+[ADR 0015](../decisions/0015-seo-and-cache.md).
+
 ## Purpose
 Starter documentation for api documentation guide in a reusable AI engineering workspace.
 
