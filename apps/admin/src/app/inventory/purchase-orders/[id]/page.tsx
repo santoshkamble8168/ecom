@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { PurchaseOrderStatusBadge } from "@/components/inventory/status-badges";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { AdminPageSkeleton } from "@/components/layout/admin-skeleton";
 
 const NEXT_STATUSES: Record<PurchaseOrderStatus, PurchaseOrderStatus[]> = {
   draft: ["ordered", "cancelled"],
@@ -69,7 +70,7 @@ export default function PurchaseOrderDetailPage() {
   });
 
   if (isLoading) {
-    return <p className="text-neutral-500">Loading purchase order…</p>;
+    return <AdminPageSkeleton />;
   }
 
   if (isError || !po) {

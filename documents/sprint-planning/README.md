@@ -40,7 +40,7 @@ Source of truth: `requirement-documents` architecture volumes 1-12, `required-fu
 | 14 | Analytics | `sprint-14-analytics.md` | Done | Dashboards, KPIs, funnels, reports, event governance complete |
 | 15 | Performance & SEO | `sprint-15-performance-seo.md` | Done | Core Web Vitals, accessibility, caching, SEO hardening complete |
 | 16 | AI Foundation | `sprint-16-ai-foundation.md` | Done | Recommendation, semantic search, personalization hooks ready |
-| 17 | Production Readiness | `sprint-17-production-readiness.md` | In Progress | Security hardening, monitoring, load testing, final QA complete |
+| 17 | Production Readiness | `sprint-17-production-readiness.md` | On Hold | Security hardening, monitoring, load testing, final QA complete |
 
 ## Completed Sprint Artifacts
 

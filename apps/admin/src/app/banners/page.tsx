@@ -6,9 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { BannerForm } from "@/components/cms/banner-form";
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { ContentStatusBadge } from "@/components/cms/status-badge";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const BANNER_PLACEMENTS: BannerPlacement[] = [
   "homepage_hero",
@@ -66,18 +68,21 @@ export default function BannersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Banners</h1>
-        <Button
-          type="button"
-          onClick={() => {
-            setEditingBanner(null);
-            setShowForm(true);
-          }}
-        >
-          New Banner
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Banners"
+        description="Create and edit promotional banners, then publish them to storefront placements."
+        actions={
+          <Button
+            type="button"
+            onClick={() => {
+              setEditingBanner(null);
+              setShowForm(true);
+            }}
+          >
+            New Banner
+          </Button>
+        }
+      />
 
       {showForm && (
         <BannerForm
@@ -139,7 +144,7 @@ export default function BannersPage() {
 
       {publishError && <p className="text-sm text-danger-600">{publishError}</p>}
 
-      {isLoading && <p className="text-neutral-500">Loading banners…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load banners."}

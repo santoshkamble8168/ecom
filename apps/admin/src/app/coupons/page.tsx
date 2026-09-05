@@ -6,9 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { CouponForm } from "@/components/promotions/coupon-form";
 import { apiFetchWithMeta, apiFetch } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 interface CouponListResult {
   coupons: CouponSummary[];
@@ -73,12 +75,15 @@ export default function CouponsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Coupons</h1>
-        <Button type="button" onClick={() => setShowCreate((v) => !v)}>
-          {showCreate ? "Cancel" : "Create Coupon"}
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Coupons"
+        description="Create, edit, and activate discount codes."
+        actions={
+          <Button type="button" onClick={() => setShowCreate((v) => !v)}>
+            {showCreate ? "Cancel" : "Create Coupon"}
+          </Button>
+        }
+      />
 
       {showCreate && (
         <Card>
@@ -136,7 +141,7 @@ export default function CouponsPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading coupons…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load coupons."}

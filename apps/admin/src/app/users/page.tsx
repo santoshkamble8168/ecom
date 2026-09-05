@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { apiFetch } from "@/lib/api";
+import { AdminPageSkeleton } from "@/components/layout/admin-skeleton";
 
 interface AdminUser {
   id: string;
@@ -51,13 +53,16 @@ export default function UsersPage() {
   }
 
   if (loading) {
-    return <p className="text-neutral-500">Loading users…</p>;
+    return <AdminPageSkeleton />;
   }
 
   return (
-    <div>
-      <h1 className="mb-6 text-2xl font-display font-bold">Users & Roles</h1>
-      {error && <p className="mb-4 text-sm text-danger-600">{error}</p>}
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title="Users & Roles"
+        description="Assign a role to each staff user. Role definitions are listed above the user table."
+      />
+      {error && <p className="text-sm text-danger-600">{error}</p>}
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Roles</h2>

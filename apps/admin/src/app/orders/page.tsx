@@ -6,9 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { OrderStatusBadge } from "@/components/orders/status-badges";
 import { apiFetchWithMeta } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const ORDER_STATUS_OPTIONS: OrderStatus[] = [
   "pending_payment",
@@ -49,9 +51,10 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Orders</h1>
-      </div>
+      <AdminPageHeader
+        title="Orders"
+        description="Filter by status or search, then open an order to fulfill, refund, or update status."
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-end">
@@ -96,7 +99,7 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading orders…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load orders."}

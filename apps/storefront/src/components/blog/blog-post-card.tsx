@@ -1,16 +1,18 @@
 import type { BlogPostSummary } from "@ecom/types";
 import Link from "next/link";
 
+import { StorefrontImage } from "@/components/media/storefront-image";
+
 export function BlogPostCard({ post }: { post: BlogPostSummary }) {
   return (
     <Link href={`/blog/${post.slug}`} className="group block">
-      <div className="aspect-[16/10] overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-900">
+      <div className="relative aspect-[16/10] overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-900">
         {post.coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <StorefrontImage
             src={post.coverImageUrl}
             alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 50vw"
           />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-neutral-400">No image</div>

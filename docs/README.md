@@ -1,5 +1,9 @@
 # Engineering Documentation Index
 
+## Current reviews
+
+- [Industry standards review](./reviews/industry-standards-review.md) (30 Aug 2026) — UI/UX, backend/API, and database against OWASP, WCAG 2.2, Twelve-Factor, and commerce practice. Sprint 17 P0 list lives there.
+
 ## Purpose
 Starter documentation for engineering documentation index in a reusable AI engineering workspace.
 

@@ -21,7 +21,7 @@ import { CatalogService } from "./catalog.service";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { CreateCollectionDto } from "./dto/create-collection.dto";
 import { CreateProductDto } from "./dto/create-product.dto";
-import { AddProductMediaDto, CreateVariantDto, ProductListQueryDto } from "./dto/create-variant.dto";
+import { AddProductMediaDto, CreateVariantDto, ProductListQueryDto, VariantSearchQueryDto } from "./dto/create-variant.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
 import { UpdateCollectionDto } from "./dto/update-collection.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
@@ -32,6 +32,12 @@ export class CatalogAdminController {
   constructor(private readonly catalogService: CatalogService) {}
 
   // Products
+  @Permissions(PERMISSIONS.CATALOG_READ, PERMISSIONS.INVENTORY_READ, PERMISSIONS.PRICING_READ, PERMISSIONS.PROMOTION_READ, PERMISSIONS.ADMIN_ACCESS)
+  @Get("variants")
+  searchVariants(@Query() query: VariantSearchQueryDto) {
+    return this.catalogService.adminSearchVariants(query);
+  }
+
   @Permissions(PERMISSIONS.CATALOG_READ)
   @Get("products")
   listProducts(@Query() query: ProductListQueryDto) {

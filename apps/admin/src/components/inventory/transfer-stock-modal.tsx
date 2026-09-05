@@ -6,8 +6,9 @@ import { stockTransferFormSchema, type StockTransferFormValues } from "@ecom/val
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
+import { VariantSearchField } from "@/components/catalog/variant-search-field";
 import { FieldError } from "@/components/form/field-error";
 import { apiFetch } from "@/lib/api";
 
@@ -24,6 +25,7 @@ export function TransferStockModal({
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -90,11 +92,18 @@ export function TransferStockModal({
             <FieldError message={errors.toWarehouseId?.message} />
           </label>
 
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Variant SKU</span>
-            <input type="text" {...register("variantSku")} className={INPUT_CLASS} />
-            <FieldError message={errors.variantSku?.message} />
-          </label>
+          <Controller
+            name="variantSku"
+            control={control}
+            render={({ field }) => (
+              <VariantSearchField
+                label="Variant SKU"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.variantSku?.message}
+              />
+            )}
+          />
 
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Quantity</span>

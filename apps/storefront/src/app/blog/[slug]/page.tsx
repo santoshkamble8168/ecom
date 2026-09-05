@@ -6,6 +6,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { RichHtml } from "@/components/cms/rich-html";
+import { StorefrontImage } from "@/components/media/storefront-image";
 import { JsonLd } from "@/components/seo/json-ld";
 import { apiFetch } from "@/lib/api";
 import { getApiUrl } from "@/lib/api-url";
@@ -120,9 +121,8 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       </p>
 
       {post.coverImageUrl && (
-        <div className="mt-6 aspect-[16/9] overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-900">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={post.coverImageUrl} alt={post.title} className="h-full w-full object-cover" />
+        <div className="relative mt-6 aspect-[16/9] overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-900">
+          <StorefrontImage src={post.coverImageUrl} alt={post.title} className="object-cover" sizes="(max-width: 768px) 100vw, 768px" />
         </div>
       )}
 

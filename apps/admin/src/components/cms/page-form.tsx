@@ -23,6 +23,7 @@ import { formatDateTime } from "@/lib/format";
 import { defaultFieldsFor, PageFieldsEditor, type PageFieldsValue } from "./page-fields-editor";
 import { emptySeoFields, seoFieldsFrom, seoFieldsToPayload, SeoPanel } from "./seo-panel";
 import { ContentStatusBadge } from "./status-badge";
+import { AdminFormSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -166,7 +167,7 @@ export function PageForm({ pageId }: { pageId?: string }) {
   });
 
   if (isEditing && isLoading) {
-    return <p className="text-neutral-500">Loading page…</p>;
+    return <AdminFormSkeleton />;
   }
 
   if (isEditing && (isError || !page)) {

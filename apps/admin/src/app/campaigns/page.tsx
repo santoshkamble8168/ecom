@@ -6,10 +6,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { CampaignForm } from "@/components/promotions/campaign-form";
 import { CampaignStatusBadge } from "@/components/promotions/campaign-status-badge";
 import { apiFetch, apiFetchWithMeta } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 interface CampaignListResult {
   campaigns: CampaignSummary[];
@@ -58,12 +60,15 @@ export default function CampaignsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Campaigns</h1>
-        <Button type="button" onClick={() => setShowCreate((v) => !v)}>
-          {showCreate ? "Cancel" : "Create Campaign"}
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Campaigns"
+        description="Schedule promotions and edit campaign targeting."
+        actions={
+          <Button type="button" onClick={() => setShowCreate((v) => !v)}>
+            {showCreate ? "Cancel" : "Create Campaign"}
+          </Button>
+        }
+      />
 
       {showCreate && (
         <Card>
@@ -102,7 +107,7 @@ export default function CampaignsPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading campaigns…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load campaigns."}
@@ -147,9 +152,19 @@ export default function CampaignsPage() {
                   </td>
                   <td className="px-4 py-3">{campaign.isActive ? "Yes" : "No"}</td>
                   <td className="px-4 py-3">
-                    <Link href={`/campaigns/${campaign.id}`} className="text-brand-600 hover:underline">
-                      View
-                    </Link>
+                    <div className="flex gap-3">
+                      <Link href={`/campaigns/${campaign.id}`} className="text-brand-600 hover:underline">
+                        Edit
+                      </Link>
+                      <a
+                        href={`${process.env.NEXT_PUBLIC_STOREFRONT_URL ?? "http://localhost:3000"}/campaign/${campaign.slug}`}
+                        className="text-brand-600 hover:underline"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Shop
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -73,6 +73,7 @@ export interface CategorySummary {
 }
 
 export interface CollectionSummary {
+  id: string;
   slug: string;
   name: string;
   description: string | null;

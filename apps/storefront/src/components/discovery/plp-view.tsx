@@ -2,7 +2,7 @@
 
 import { track } from "@ecom/analytics";
 import type { ProductFacets, ProductListResult, ProductSortKey } from "@ecom/types";
-import { ProductCard } from "@ecom/ui";
+import { ProductCard, Dialog } from "@ecom/ui";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
@@ -23,6 +23,19 @@ interface PlpViewProps {
   searchMode?: boolean;
 }
 
+const PLP_QUERY_KEYS = ["q", "sort", "page", "pageSize", "sizes", "colors", "brands", "minPrice", "maxPrice", "onSale"] as const;
+
+function discoverySearchParams(all: URLSearchParams): URLSearchParams {
+  const sp = new URLSearchParams();
+  for (const key of PLP_QUERY_KEYS) {
+    const value = all.get(key);
+    if (value) sp.set(key, value);
+  }
+  if (!sp.has("page")) sp.set("page", "1");
+  if (!sp.has("sort")) sp.set("sort", "newest");
+  return sp;
+}
+
 function getArrayParam(sp: URLSearchParams, key: string): string[] {
   const val = sp.get(key);
   return val ? val.split(",").filter(Boolean) : [];
@@ -35,6 +48,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
   const [wishlistIds, setWishlistIds] = useState<Map<string, string>>(new Map());
   const initialLoad = useRef(true);
 
@@ -91,9 +105,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
     }
     setError(null);
 
-    const sp = new URLSearchParams(queryKey);
-    if (!sp.has("page")) sp.set("page", "1");
-    if (!sp.has("sort")) sp.set("sort", "newest");
+    const sp = discoverySearchParams(new URLSearchParams(queryKey));
 
     const endpoint = searchMode
       ? `${API_URL}/search?${sp}`
@@ -114,7 +126,7 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
       });
 
     return () => controller.abort();
-  }, [apiPath, searchMode, queryKey]);
+  }, [apiPath, searchMode, queryKey, reloadToken]);
 
   const filterKey = `${sizes.join(",")}|${colors.join(",")}|${brands.join(",")}|${minPrice}|${maxPrice}|${onSale}`;
   useEffect(() => {
@@ -319,9 +331,16 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
           )}
 
           {error && (
-            <p className="rounded-lg border border-danger-500/30 bg-danger-50 p-4 text-danger-600">
-              Failed to load products. {error}
-            </p>
+            <div className="rounded-lg border border-danger-500/30 bg-danger-50 p-4 text-danger-600">
+              <p>Failed to load products. {error}</p>
+              <button
+                type="button"
+                className="mt-3 rounded-md border border-danger-500 px-3 py-1.5 text-sm font-semibold"
+                onClick={() => setReloadToken((value) => value + 1)}
+              >
+                Retry
+              </button>
+            </div>
           )}
 
           {!showSkeleton && !error && data?.items.length === 0 && (
@@ -386,31 +405,28 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
 
       <StorefrontRecommendationRail slot="plp_trending" />
 
-      {mobileFiltersOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileFiltersOpen(false)} />
-          <div className="absolute bottom-0 max-h-[80vh] w-full overflow-y-auto rounded-t-2xl bg-white p-6 dark:bg-neutral-950">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold">Filters{activeFilterCount > 0 && ` (${activeFilterCount})`}</h2>
-              <div className="flex items-center gap-3">
-                {activeFilterCount > 0 && (
-                  <button type="button" onClick={clearAllFilters} className="text-sm font-semibold text-info-600">
-                    Clear All
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className="rounded-md bg-neutral-900 px-4 py-1.5 text-sm text-white"
-                  onClick={() => setMobileFiltersOpen(false)}
-                >
-                  Done
-                </button>
-              </div>
-            </div>
-            {filterPanel}
-          </div>
+      <Dialog
+        open={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        title={`Filters${activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}`}
+        className="md:hidden sm:max-w-none"
+      >
+        <div className="mb-4 flex items-center justify-end gap-3">
+          {activeFilterCount > 0 && (
+            <button type="button" onClick={clearAllFilters} className="text-sm font-semibold text-info-600">
+              Clear All
+            </button>
+          )}
+          <button
+            type="button"
+            className="rounded-md bg-neutral-900 px-4 py-1.5 text-sm text-white"
+            onClick={() => setMobileFiltersOpen(false)}
+          >
+            Done
+          </button>
         </div>
-      )}
+        {filterPanel}
+      </Dialog>
     </div>
   );
 }

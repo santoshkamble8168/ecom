@@ -1,6 +1,7 @@
 import { jsonLdOrganization, jsonLdWebSite } from "@ecom/shared";
 import type { MenuSummary, NavigationSummary } from "@ecom/types";
 import type { Metadata } from "next";
+import { Inter, Sora } from "next/font/google";
 import type { ReactNode } from "react";
 
 import { AnalyticsPageView } from "@/components/analytics/page-view-tracker";
@@ -13,6 +14,9 @@ import { menuItemsToNavigationNodes } from "@/lib/cms-navigation";
 import { siteOrigin } from "@/lib/seo";
 
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const sora = Sora({ subsets: ["latin"], variable: "--font-display" });
 
 const FALLBACK_NAV: NavigationSummary = {
   announcement: { message: "Free shipping on orders above ₹999", linkUrl: null, linkLabel: null },
@@ -78,8 +82,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const navigation = await loadNavigation();
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body>
+    <html lang="en" className={`${inter.variable} ${sora.variable}`} suppressHydrationWarning>
+      <body className="font-sans">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-white focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow"

@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const JOB_TONE: Record<ExportJobStatus, StatusPillTone> = {
   queued: "warning",
@@ -85,7 +86,7 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-display font-bold">Reports</h1>
 
-      {isLoading && <p className="text-neutral-500">Loading reports…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load reports."}

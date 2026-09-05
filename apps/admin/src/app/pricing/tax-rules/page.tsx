@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { FieldError } from "@/components/form/field-error";
 import { TaxRuleEditModal } from "@/components/pricing/tax-rule-edit-modal";
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -121,7 +122,7 @@ export default function TaxRulesPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading tax rules…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && <p className="text-danger-600">Failed to load tax rules.</p>}
 
       {!isLoading && !isError && (

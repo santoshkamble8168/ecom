@@ -13,6 +13,7 @@ import { notFound } from "next/navigation";
 
 import { CmsPageSections } from "@/components/cms/page-sections";
 import { RichHtml } from "@/components/cms/rich-html";
+import { StorefrontImage } from "@/components/media/storefront-image";
 import { JsonLd } from "@/components/seo/json-ld";
 
 function LandingPageView({ fields }: { fields: LandingPageFields | CampaignPageFields }) {
@@ -35,9 +36,8 @@ function LandingPageView({ fields }: { fields: LandingPageFields | CampaignPageF
             )}
           </div>
           {fields.heroImageUrl && (
-            <div className="aspect-[4/3] overflow-hidden rounded-2xl">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={fields.heroImageUrl} alt={fields.heroTitle} className="h-full w-full object-cover" />
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+              <StorefrontImage src={fields.heroImageUrl} alt={fields.heroTitle} className="object-cover" sizes="(max-width: 768px) 100vw, 50vw" />
             </div>
           )}
         </div>

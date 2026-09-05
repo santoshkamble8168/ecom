@@ -6,8 +6,9 @@ import { simulatePriceFormSchema, type SimulatePriceFormValues } from "@ecom/val
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
+import { VariantSearchField } from "@/components/catalog/variant-search-field";
 import { FieldError } from "@/components/form/field-error";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
@@ -18,6 +19,7 @@ const INPUT_CLASS =
 export function SimulatePricePanel() {
   const [error, setError] = useState<string | null>(null);
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -50,11 +52,20 @@ export function SimulatePricePanel() {
           className="flex flex-wrap items-end gap-2"
           onSubmit={handleSubmit((values) => simulateMutation.mutate(values))}
         >
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">SKU</span>
-            <input type="text" {...register("variantSku")} className={`w-40 ${INPUT_CLASS}`} />
-            <FieldError message={errors.variantSku?.message} />
-          </label>
+          <div className="min-w-[16rem]">
+            <Controller
+              name="variantSku"
+              control={control}
+              render={({ field }) => (
+                <VariantSearchField
+                  label="SKU"
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.variantSku?.message}
+                />
+              )}
+            />
+          </div>
           <label className="flex flex-col gap-1 text-sm">
             <span className="font-medium">Qty</span>
             <input type="number" min={1} {...register("quantity")} className={`w-20 ${INPUT_CLASS}`} />

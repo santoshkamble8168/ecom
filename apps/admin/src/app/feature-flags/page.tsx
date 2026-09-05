@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -110,7 +111,7 @@ export default function FeatureFlagsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-display font-bold">Feature flags</h1>
 
-      {isLoading && <p className="text-neutral-500">Loading feature flags…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load feature flags."}

@@ -81,3 +81,23 @@ export class ProductListQueryDto {
   @MaxLength(100)
   search?: string;
 }
+
+export class VariantSearchQueryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  search?: string;
+
+  @ApiPropertyOptional({ description: "Comma-separated SKUs to resolve labels" })
+  @IsOptional()
+  @IsString()
+  skus?: string;
+
+  @ApiPropertyOptional({ default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  pageSize = 20;
+}

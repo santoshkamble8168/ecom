@@ -6,6 +6,7 @@ export * from "./components/card";
 export * from "./components/customer-timeline";
 export * from "./components/dashboard-chart";
 export * from "./components/delivery-log-table";
+export * from "./components/dialog";
 export * from "./components/faq-accordion";
 export * from "./components/feature-flag-row";
 export * from "./components/funnel-chart";

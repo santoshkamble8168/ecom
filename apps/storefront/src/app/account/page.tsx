@@ -16,6 +16,7 @@ import { apiFetch, clearToken, getRefreshToken, getToken, setTokens } from "@/li
 import { formatInr, mergeCartOnLogin } from "@/lib/cart";
 import { orderStatusMeta } from "@/lib/orders";
 import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
+import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
 
 type Tab = "orders" | "profile" | "addresses" | "preferences";
 
@@ -59,7 +60,7 @@ function orderStatusLabel(status: CustomerOrderSummary["status"]): string {
 
 export default function AccountPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-3xl px-4 py-12 text-neutral-500">Loading account…</div>}>
+    <Suspense fallback={<CommerceSkeleton className="mx-auto max-w-3xl px-4 py-12" rows={2} />}>
       <AccountPageContent />
     </Suspense>
   );

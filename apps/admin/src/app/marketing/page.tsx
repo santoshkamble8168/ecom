@@ -19,6 +19,7 @@ import { FieldError } from "@/components/form/field-error";
 import { apiFetch } from "@/lib/api";
 import { fromDatetimeLocalValue } from "@/lib/datetime";
 import { formatDate, formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -91,7 +92,7 @@ function ReferralsPanel() {
         <CardTitle className="text-base">Referral codes</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {isLoading && <p className="text-neutral-500">Loading referrals…</p>}
+        {isLoading && <AdminTableSkeleton />}
         {isError && (
           <p className="text-danger-600">
             {error instanceof Error ? error.message : "Failed to load referrals."}
@@ -246,7 +247,7 @@ function GiftCardsPanel() {
           <CardTitle className="text-base">Gift cards</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {isLoading && <p className="text-neutral-500">Loading gift cards…</p>}
+          {isLoading && <AdminTableSkeleton />}
           {isError && (
             <p className="text-danger-600">
               {loadError instanceof Error ? loadError.message : "Failed to load gift cards."}
@@ -371,7 +372,7 @@ function LoyaltyPanel() {
           <FieldError message={lookupForm.formState.errors.userId?.message} />
         </form>
 
-        {searchedUserId && isLoading && <p className="text-neutral-500">Loading account…</p>}
+        {searchedUserId && isLoading && <AdminTableSkeleton rows={4} />}
         {searchedUserId && isError && (
           <p className="text-danger-600">
             {error instanceof Error ? error.message : "Failed to load loyalty account."}
@@ -445,7 +446,12 @@ export default function MarketingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-display font-bold">Marketing</h1>
+      <div>
+        <h1 className="text-2xl font-display font-bold">Marketing</h1>
+        <p className="mt-1 text-sm text-neutral-500">
+          Gift cards and loyalty are preview tools. They are not production ledgers yet.
+        </p>
+      </div>
 
       <div className="flex gap-2">
         {TABS.map((t) => (

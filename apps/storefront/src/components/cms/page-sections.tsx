@@ -3,6 +3,7 @@ import { ProductCard } from "@ecom/ui";
 import Link from "next/link";
 
 import { CampaignLink } from "@/components/analytics/campaign-link";
+import { StorefrontImage } from "@/components/media/storefront-image";
 import { apiFetch } from "@/lib/api";
 import { getBannersByIds } from "@/lib/cms";
 
@@ -15,17 +16,18 @@ type RichTextSectionData = Extract<PageSection, { kind: "rich_text" }>;
 function HeroBannerSection({ banner }: { banner: BannerSummary }) {
   const image = (
     <div className="relative aspect-[21/9] w-full overflow-hidden bg-neutral-100 dark:bg-neutral-900 sm:aspect-[3/1]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
+      <StorefrontImage
         src={banner.imageUrl}
         alt={banner.altText ?? banner.title}
-        className="h-full w-full object-cover"
+        className="object-cover"
+        sizes="100vw"
+        priority
       />
     </div>
   );
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-6">
+    <section className="w-full">
       {banner.linkUrl ? (
         <CampaignLink href={banner.linkUrl} campaignId={banner.id} ariaLabel={banner.title}>
           {image}
@@ -45,11 +47,11 @@ function BannerStripSection({ banners }: { banners: BannerSummary[] }) {
         {banners.map((banner) => {
           const image = (
             <div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-neutral-100 dark:bg-neutral-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <StorefrontImage
                 src={banner.imageUrl}
                 alt={banner.altText ?? banner.title}
-                className="h-full w-full object-cover"
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 33vw"
               />
             </div>
           );

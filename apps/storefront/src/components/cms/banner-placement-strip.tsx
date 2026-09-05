@@ -1,6 +1,7 @@
 import type { BannerSummary } from "@ecom/types";
 
 import { CampaignLink } from "@/components/analytics/campaign-link";
+import { StorefrontImage } from "@/components/media/storefront-image";
 
 /**
  * Renders whatever currently-live banners were returned for a single
@@ -16,11 +17,11 @@ export function BannerPlacementStrip({ banners }: { banners: BannerSummary[] }) 
         {banners.map((banner) => {
           const image = (
             <div className="relative aspect-[21/6] overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <StorefrontImage
                 src={banner.imageUrl}
                 alt={banner.altText ?? banner.title}
-                className="h-full w-full object-cover"
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           );

@@ -10,7 +10,9 @@ import { useForm } from "react-hook-form";
 
 import { MenuItemTree } from "@/components/cms/menu-item-tree";
 import { FieldError } from "@/components/form/field-error";
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -104,16 +106,19 @@ export default function MenusPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Menus</h1>
-        <Button type="button" onClick={() => setShowCreate((v) => !v)}>
-          New Menu
-        </Button>
-      </div>
+      <AdminPageHeader
+        title="Menus"
+        description="Edit navigation trees for the storefront. Add, nest, or remove items on each menu."
+        actions={
+          <Button type="button" onClick={() => setShowCreate((v) => !v)}>
+            New Menu
+          </Button>
+        }
+      />
 
       {showCreate && <CreateMenuForm onDone={() => setShowCreate(false)} />}
 
-      {isLoading && <p className="text-neutral-500">Loading menus…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load menus."}

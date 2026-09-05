@@ -6,8 +6,9 @@ import { upsertProductPriceFormSchema, type UpsertProductPriceFormValues } from 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 
+import { VariantSearchField } from "@/components/catalog/variant-search-field";
 import { FieldError } from "@/components/form/field-error";
 import { apiFetch } from "@/lib/api";
 import { fromDatetimeLocalValue, toDatetimeLocalValue } from "@/lib/datetime";
@@ -30,6 +31,7 @@ export function EditPriceModal({
     existing?.priceListId ?? priceLists.find((pl) => pl.isDefault)?.id ?? priceLists[0]?.id ?? "";
 
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors },
@@ -76,16 +78,33 @@ export function EditPriceModal({
           className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"
           onSubmit={handleSubmit((values) => saveMutation.mutate(values))}
         >
-          <label className="flex flex-col gap-1 text-sm sm:col-span-2">
-            <span className="font-medium">Variant SKU</span>
-            <input
-              type="text"
-              readOnly={Boolean(existing)}
-              {...register("variantSku")}
-              className={`${INPUT_CLASS} read-only:bg-neutral-100 dark:read-only:bg-neutral-800`}
-            />
-            <FieldError message={errors.variantSku?.message} />
-          </label>
+          {existing ? (
+            <label className="flex flex-col gap-1 text-sm sm:col-span-2">
+              <span className="font-medium">Variant SKU</span>
+              <input
+                type="text"
+                readOnly
+                {...register("variantSku")}
+                className={`${INPUT_CLASS} read-only:bg-neutral-100 dark:read-only:bg-neutral-800`}
+              />
+              <FieldError message={errors.variantSku?.message} />
+            </label>
+          ) : (
+            <div className="sm:col-span-2">
+              <Controller
+                name="variantSku"
+                control={control}
+                render={({ field }) => (
+                  <VariantSearchField
+                    label="Variant SKU"
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.variantSku?.message}
+                  />
+                )}
+              />
+            </div>
+          )}
 
           <label className="flex flex-col gap-1 text-sm sm:col-span-2">
             <span className="font-medium">Price List</span>

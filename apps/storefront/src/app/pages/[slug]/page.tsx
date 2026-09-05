@@ -1,35 +1,20 @@
-import type { ApiResponse, PageDetail } from "@ecom/types";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { CmsPageView } from "@/components/cms/cms-page-view";
-import { getApiUrl } from "@/lib/api-url";
+import { getPublishedCmsPage } from "@/lib/cms";
 
-const API_URL = getApiUrl();
-
-async function getPage(slug: string): Promise<PageDetail | null> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}/cms/pages/${slug}`, { next: { revalidate: 60 } });
-  } catch (err) {
-    console.error(`[CMS Page] Failed to reach API for "${slug}":`, err);
-    return null;
+function queryString(searchParams: Record<string, string | string[] | undefined>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (Array.isArray(value)) {
+      for (const item of value) params.append(key, item);
+    } else if (value) {
+      params.set(key, value);
+    }
   }
-
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    console.error(`[CMS Page] API returned ${res.status} for "${slug}"`);
-    return null;
-  }
-
-  try {
-    const body = (await res.json()) as ApiResponse<PageDetail>;
-    if (!body.success) return null;
-    return body.data;
-  } catch (err) {
-    console.error(`[CMS Page] Failed to parse API response for "${slug}":`, err);
-    return null;
-  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
 }
 
 export async function generateMetadata({
@@ -38,10 +23,10 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getPage(slug);
+  const page = await getPublishedCmsPage(slug);
   if (!page) return { title: "Page Not Found", robots: { index: false } };
 
-  const path = `/pages/${page.slug}`;
+  const path = page.type === "campaign" ? `/campaign/${page.slug}` : `/pages/${page.slug}`;
   return {
     title: page.seoTitle ?? page.title,
     description: page.seoDescription ?? undefined,
@@ -52,9 +37,19 @@ export async function generateMetadata({
   };
 }
 
-export default async function CmsPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CmsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { slug } = await params;
-  const page = await getPage(slug);
+  const page = await getPublishedCmsPage(slug);
   if (!page) notFound();
+  if (page.type === "campaign") {
+    const qs = queryString(await searchParams);
+    redirect(`/campaign/${slug}${qs}`);
+  }
   return <CmsPageView page={page} />;
 }

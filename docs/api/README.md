@@ -1,5 +1,7 @@
 # API Documentation Guide
 
+API design, auth, validation, and OpenAPI findings: [Industry standards review — Backend / API](../reviews/industry-standards-review.md#6-backend--api-review). Runtime docs: `{API_PREFIX}/docs` (Swagger; must be gated in production).
+
 ## Notification APIs (Sprint 13)
 
 Prefix `api/v1`. JWT required. OpenAPI tags: `me-notifications`,

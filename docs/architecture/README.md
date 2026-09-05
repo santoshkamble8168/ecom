@@ -1,5 +1,7 @@
 # Architecture Guide
 
+Cross-cutting review of whether the running system matches the intended architecture and industry standards: [Industry standards review](../reviews/industry-standards-review.md). Decision records: [ADR log](../decisions/decision-log.md).
+
 ## Purpose
 Starter documentation for architecture guide in a reusable AI engineering workspace.
 

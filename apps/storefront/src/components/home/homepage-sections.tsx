@@ -3,33 +3,32 @@ import { ProductCard } from "@ecom/ui";
 import Link from "next/link";
 
 import { CampaignLink } from "@/components/analytics/campaign-link";
+import { StorefrontImage } from "@/components/media/storefront-image";
 import { NewsletterForm } from "./newsletter-form";
 
 function HeroSection({ block }: { block: Extract<HomepageBlock, { type: "hero" }> }) {
   return (
-    <section className="relative overflow-hidden bg-neutral-900 text-white">
-      <div className="mx-auto grid max-w-7xl items-center gap-8 px-4 py-16 md:grid-cols-2 md:py-24">
-        <div className="flex flex-col gap-4">
-          {block.badge && (
-            <span className="w-fit rounded-sm bg-brand-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
-              {block.badge}
-            </span>
-          )}
-          <h1 className="text-4xl font-display font-bold sm:text-5xl">{block.headline}</h1>
-          <p className="text-lg text-neutral-300">{block.subheadline}</p>
-          <div>
-            <CampaignLink
-              href={block.ctaHref}
-              campaignId="homepage-hero"
-              className="inline-flex h-12 items-center justify-center rounded-md bg-accent-500 px-6 text-base font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
-            >
-              {block.ctaLabel}
-            </CampaignLink>
-          </div>
-        </div>
-        <div className="aspect-[4/3] overflow-hidden rounded-2xl">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={block.imageUrl} alt={block.headline} className="h-full w-full object-cover" />
+    <section className="relative min-h-[70vh] overflow-hidden bg-neutral-900 text-white">
+      <div className="absolute inset-0">
+        <StorefrontImage src={block.imageUrl} alt="" className="object-cover" sizes="100vw" priority />
+      </div>
+      <div className="absolute inset-0 bg-black/45" aria-hidden="true" />
+      <div className="relative mx-auto flex min-h-[70vh] max-w-7xl flex-col justify-end gap-4 px-4 py-16 md:justify-center md:py-24">
+        {block.badge && (
+          <span className="w-fit rounded-sm bg-brand-600 px-3 py-1 text-xs font-bold uppercase tracking-wide text-white">
+            {block.badge}
+          </span>
+        )}
+        <h1 className="max-w-xl text-4xl font-display font-bold sm:text-5xl">{block.headline}</h1>
+        <p className="max-w-xl text-lg text-neutral-200">{block.subheadline}</p>
+        <div>
+          <CampaignLink
+            href={block.ctaHref}
+            campaignId="homepage-hero"
+            className="inline-flex h-12 items-center justify-center rounded-md bg-accent-500 px-6 text-base font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
+          >
+            {block.ctaLabel}
+          </CampaignLink>
         </div>
       </div>
     </section>
@@ -62,11 +61,11 @@ function ShopByGenderSection({ block }: { block: Extract<HomepageBlock, { type: 
             href={item.href}
             className="group relative aspect-[3/4] overflow-hidden rounded-xl"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <StorefrontImage
               src={item.imageUrl}
               alt={item.label}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              className="object-cover transition-transform group-hover:scale-105"
+              sizes="(max-width: 768px) 50vw, 40vw"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <span className="absolute bottom-4 left-4 text-xl font-display font-bold text-white">

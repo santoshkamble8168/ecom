@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const PAGE_SIZE = 20;
 const INPUT_CLASS =
@@ -124,7 +125,7 @@ export default function NotificationDeliveriesPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading deliveries…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load deliveries."}

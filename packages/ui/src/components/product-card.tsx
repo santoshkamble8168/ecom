@@ -1,9 +1,31 @@
+"use client";
+
 import type { ProductStatus, ProductSummary } from "@ecom/types";
-import type * as React from "react";
+import * as React from "react";
 
 import { cn } from "../lib/cn";
 
 import { Card } from "./card";
+
+export type ProductCardImageRenderProps = {
+  src: string;
+  alt: string;
+  className: string;
+};
+
+export type ProductCardImageRenderer = (props: ProductCardImageRenderProps) => React.ReactNode;
+
+export const ProductCardImageContext = React.createContext<ProductCardImageRenderer | null>(null);
+
+export function ProductCardImageProvider({
+  renderer,
+  children,
+}: {
+  renderer: ProductCardImageRenderer;
+  children: React.ReactNode;
+}) {
+  return <ProductCardImageContext.Provider value={renderer}>{children}</ProductCardImageContext.Provider>;
+}
 
 export interface ProductCardProps {
   product: ProductSummary;
@@ -61,16 +83,25 @@ export function ProductCard({
   const struckThrough = product.compareAtPrice ?? (isSale ? product.basePrice : null);
   const discount = discountPercent(displayPrice, struckThrough);
   const badge = campaignBadge !== undefined ? campaignBadge : product.campaignBadge;
+  const renderImage = React.useContext(ProductCardImageContext);
+  const imageClassName = "h-full w-full object-cover transition-transform duration-300 group-hover:scale-105";
+  const imageAlt = product.primaryImage?.altText ?? product.title;
 
   return (
     <Card className={cn("group overflow-hidden border-neutral-100 shadow-none", className)}>
       <div className="relative aspect-[3/4] bg-neutral-100 dark:bg-neutral-800">
         {product.primaryImage ? (
-          <img
-            src={product.primaryImage.url}
-            alt={product.primaryImage.altText ?? product.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+          renderImage ? (
+            renderImage({ src: product.primaryImage.url, alt: imageAlt, className: imageClassName })
+          ) : (
+            <img
+              src={product.primaryImage.url}
+              alt={imageAlt}
+              className={imageClassName}
+              loading="lazy"
+              decoding="async"
+            />
+          )
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-neutral-400">
             No image

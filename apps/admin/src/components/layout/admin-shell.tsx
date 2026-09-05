@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { AdminSidebar } from "@/components/layout/admin-sidebar";
+import { AdminMobileNav, AdminSidebar } from "@/components/layout/admin-sidebar";
 
 const BARE_PATHS = ["/login"];
 
@@ -12,13 +12,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const isBare = BARE_PATHS.some((path) => pathname.startsWith(path));
 
   if (isBare) {
-    return <>{children}</>;
+    return <div id="main-content">{children}</div>;
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-neutral-100">
       <AdminSidebar />
-      <main className="flex-1 p-6">{children}</main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AdminMobileNav />
+        <main id="main-content" className="flex-1 p-4 md:p-8" tabIndex={-1}>
+          <div className="mx-auto w-full max-w-7xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

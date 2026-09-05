@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
+import { VariantSearchField } from "@/components/catalog/variant-search-field";
 import { emptySeoFields, seoFieldsFrom, seoFieldsToPayload, SeoPanel } from "@/components/cms/seo-panel";
 import { ContentStatusBadge } from "@/components/cms/status-badge";
 import { FieldError } from "@/components/form/field-error";
@@ -22,6 +23,7 @@ import { fromDatetimeLocalValue } from "@/lib/datetime";
 import { formatDateTime } from "@/lib/format";
 
 import { CategoryPicker, TagPicker } from "./category-tag-picker";
+import { AdminFormSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -33,7 +35,7 @@ export function PostForm({ postId }: { postId?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(!isEditing);
+  const [relatedSkuQuery, setRelatedSkuQuery] = useState("");
 
   const {
     register,
@@ -66,6 +68,7 @@ export function PostForm({ postId }: { postId?: string }) {
   const seo = watch("seo");
   const categoryIds = watch("categoryIds");
   const tagIds = watch("tagIds");
+  const relatedSkus = watch("relatedSkus");
 
   const { data: post, isLoading, isError, error: loadError } = useQuery({
     queryKey: ["admin-blog-post", postId],
@@ -162,7 +165,7 @@ export function PostForm({ postId }: { postId?: string }) {
   });
 
   if (isEditing && isLoading) {
-    return <p className="text-neutral-500">Loading post…</p>;
+    return <AdminFormSkeleton />;
   }
 
   if (isEditing && (isError || !post)) {
@@ -253,11 +256,58 @@ export function PostForm({ postId }: { postId?: string }) {
                 <FieldError message={errors.contentHtml?.message} />
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium" htmlFor="post-related-skus">
-                  Related product SKUs (comma-separated)
-                </label>
-                <input id="post-related-skus" type="text" {...register("relatedSkus")} className={INPUT_CLASS} />
+              <div className="flex flex-col gap-2">
+                <VariantSearchField
+                  id="post-related-skus"
+                  label="Related products"
+                  value={relatedSkuQuery}
+                  onChange={setRelatedSkuQuery}
+                  onPick={(hit) => {
+                    const current = relatedSkus
+                      .split(",")
+                      .map((sku) => sku.trim())
+                      .filter(Boolean);
+                    if (current.includes(hit.sku)) return;
+                    setValue("relatedSkus", [...current, hit.sku].join(", "), { shouldDirty: true });
+                    setRelatedSkuQuery("");
+                  }}
+                  excludeSkus={relatedSkus
+                    .split(",")
+                    .map((sku) => sku.trim())
+                    .filter(Boolean)}
+                />
+                <input type="hidden" {...register("relatedSkus")} />
+                {relatedSkus.trim() ? (
+                  <ul className="flex flex-wrap gap-2">
+                    {relatedSkus
+                      .split(",")
+                      .map((sku) => sku.trim())
+                      .filter(Boolean)
+                      .map((sku) => (
+                        <li
+                          key={sku}
+                          className="flex items-center gap-1 rounded-full border border-neutral-300 px-2 py-1 text-xs dark:border-neutral-700"
+                        >
+                          <span className="font-mono">{sku}</span>
+                          <button
+                            type="button"
+                            className="text-neutral-500 hover:text-danger-600"
+                            onClick={() => {
+                              const next = relatedSkus
+                                .split(",")
+                                .map((item) => item.trim())
+                                .filter((item) => item && item !== sku);
+                              setValue("relatedSkus", next.join(", "), { shouldDirty: true });
+                            }}
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-neutral-500">Search and select products. SKUs are stored on the post.</p>
+                )}
               </div>
 
               <CategoryPicker

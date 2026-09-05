@@ -11,7 +11,7 @@ import { slugify } from "./utils/catalog.utils";
 import type { CreateCategoryDto } from "./dto/create-category.dto";
 import type { CreateCollectionDto } from "./dto/create-collection.dto";
 import type { CreateProductDto } from "./dto/create-product.dto";
-import type { AddProductMediaDto, CreateVariantDto, ProductListQueryDto } from "./dto/create-variant.dto";
+import type { AddProductMediaDto, CreateVariantDto, ProductListQueryDto, VariantSearchQueryDto } from "./dto/create-variant.dto";
 import type { UpdateCategoryDto } from "./dto/update-category.dto";
 import type { UpdateCollectionDto } from "./dto/update-collection.dto";
 import type { UpdateProductDto } from "./dto/update-product.dto";
@@ -130,6 +130,54 @@ export class CatalogService {
       items: products.map(toProductSummary),
       meta: { pagination: buildPaginationMeta(query.page, query.pageSize, totalItems) },
     };
+  }
+
+  async adminSearchVariants(query: VariantSearchQueryDto) {
+    const skuList = query.skus
+      ? query.skus
+          .split(",")
+          .map((sku) => sku.trim())
+          .filter(Boolean)
+      : [];
+    const search = query.search?.trim();
+
+    const where: Prisma.ProductVariantWhereInput = {
+      isActive: true,
+      ...(skuList.length ? { sku: { in: skuList } } : {}),
+      ...(search
+        ? {
+            OR: [
+              { sku: { contains: search, mode: "insensitive" } },
+              { product: { title: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    };
+
+    if (!skuList.length && !search) {
+      return [];
+    }
+
+    const variants = await this.prisma.productVariant.findMany({
+      where,
+      include: {
+        product: true,
+        options: { include: { attributeValue: { include: { attribute: true } } } },
+      },
+      orderBy: { sku: "asc" },
+      take: Math.min(query.pageSize ?? 20, 50),
+    });
+
+    return variants.map((variant) => ({
+      sku: variant.sku,
+      productTitle: variant.product.title,
+      productSlug: variant.product.slug,
+      price: variant.price.toString(),
+      options: variant.options.map((option) => ({
+        attributeName: option.attributeValue.attribute.name,
+        value: option.attributeValue.value,
+      })),
+    }));
   }
 
   async adminGetProduct(slug: string) {
@@ -383,6 +431,7 @@ export class CatalogService {
         slug: dto.slug,
         description: dto.description,
         sortOrder: dto.sortOrder,
+        isActive: dto.isActive,
       },
       include: { parent: true },
     });
@@ -442,7 +491,12 @@ export class CatalogService {
 
     const collection = await this.prisma.collection.update({
       where: { id: existing.id },
-      data: { name: dto.name, slug: dto.slug, description: dto.description },
+      data: {
+        name: dto.name,
+        slug: dto.slug,
+        description: dto.description,
+        isActive: dto.isActive,
+      },
     });
 
     this.logger.log(`Collection updated: ${collection.slug} by user ${userId}`);

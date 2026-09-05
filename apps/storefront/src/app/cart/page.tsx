@@ -1,10 +1,13 @@
 "use client";
 
 import type { CartLineItem, CartSummary, DeliveryEstimate } from "@ecom/types";
-import { Button, PriceDisplay } from "@ecom/ui";
+import { Button, PriceDisplay, Dialog } from "@ecom/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+
+import { StorefrontImage } from "@/components/media/storefront-image";
+import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
 
 import { CartStripBanner } from "@/components/cms/cart-strip-banner";
 import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
@@ -47,39 +50,15 @@ function ClearFromBagModal({
       : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} aria-hidden="true" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="clear-bag-title"
-        className="relative w-full max-w-md rounded-t-2xl bg-white p-5 shadow-2xl animate-slide-up sm:mx-4 sm:rounded-2xl dark:bg-neutral-950"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 id="clear-bag-title" className="text-lg font-bold">
-            Clear From Bag
-          </h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            ✕
-          </button>
-        </div>
-        <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
-          Are you sure you want to remove this item from bag?
-        </p>
-
+    <Dialog open onClose={onClose} title="Clear From Bag" description="Are you sure you want to remove this item from bag?">
         <div className="mb-5 flex gap-3 rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-          <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
+          <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
             {item.product?.primaryImage && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <StorefrontImage
                 src={item.product.primaryImage.url}
                 alt={item.product.title}
-                className="h-full w-full object-cover"
+                className="object-cover"
+                sizes="80px"
               />
             )}
           </div>
@@ -118,8 +97,7 @@ function ClearFromBagModal({
             Save for Later
           </button>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }
 
@@ -181,7 +159,7 @@ export default function CartPage() {
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-5xl px-4 py-12 text-neutral-500">Loading cart…</div>;
+    return <CommerceSkeleton />;
   }
 
   if (!cart || (cart.itemCount === 0 && cart.savedForLater.length === 0)) {
@@ -215,7 +193,7 @@ export default function CartPage() {
   }, 0);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-8 pb-28 lg:pb-8">
       <CartStripBanner />
       <nav className="mb-3 text-xs text-neutral-500">
         <Link href="/" className="hover:underline">
@@ -256,14 +234,14 @@ export default function CartPage() {
               >
                 <Link
                   href={`/products/${item.productSlug}`}
-                  className="h-24 w-24 shrink-0 overflow-hidden rounded bg-neutral-100"
+                  className="relative h-24 w-24 shrink-0 overflow-hidden rounded bg-neutral-100"
                 >
                   {item.product?.primaryImage && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <StorefrontImage
                       src={item.product.primaryImage.url}
                       alt={item.product.title}
-                      className="h-full w-full object-cover"
+                      className="object-cover"
+                      sizes="96px"
                     />
                   )}
                 </Link>
@@ -339,11 +317,17 @@ export default function CartPage() {
           <div className="rounded-lg border border-dashed border-neutral-300 p-4 dark:border-neutral-700">
             <p className="text-sm font-semibold">Check delivery availability</p>
             <div className="mt-2 flex gap-2">
+              <label htmlFor="cart-pincode" className="sr-only">
+                Delivery pincode
+              </label>
               <input
+                id="cart-pincode"
                 value={pincode}
                 onChange={(e) => setPincode(e.target.value)}
                 placeholder="Enter pincode"
                 maxLength={6}
+                inputMode="numeric"
+                autoComplete="postal-code"
                 className="max-w-[200px] flex-1 rounded border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
               />
               <button
@@ -388,7 +372,11 @@ export default function CartPage() {
           <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
             <p className="mb-2 text-sm font-semibold">Have a coupon?</p>
             <div className="flex gap-2">
+              <label htmlFor="cart-coupon" className="sr-only">
+                Coupon code
+              </label>
               <input
+                id="cart-coupon"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value)}
                 placeholder="Enter coupon code"
@@ -497,6 +485,16 @@ export default function CartPage() {
         title="Frequently bought together"
       />
       <StorefrontRecommendationRail slot="cart_trending" title="You may also like" />
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white p-3 lg:hidden dark:border-neutral-800 dark:bg-neutral-950">
+        <Button
+          className="w-full bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
+          disabled={actionLoading || cart.itemCount === 0}
+          onClick={() => router.push("/checkout")}
+        >
+          Proceed · {formatInr(cart.total)}
+        </Button>
+      </div>
 
       {removeItem && (
         <ClearFromBagModal

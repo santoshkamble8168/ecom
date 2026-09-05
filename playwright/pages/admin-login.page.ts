@@ -59,7 +59,7 @@ export class AdminLoginPage {
         localStorage.setItem("ecom_admin_token", tokens.accessToken);
         localStorage.setItem("ecom_admin_refresh_token", tokens.refreshToken);
       }, cached);
-      await this.page.goto("/products");
+      await this.page.goto("/");
       return;
     }
 
@@ -68,7 +68,7 @@ export class AdminLoginPage {
     await this.sendOtpButton.click();
     await this.otpInput.fill(otp);
     await this.verifyButton.click();
-    await this.page.waitForURL(/\/products$/);
+    await this.page.waitForURL((url) => new URL(url).pathname === "/");
 
     const tokens = await this.page.evaluate(() => ({
       accessToken: localStorage.getItem("ecom_admin_token"),

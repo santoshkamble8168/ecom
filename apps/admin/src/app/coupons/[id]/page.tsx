@@ -10,6 +10,7 @@ import { useState } from "react";
 import { CouponForm } from "@/components/promotions/coupon-form";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency, formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 export default function CouponDetailPage() {
   const params = useParams<{ id: string }>();
@@ -61,7 +62,7 @@ export default function CouponDetailPage() {
         </Link>
       </div>
 
-      {isLoading && <p className="text-neutral-500">Loading coupon…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {loadError instanceof Error ? loadError.message : "Failed to load coupon."}
@@ -94,7 +95,7 @@ export default function CouponDetailPage() {
           <CardTitle className="text-base">Usage History</CardTitle>
         </CardHeader>
         <CardContent>
-          {usagesLoading && <p className="text-sm text-neutral-500">Loading usages…</p>}
+          {usagesLoading && <AdminTableSkeleton rows={4} />}
           {usagesError && <p className="text-sm text-danger-600">Failed to load usage history.</p>}
           {!usagesLoading && !usagesError && (
             <div className="overflow-x-auto rounded-md border border-neutral-200 dark:border-neutral-800">

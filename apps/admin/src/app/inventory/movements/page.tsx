@@ -6,8 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
+import { VariantSearchField } from "@/components/catalog/variant-search-field";
 import { apiFetch, apiFetchWithMeta } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 interface MovementListResult {
   movements: StockMovementSummary[];
@@ -68,19 +70,22 @@ export default function StockMovementsPage() {
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-end">
           <form
-            className="flex flex-1 min-w-[220px] gap-2"
+            className="flex flex-1 min-w-[220px] items-end gap-2"
             onSubmit={(e) => {
               e.preventDefault();
               setPage(1);
               setVariantSku(skuInput.trim());
             }}
           >
-            <input
-              type="text"
-              placeholder="Search by SKU"
+            <VariantSearchField
+              label="Variant SKU"
               value={skuInput}
-              onChange={(e) => setSkuInput(e.target.value)}
-              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              onChange={setSkuInput}
+              onPick={(hit) => {
+                setSkuInput(hit.sku);
+                setVariantSku(hit.sku);
+                setPage(1);
+              }}
             />
             <button
               type="submit"
@@ -108,7 +113,7 @@ export default function StockMovementsPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading movements…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load stock movements."}

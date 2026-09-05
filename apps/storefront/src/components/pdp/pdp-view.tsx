@@ -2,11 +2,13 @@
 
 import { track } from "@ecom/analytics";
 import type { DeliveryEstimate, PdpProduct, ProductReview } from "@ecom/types";
-import { PriceDisplay, ProductCard } from "@ecom/ui";
+import { PriceDisplay, ProductCard, Dialog } from "@ecom/ui";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { StorefrontImage } from "@/components/media/storefront-image";
 
 import { apiFetch, getToken } from "@/lib/auth";
 import { addToCart } from "@/lib/cart";
@@ -173,6 +175,7 @@ interface SizePickerModalProps {
   product: PdpProduct;
   onAddToBag: () => void;
   addingToCart: boolean;
+  confirmLabel: string;
 }
 
 function SizePickerModal({
@@ -184,6 +187,7 @@ function SizePickerModal({
   product,
   onAddToBag,
   addingToCart,
+  confirmLabel,
 }: SizePickerModalProps) {
   const sizeGroup = attributeGroups.find((g) => g.key === "size");
   const hasSizeSelected = !!(sizeGroup && selectedOptions["size"]);
@@ -191,101 +195,70 @@ function SizePickerModal({
     (row) => row.size.toLowerCase() === (selectedOptions.size ?? "").toLowerCase(),
   );
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="size-picker-title"
-        className="relative mx-0 w-full rounded-t-2xl bg-white p-6 shadow-2xl animate-slide-up sm:mx-4 sm:max-w-md sm:rounded-2xl dark:bg-neutral-950"
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 id="size-picker-title" className="text-lg font-bold">
-            Choose your perfect fit!
-          </h2>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-neutral-500 transition-colors hover:bg-neutral-100 dark:hover:bg-neutral-800"
-          >
-            ✕
-          </button>
-        </div>
-
-        {attributeGroups
-          .filter((g) => g.key !== "color")
-          .map((group) => (
-            <div key={group.key} className="mb-5">
-              <p className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-                Select {group.name}
-              </p>
-              <div className="flex flex-wrap gap-2.5">
-                {group.values.map(({ slug, label }) => {
-                  const available = product.variants.some((v) => {
-                    if (!v.isActive) return false;
-                    return getOptionMap(v)[group.key] === slug;
-                  });
-                  const isSelected = selectedOptions[group.key] === slug;
-                  return (
-                    <button
-                      key={slug}
-                      type="button"
-                      disabled={!available}
-                      onClick={() => onSelect(group.key, slug)}
-                      className={`min-w-[3.25rem] rounded-lg border px-4 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-200 ${
-                        !available
-                          ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
-                          : isSelected
-                            ? "animate-size-select border-accent-500 bg-accent-500 text-neutral-950 shadow-md"
-                            : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
-              {group.key === "size" && selectedSizeGuideRow && (
-                <p className="mt-3 text-xs text-neutral-500">
-                  Garment (in Inches) Chest : {selectedSizeGuideRow.chest} | Front Length :{" "}
-                  {selectedSizeGuideRow.length} | Sleeve Length : {selectedSizeGuideRow.sleeve}
-                </p>
-              )}
+    <Dialog open={open} onClose={onClose} title="Choose your perfect fit!">
+      {attributeGroups
+        .filter((g) => g.key !== "color")
+        .map((group) => (
+          <div key={group.key} className="mb-5">
+            <p className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              Select {group.name}
+            </p>
+            <div className="flex flex-wrap gap-2.5">
+              {group.values.map(({ slug, label }) => {
+                const available = product.variants.some((v) => {
+                  if (!v.isActive) return false;
+                  return getOptionMap(v)[group.key] === slug;
+                });
+                const isSelected = selectedOptions[group.key] === slug;
+                return (
+                  <button
+                    key={slug}
+                    type="button"
+                    disabled={!available}
+                    onClick={() => onSelect(group.key, slug)}
+                    className={`min-w-[3.25rem] rounded-lg border px-4 py-2.5 text-sm font-semibold uppercase tracking-wide transition-all duration-200 ${
+                      !available
+                        ? "cursor-not-allowed border-neutral-200 text-neutral-300 line-through dark:border-neutral-800"
+                        : isSelected
+                          ? "animate-size-select border-accent-500 bg-accent-500 text-neutral-950 shadow-md"
+                          : "border-neutral-300 hover:border-neutral-500 hover:scale-105"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
-          ))}
+            {group.key === "size" && selectedSizeGuideRow && (
+              <p className="mt-3 text-xs text-neutral-500">
+                Garment (in Inches) Chest : {selectedSizeGuideRow.chest} | Front Length :{" "}
+                {selectedSizeGuideRow.length} | Sleeve Length : {selectedSizeGuideRow.sleeve}
+              </p>
+            )}
+          </div>
+        ))}
 
-        <button
-          type="button"
-          disabled={!hasSizeSelected || addingToCart}
-          onClick={onAddToBag}
-          className={`mt-2 flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 disabled:cursor-not-allowed ${
-            hasSizeSelected
-              ? "bg-accent-500 text-neutral-950 shadow-md hover:bg-accent-600 active:scale-[0.98]"
-              : "bg-neutral-200 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-600"
-          }`}
-        >
-          {addingToCart ? (
-            <>
-              <SpinnerIcon className="h-5 w-5" />
-              Adding…
-            </>
-          ) : (
-            <>
-              <BagIcon className="h-5 w-5" />
-              Add to Bag
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+      <button
+        type="button"
+        disabled={!hasSizeSelected || addingToCart}
+        onClick={onAddToBag}
+        className={`mt-2 flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-sm font-bold uppercase tracking-widest transition-all duration-300 disabled:cursor-not-allowed ${
+          hasSizeSelected
+            ? "bg-accent-500 text-neutral-950 shadow-md hover:bg-accent-600 active:scale-[0.98]"
+            : "bg-neutral-200 text-neutral-400 dark:bg-neutral-800 dark:text-neutral-600"
+        }`}
+      >
+        {addingToCart ? (
+          <>
+            <SpinnerIcon className="h-5 w-5" />
+            Adding…
+          </>
+        ) : (
+          confirmLabel
+        )}
+      </button>
+    </Dialog>
   );
 }
 
@@ -307,6 +280,8 @@ export function PdpView({ product }: PdpViewProps) {
   const [openAccordion, setOpenAccordion] = useState<string | null>("details");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [sizePickerOpen, setSizePickerOpen] = useState(false);
+  const [ctaIntent, setCtaIntent] = useState<"bag" | "buy">("bag");
+  const ctaIntentRef = useRef<"bag" | "buy">("bag");
   const [showToast, setShowToast] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const ctaRef = useRef<HTMLButtonElement>(null);
@@ -459,35 +434,44 @@ export function PdpView({ product }: PdpViewProps) {
   }
 
   // Called when user clicks the main CTA
-  function handleCtaClick() {
-    // If already added, navigate to cart
-    if (addedToCart) {
+  function handleCtaClick(intent: "bag" | "buy") {
+    ctaIntentRef.current = intent;
+    setCtaIntent(intent);
+    if (intent === "bag" && addedToCart) {
       router.push("/cart");
       return;
     }
-    // If no size selected, open the size picker modal
+    if (intent === "buy" && addedToCart) {
+      router.push("/checkout");
+      return;
+    }
     if (!sizeSelected) {
       setSizePickerOpen(true);
       return;
     }
     if (!selectedVariant) return;
-    void performAddToCart();
+    void performAddToCart(intent);
   }
 
-  // Called from the size picker modal's button
   function handleModalAddToBag() {
     if (!selectedVariant) return;
-    void performAddToCart();
+    void performAddToCart(ctaIntentRef.current);
   }
 
-  async function performAddToCart() {
+  async function performAddToCart(intent: "bag" | "buy" = ctaIntent) {
     if (!selectedVariant) return;
     setAddingToCart(true);
     try {
       await addToCart(product.slug, selectedVariant.sku, quantity);
 
-      // Close modal immediately, then play fly-to-bag + success states
       setSizePickerOpen(false);
+
+      if (intent === "buy") {
+        window.dispatchEvent(new Event("cart-updated"));
+        router.push("/checkout");
+        return;
+      }
+
       playFlyToBagAnimation();
 
       setAddedToCart(true);
@@ -537,18 +521,20 @@ export function PdpView({ product }: PdpViewProps) {
                 onClick={() => setActiveImage(i)}
                 className={`h-16 w-16 overflow-hidden rounded border transition-colors ${activeImage === i ? "border-brand-700 ring-1 ring-brand-700" : "border-neutral-200"}`}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.url} alt="" className="h-full w-full object-cover" />
+                <span className="relative block h-full w-full">
+                  <StorefrontImage src={img.url} alt={`${product.title} view ${i + 1}`} className="object-cover" sizes="64px" />
+                </span>
               </button>
             ))}
           </div>
-          <div className="aspect-square flex-1 overflow-hidden rounded-lg bg-neutral-100">
+          <div className="relative aspect-square flex-1 overflow-hidden rounded-lg bg-neutral-100">
             {images[activeImage] && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <StorefrontImage
                 src={images[activeImage].url}
                 alt={images[activeImage].altText ?? product.title}
-                className="h-full w-full object-cover"
+                className="object-cover"
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                priority
               />
             )}
           </div>
@@ -660,26 +646,32 @@ export function PdpView({ product }: PdpViewProps) {
           {/* Celebration banner — shown after add-to-cart success */}
           <CelebrationBanner show={showCelebration} savings={savings} freeShipping={Number(actualPrice) >= 999} />
 
-          {/* <div className="mt-6">
-            <p className="mb-2 text-sm font-semibold">Quantity</p>
-            <div className="flex items-center gap-3">
+          <div className="mt-6">
+            <p id="pdp-quantity-label" className="mb-2 text-sm font-semibold">
+              Quantity
+            </p>
+            <div className="flex items-center gap-3" role="group" aria-labelledby="pdp-quantity-label">
               <button
                 type="button"
                 className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50 transition-colors"
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                aria-label="Decrease quantity"
               >
                 −
               </button>
-              <span className="w-8 text-center font-medium">{quantity}</span>
+              <span className="w-8 text-center font-medium" aria-live="polite">
+                {quantity}
+              </span>
               <button
                 type="button"
                 className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50 transition-colors"
-                onClick={() => setQuantity((q) => q + 1)}
+                onClick={() => setQuantity((q) => Math.min(10, q + 1))}
+                aria-label="Increase quantity"
               >
                 +
               </button>
             </div>
-          </div> */}
+          </div>
 
           {/* ─── Primary CTA: Add to Bag / Go to Bag ─── */}
           <div className="mt-6 flex gap-3">
@@ -687,7 +679,7 @@ export function PdpView({ product }: PdpViewProps) {
               ref={ctaRef}
               type="button"
               disabled={!product.inStock || addingToCart}
-              onClick={handleCtaClick}
+              onClick={() => handleCtaClick("bag")}
               className={`relative flex flex-1 items-center justify-center gap-2.5 overflow-hidden rounded-md px-6 py-3.5 text-sm font-bold uppercase tracking-wide transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-50 ${
                 addedToCart
                   ? "animate-cta-pulse bg-success-600 text-white shadow-lg shadow-success-600/25 hover:bg-success-700"
@@ -717,7 +709,13 @@ export function PdpView({ product }: PdpViewProps) {
             </button>
             <button
               type="button"
-              onClick={() => void toggleWishlist()}
+              disabled={!product.inStock || addingToCart}
+              onClick={() => handleCtaClick("buy")}
+              className="hidden flex-1 items-center justify-center rounded-md border border-neutral-900 py-3.5 text-sm font-bold uppercase tracking-wide text-neutral-900 md:flex dark:border-white dark:text-white"
+            >
+              Buy Now
+            </button>
+            <button
               className={`flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-md border transition-all duration-200 ${
                 wishlisted
                   ? "border-danger-500 bg-danger-50 text-danger-500 scale-110"
@@ -746,11 +744,17 @@ export function PdpView({ product }: PdpViewProps) {
           <div className="mt-6 rounded-lg border border-neutral-200 p-4">
             <p className="text-sm font-semibold">Check for Delivery Details</p>
             <div className="mt-2 flex gap-2">
+              <label htmlFor="pdp-pincode" className="sr-only">
+                Delivery pincode
+              </label>
               <input
+                id="pdp-pincode"
                 value={pincode}
                 onChange={(e) => setPincode(e.target.value)}
                 placeholder="Enter pincode"
                 maxLength={6}
+                inputMode="numeric"
+                autoComplete="postal-code"
                 className="flex-1 rounded border border-neutral-300 px-3 py-2 text-sm"
               />
               <button
@@ -796,13 +800,25 @@ export function PdpView({ product }: PdpViewProps) {
               type="button"
               className="flex w-full items-center justify-between py-4 text-left font-semibold"
               onClick={() => setOpenAccordion(openAccordion === section.id ? null : section.id)}
+              aria-expanded={openAccordion === section.id}
+              aria-controls={`pdp-accordion-${section.id}`}
+              id={`pdp-accordion-trigger-${section.id}`}
             >
               {section.title}
-              <span className="text-xl leading-none text-neutral-400">
+              <span className="text-xl leading-none text-neutral-400" aria-hidden="true">
                 {openAccordion === section.id ? "−" : "+"}
               </span>
             </button>
-            {openAccordion === section.id && <p className="pb-4 text-sm text-neutral-600 dark:text-neutral-400">{section.content}</p>}
+            {openAccordion === section.id && (
+              <p
+                id={`pdp-accordion-${section.id}`}
+                role="region"
+                aria-labelledby={`pdp-accordion-trigger-${section.id}`}
+                className="pb-4 text-sm text-neutral-600 dark:text-neutral-400"
+              >
+                {section.content}
+              </p>
+            )}
           </div>
         ))}
       </section>
@@ -907,7 +923,7 @@ export function PdpView({ product }: PdpViewProps) {
           <button
             type="button"
             disabled={!product.inStock || addingToCart}
-            onClick={handleCtaClick}
+            onClick={() => handleCtaClick("bag")}
             className={`flex flex-1 items-center justify-center gap-2 rounded-md py-3 text-sm font-bold uppercase tracking-wide transition-all duration-300 disabled:opacity-50 ${
               addedToCart ? "bg-success-600 text-white" : "bg-accent-500 text-neutral-950"
             }`}
@@ -932,7 +948,7 @@ export function PdpView({ product }: PdpViewProps) {
           </button>
           <button
             type="button"
-            onClick={handleCtaClick}
+            onClick={() => handleCtaClick("buy")}
             className="flex flex-1 items-center justify-center gap-2 rounded-md border border-neutral-900 py-3 text-sm font-bold uppercase tracking-wide text-neutral-900 dark:border-white dark:text-white"
           >
             Buy Now
@@ -950,6 +966,7 @@ export function PdpView({ product }: PdpViewProps) {
         product={product}
         onAddToBag={handleModalAddToBag}
         addingToCart={addingToCart}
+        confirmLabel={ctaIntent === "buy" ? "Buy Now" : "Add to Bag"}
       />
 
       {/* Bottom toast */}
@@ -966,44 +983,31 @@ export function PdpView({ product }: PdpViewProps) {
       )}
 
       {/* Size guide modal */}
-      {sizeGuideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 dark:bg-neutral-950">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Size Guide</h2>
-              <button
-                type="button"
-                aria-label="Close size guide"
-                onClick={() => setSizeGuideOpen(false)}
-                className="text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-            <p className="mb-4 text-sm text-neutral-500">All measurements are in inches. For the best fit, measure a similar garment you already own.</p>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200 text-left dark:border-neutral-800">
-                  <th className="py-2 font-semibold">Size</th>
-                  <th className="py-2 font-semibold">Chest</th>
-                  <th className="py-2 font-semibold">Length</th>
-                  <th className="py-2 font-semibold">Sleeve</th>
-                </tr>
-              </thead>
-              <tbody>
-                {SIZE_GUIDE_ROWS.map((row) => (
-                  <tr key={row.size} className="border-b border-neutral-100 dark:border-neutral-900">
-                    <td className="py-2 font-medium">{row.size}</td>
-                    <td className="py-2 text-neutral-600 dark:text-neutral-400">{row.chest}</td>
-                    <td className="py-2 text-neutral-600 dark:text-neutral-400">{row.length}</td>
-                    <td className="py-2 text-neutral-600 dark:text-neutral-400">{row.sleeve}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      <Dialog open={sizeGuideOpen} onClose={() => setSizeGuideOpen(false)} title="Size Guide" className="sm:max-w-lg">
+        <p className="mb-4 text-sm text-neutral-500">
+          All measurements are in inches. For the best fit, measure a similar garment you already own.
+        </p>
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-neutral-200 text-left dark:border-neutral-800">
+              <th className="py-2 font-semibold">Size</th>
+              <th className="py-2 font-semibold">Chest</th>
+              <th className="py-2 font-semibold">Length</th>
+              <th className="py-2 font-semibold">Sleeve</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SIZE_GUIDE_ROWS.map((row) => (
+              <tr key={row.size} className="border-b border-neutral-100 dark:border-neutral-900">
+                <td className="py-2 font-medium">{row.size}</td>
+                <td className="py-2 text-neutral-600 dark:text-neutral-400">{row.chest}</td>
+                <td className="py-2 text-neutral-600 dark:text-neutral-400">{row.length}</td>
+                <td className="py-2 text-neutral-600 dark:text-neutral-400">{row.sleeve}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Dialog>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import Link from "next/link";
 
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 type TemplatesResponse = { templates: NotificationTemplateSummary[] } | NotificationTemplateSummary[];
 
@@ -31,7 +32,7 @@ export default function NotificationTemplatesPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-display font-bold">Templates</h1>
 
-      {isLoading && <p className="text-neutral-500">Loading templates…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load templates."}

@@ -7,6 +7,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
+
 import { apiFetch, getToken } from "@/lib/auth";
 import { formatInr } from "@/lib/cart";
 import {
@@ -350,7 +352,7 @@ export default function CheckoutPage() {
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-5xl px-4 py-12 text-neutral-500">Preparing checkout…</div>;
+    return <CommerceSkeleton className="mx-auto max-w-5xl px-4 py-12" />;
   }
 
   if (!session) {

@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ContentStatusBadge } from "@/components/cms/status-badge";
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const PAGE_TYPES: PageType[] = ["homepage", "landing", "campaign", "policy", "faq"];
 const CONTENT_STATUSES: ContentStatus[] = ["draft", "scheduled", "published", "archived"];
@@ -48,12 +50,15 @@ export default function PagesListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Pages</h1>
-        <Link href="/pages/new">
-          <Button type="button">New Page</Button>
-        </Link>
-      </div>
+      <AdminPageHeader
+        title="Pages"
+        description="Edit CMS pages, publish, and manage SEO content."
+        actions={
+          <Link href="/pages/new">
+            <Button type="button">New Page</Button>
+          </Link>
+        }
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-end">
@@ -103,7 +108,7 @@ export default function PagesListPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading pages…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load pages."}

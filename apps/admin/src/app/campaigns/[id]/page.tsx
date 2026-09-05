@@ -13,6 +13,7 @@ import { CampaignSkuPanel } from "@/components/promotions/campaign-sku-panel";
 import { CAMPAIGN_ALLOWED_TRANSITIONS, CampaignStatusBadge } from "@/components/promotions/campaign-status-badge";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 export default function CampaignDetailPage() {
   const params = useParams<{ id: string }>();
@@ -79,7 +80,7 @@ export default function CampaignDetailPage() {
         </Link>
       </div>
 
-      {isLoading && <p className="text-neutral-500">Loading campaign…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {loadError instanceof Error ? loadError.message : "Failed to load campaign."}
@@ -116,6 +117,18 @@ export default function CampaignDetailPage() {
                   </p>
                   <p className="mt-2">Created {formatDateTime(campaign.createdAt)}</p>
                   <p>Updated {formatDateTime(campaign.updatedAt)}</p>
+                  <p className="mt-3">
+                    Shopper URL:{" "}
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_STOREFRONT_URL ?? "http://localhost:3000"}/campaign/${campaign.slug}`}
+                      className="break-all text-brand-600 hover:underline"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {(process.env.NEXT_PUBLIC_STOREFRONT_URL ?? "http://localhost:3000") +
+                        `/campaign/${campaign.slug}`}
+                    </a>
+                  </p>
                 </div>
 
                 {allowedTransitions.length === 0 ? (

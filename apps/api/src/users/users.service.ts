@@ -21,7 +21,7 @@ export class UsersService {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       include: {
-        roles: { include: { role: true } },
+        roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
         profile: true,
       },
     });
@@ -36,7 +36,7 @@ export class UsersService {
         displayName: dto.displayName,
       },
       include: {
-        roles: { include: { role: true } },
+        roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
         profile: true,
       },
     });
@@ -203,8 +203,21 @@ export class UsersService {
   }
 
   private toUserProfile(
-    user: Prisma.UserGetPayload<{ include: { roles: { include: { role: true } }; profile: true } }>,
+    user: Prisma.UserGetPayload<{
+      include: {
+        roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } };
+        profile: true;
+      };
+    }>,
   ): UserProfile {
+    const permissions = [
+      ...new Set(
+        user.roles.flatMap((userRole) =>
+          (userRole.role.permissions ?? []).map((rolePermission) => rolePermission.permission.key),
+        ),
+      ),
+    ] as UserProfile["permissions"];
+
     return {
       id: user.id,
       email: user.email,
@@ -212,6 +225,7 @@ export class UsersService {
       displayName: user.displayName,
       status: user.status,
       roles: user.roles.map((userRole) => userRole.role.name),
+      permissions,
       profile: {
         preferences: (user.profile?.preferences ?? {}) as CustomerPreferences,
       },

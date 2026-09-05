@@ -1,6 +1,7 @@
 "use client";
 
 import type { MenuItemSummary, UpsertMenuItemInput } from "@ecom/types";
+import { ConfirmDialog } from "@ecom/ui";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -20,6 +21,7 @@ function MenuItemRow({
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"view" | "edit" | "add-child">("view");
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: (payload: UpsertMenuItemInput) =>
@@ -96,11 +98,7 @@ function MenuItemRow({
           </button>
           <button
             type="button"
-            onClick={() => {
-              if (window.confirm(`Delete menu item "${item.label}"? This will not delete its children.`)) {
-                deleteMutation.mutate();
-              }
-            }}
+            onClick={() => setConfirmDelete(true)}
             disabled={deleteMutation.isPending}
             className="text-danger-600 hover:underline disabled:opacity-50"
           >
@@ -114,6 +112,20 @@ function MenuItemRow({
           {error}
         </p>
       )}
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        title="Delete menu item"
+        description={`Delete menu item "${item.label}"? This will not delete its children.`}
+        confirmLabel="Delete"
+        destructive
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          deleteMutation.mutate();
+          setConfirmDelete(false);
+        }}
+      />
 
       {mode === "edit" && (
         <div style={{ paddingLeft: depth * 20 }} className="pb-2">

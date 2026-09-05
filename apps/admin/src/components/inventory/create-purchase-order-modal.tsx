@@ -6,9 +6,10 @@ import { createPurchaseOrderFormSchema, type CreatePurchaseOrderFormValues } fro
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import { FieldError } from "@/components/form/field-error";
+import { VariantSearchField } from "@/components/catalog/variant-search-field";
 import { apiFetch } from "@/lib/api";
 
 const INPUT_CLASS =
@@ -129,15 +130,20 @@ export function CreatePurchaseOrderModal({
                   key={field.id}
                   className="flex flex-wrap items-end gap-2 rounded-md border border-neutral-200 p-2 dark:border-neutral-800"
                 >
-                  <label className="flex flex-col gap-1 text-xs">
-                    <span>SKU</span>
-                    <input
-                      type="text"
-                      {...register(`items.${index}.variantSku`)}
-                      className="w-32 rounded-md border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                  <div className="min-w-[14rem] flex-1">
+                    <Controller
+                      name={`items.${index}.variantSku`}
+                      control={control}
+                      render={({ field }) => (
+                        <VariantSearchField
+                          label="SKU"
+                          value={field.value}
+                          onChange={field.onChange}
+                          error={errors.items?.[index]?.variantSku?.message}
+                        />
+                      )}
                     />
-                    <FieldError message={errors.items?.[index]?.variantSku?.message} />
-                  </label>
+                  </div>
                   <label className="flex flex-col gap-1 text-xs">
                     <span>Qty Ordered</span>
                     <input

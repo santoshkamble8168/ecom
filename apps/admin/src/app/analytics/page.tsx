@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 function rangeQuery(from: string, to: string): string {
   const params = new URLSearchParams();
@@ -82,7 +83,7 @@ export default function AdminAnalyticsPage() {
         </CardContent>
       </Card>
 
-      {loading ? <p className="text-neutral-500">Loading analytics…</p> : null}
+      {loading ? <AdminTableSkeleton /> : null}
       {error ? (
         <p className="text-danger-600">{error instanceof Error ? error.message : "Failed to load analytics."}</p>
       ) : null}

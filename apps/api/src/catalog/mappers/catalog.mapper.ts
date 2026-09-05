@@ -121,6 +121,7 @@ export function toCategorySummary(
 
 export function toCollectionSummary(collection: Collection): CollectionSummary {
   return {
+    id: collection.id,
     slug: collection.slug,
     name: collection.name,
     description: collection.description,

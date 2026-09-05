@@ -3,6 +3,7 @@
 import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
 import { useState } from "react";
 
+import { POST_LOGIN_PATH } from "@/components/layout/admin-nav";
 import { apiFetch, setToken } from "@/lib/api";
 
 export default function LoginPage() {
@@ -37,7 +38,7 @@ export default function LoginPage() {
         body: JSON.stringify({ channel: "email", destination: email, code }),
       });
       setToken(tokens.accessToken, tokens.refreshToken);
-      window.location.href = "/products";
+      window.location.href = POST_LOGIN_PATH;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify OTP");
     } finally {
@@ -46,7 +47,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
+    <div className="flex min-h-screen items-center justify-center p-6">
+      <div className="mx-auto w-full max-w-md">
       <Card>
         <CardHeader>
           <CardTitle>Admin Login</CardTitle>
@@ -61,7 +63,11 @@ export default function LoginPage() {
             <li>admin@ecom.local — full admin</li>
             <li>catalog@ecom.local — catalog manager</li>
           </ul>
+          <label className="text-sm font-medium" htmlFor="admin-email">
+            Email
+          </label>
           <input
+            id="admin-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -69,13 +75,19 @@ export default function LoginPage() {
             className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
           {step === "verify" && (
-            <input
-              type="text"
-              placeholder="6-digit OTP"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-            />
+            <>
+              <label className="text-sm font-medium" htmlFor="admin-otp">
+                One-time code
+              </label>
+              <input
+                id="admin-otp"
+                type="text"
+                placeholder="6-digit OTP"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              />
+            </>
           )}
           {error && <p className="text-sm text-danger-600">{error}</p>}
           {step === "request" ? (
@@ -89,6 +101,7 @@ export default function LoginPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

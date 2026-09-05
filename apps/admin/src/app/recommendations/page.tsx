@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 export default function AdminRecommendationsPage() {
   const queryClient = useQueryClient();
@@ -49,7 +50,7 @@ export default function AdminRecommendationsPage() {
         </p>
       </div>
 
-      {isLoading && <p className="text-neutral-500">Loading recommendation slots…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load recommendation slots."}

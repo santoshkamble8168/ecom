@@ -1,4 +1,4 @@
-import type { UserSummary } from "./identity";
+import type { Permission, UserSummary } from "./identity";
 
 /** Customer profile and address types shared across API, storefront, and admin. */
 
@@ -30,6 +30,8 @@ export interface CustomerAddress {
 
 export interface UserProfile extends UserSummary {
   profile: CustomerProfile;
+  /** Permission keys from the user's roles. Empty for shoppers without admin roles. */
+  permissions: Permission[];
 }
 
 export interface AdminUserSummary extends UserSummary {

@@ -16,8 +16,8 @@ export const uiTailwindPreset: Partial<Config> = {
       spacing,
       borderRadius: radius,
       fontFamily: {
-        sans: [...typography.fontFamily.sans],
-        display: [...typography.fontFamily.display],
+        sans: ["var(--font-sans)", ...typography.fontFamily.sans],
+        display: ["var(--font-display)", ...typography.fontFamily.display],
       },
       fontSize: typography.fontSize,
       zIndex: Object.fromEntries(Object.entries(zIndex).map(([k, v]) => [k, String(v)])),

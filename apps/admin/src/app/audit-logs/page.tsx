@@ -9,6 +9,7 @@ import { AuditDetailDrawer } from "@/components/audit/audit-detail-drawer";
 import { apiDownload, apiFetchWithMeta } from "@/lib/api";
 import { fromDatetimeLocalValue } from "@/lib/datetime";
 import { formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const PAGE_SIZE = 20;
 const INPUT_CLASS =
@@ -192,7 +193,7 @@ export default function AuditLogsPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading audit logs…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load audit logs."}

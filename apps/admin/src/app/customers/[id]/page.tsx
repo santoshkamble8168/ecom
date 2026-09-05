@@ -1,7 +1,7 @@
 "use client";
 
 import type { AdminCustomerDetail } from "@ecom/types";
-import { Button, Card, CardContent, CardHeader, CardTitle, CustomerTimeline } from "@ecom/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, ConfirmDialog, CustomerTimeline } from "@ecom/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -11,12 +11,14 @@ import { AddNoteForm } from "@/components/customers/add-note-form";
 import { CustomerStatusPill } from "@/components/customers/customer-status-pill";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { AdminPageSkeleton } from "@/components/layout/admin-skeleton";
 
 export default function CustomerDetailPage() {
   const params = useParams<{ id: string }>();
   const customerId = params.id;
   const queryClient = useQueryClient();
   const [statusError, setStatusError] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<"active" | "suspended" | null>(null);
 
   const { data: customer, isLoading, isError, error } = useQuery({
     queryKey: ["admin-customer", customerId],
@@ -39,14 +41,11 @@ export default function CustomerDetailPage() {
   });
 
   function confirmStatus(next: "active" | "suspended") {
-    const label = next === "suspended" ? "Suspend" : "Activate";
-    const target = customer?.displayName ?? customer?.email ?? "this customer";
-    if (!window.confirm(`${label} ${target}?`)) return;
-    statusMutation.mutate(next);
+    setPendingStatus(next);
   }
 
   if (isLoading) {
-    return <p className="text-neutral-500">Loading customer…</p>;
+    return <AdminPageSkeleton />;
   }
 
   if (isError || !customer) {
@@ -99,6 +98,21 @@ export default function CustomerDetailPage() {
         </div>
       </div>
       {statusError ? <p className="text-sm text-danger-600">{statusError}</p> : null}
+
+      <ConfirmDialog
+        open={pendingStatus !== null}
+        onClose={() => setPendingStatus(null)}
+        title={pendingStatus === "suspended" ? "Suspend customer" : "Activate customer"}
+        description={`${pendingStatus === "suspended" ? "Suspend" : "Activate"} ${customer.displayName ?? customer.email ?? "this customer"}?`}
+        confirmLabel={pendingStatus === "suspended" ? "Suspend" : "Activate"}
+        destructive={pendingStatus === "suspended"}
+        loading={statusMutation.isPending}
+        onConfirm={() => {
+          if (!pendingStatus) return;
+          statusMutation.mutate(pendingStatus);
+          setPendingStatus(null);
+        }}
+      />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>

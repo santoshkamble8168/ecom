@@ -14,6 +14,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
+import { StorefrontImage } from "@/components/media/storefront-image";
+
 import { getToken } from "@/lib/auth";
 import { formatInr } from "@/lib/cart";
 import {
@@ -781,13 +783,13 @@ export default function OrderDetailPage() {
           <CardContent className="space-y-3">
             {order.items.map((item) => (
               <div key={item.id} className="flex gap-3">
-                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-800">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-800">
                   {item.product?.primaryImage && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <StorefrontImage
                       src={item.product.primaryImage.url}
                       alt={item.product.title}
-                      className="h-full w-full object-cover"
+                      className="object-cover"
+                      sizes="64px"
                     />
                   )}
                 </div>

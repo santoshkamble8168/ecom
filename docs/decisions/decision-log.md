@@ -25,6 +25,8 @@ Starter documentation for decision log in a reusable AI engineering workspace.
 | [0016](./0016-rule-based-recommendations.md) | Rule-based recommendations; AI/semantic flags only | Accepted | Sprint 16 |
 | [0017](./0017-health-first-observability.md) | Health-first observability; no local Grafana yet | Accepted | Sprint 17 |
 
+Platform-wide standards review (UI/UX, API, database): [Industry standards review](../reviews/industry-standards-review.md) (30 Aug 2026).
+
 See also: [Sprint 0 security review](../security/sprint-00-security-review.md),
 [Sprint 8/9 security review](../security/sprint-08-09-payments-orders-security-review.md),
 [Sprint 10/11 security review](../security/sprint-10-11-inventory-pricing-cms-security-review.md),

@@ -14,6 +14,7 @@ import { ShipmentCard } from "@/components/orders/shipment-card";
 import { OrderStatusBadge } from "@/components/orders/status-badges";
 import { apiFetch } from "@/lib/api";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
+import { AdminPageSkeleton } from "@/components/layout/admin-skeleton";
 
 const ADMIN_SETTABLE_STATUSES = ["processing", "shipped", "delivered", "cancelled"] as const;
 type AdminSettableStatus = (typeof ADMIN_SETTABLE_STATUSES)[number];
@@ -48,7 +49,7 @@ export default function OrderDetailPage() {
   });
 
   if (isLoading) {
-    return <p className="text-neutral-500">Loading order…</p>;
+    return <AdminPageSkeleton />;
   }
 
   if (isError || !order) {

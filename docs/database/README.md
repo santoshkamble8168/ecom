@@ -1,5 +1,7 @@
 # Database Documentation Guide
 
+Schema, integrity, money typing, and migration findings: [Industry standards review — Database](../reviews/industry-standards-review.md#7-database-review). Source of truth for tables: `apps/api/prisma/schema.prisma`. ADR: [0004 PostgreSQL with Prisma](../decisions/0004-postgresql-with-prisma.md).
+
 ## Purpose
 Starter documentation for database documentation guide in a reusable AI engineering workspace.
 

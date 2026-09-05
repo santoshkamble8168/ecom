@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { CustomerStatusPill } from "@/components/customers/customer-status-pill";
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { apiFetchWithMeta } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const PAGE_SIZE = 20;
 const STATUS_OPTIONS = ["active", "suspended", "pending_verification"] as const;
@@ -41,7 +43,10 @@ export default function CustomersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-display font-bold">Customers</h1>
+      <AdminPageHeader
+        title="Customers"
+        description="Search accounts, then open a customer to view orders and change status."
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-end">
@@ -92,7 +97,7 @@ export default function CustomersPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading customers…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load customers."}

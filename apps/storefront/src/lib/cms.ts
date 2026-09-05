@@ -1,4 +1,4 @@
-import type { ApiResponse, BannerPlacement, BannerSummary } from "@ecom/types";
+import type { ApiResponse, BannerPlacement, BannerSummary, PageDetail } from "@ecom/types";
 
 import { getApiUrl } from "./api-url";
 
@@ -14,6 +14,31 @@ async function getBannersByPlacement(placement: BannerPlacement): Promise<Banner
   } catch (err) {
     console.error(`[CMS] Failed to load banners for placement "${placement}":`, err);
     return [];
+  }
+}
+
+export async function getPublishedCmsPage(slug: string): Promise<PageDetail | null> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/cms/pages/${slug}`, { next: { revalidate: 60 } });
+  } catch (err) {
+    console.error(`[CMS Page] Failed to reach API for "${slug}":`, err);
+    return null;
+  }
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    console.error(`[CMS Page] API returned ${res.status} for "${slug}"`);
+    return null;
+  }
+
+  try {
+    const body = (await res.json()) as ApiResponse<PageDetail>;
+    if (!body.success) return null;
+    return body.data;
+  } catch (err) {
+    console.error(`[CMS Page] Failed to parse API response for "${slug}":`, err);
+    return null;
   }
 }
 

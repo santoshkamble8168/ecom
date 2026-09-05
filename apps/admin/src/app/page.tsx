@@ -6,8 +6,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { apiFetch } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -31,12 +33,10 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold">Dashboard</h1>
-        {data ? (
-          <p className="text-sm text-neutral-500">Updated {formatDateTime(data.generatedAt)}</p>
-        ) : null}
-      </div>
+      <AdminPageHeader
+        title="Dashboard"
+        description={data ? `Updated ${formatDateTime(data.generatedAt)}` : "Commerce snapshot for the selected date range."}
+      />
 
       <Card>
         <CardContent className="pt-6">
@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading dashboard…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load dashboard."}

@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { FieldError } from "@/components/form/field-error";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const INPUT_CLASS =
   "rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -95,7 +96,7 @@ export default function SuppliersPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading suppliers…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && <p className="text-danger-600">Failed to load suppliers.</p>}
 
       {!isLoading && !isError && (

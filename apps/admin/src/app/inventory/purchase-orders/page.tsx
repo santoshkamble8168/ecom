@@ -10,6 +10,7 @@ import { CreatePurchaseOrderModal } from "@/components/inventory/create-purchase
 import { PurchaseOrderStatusBadge } from "@/components/inventory/status-badges";
 import { apiFetch, apiFetchWithMeta } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 interface PurchaseOrderListResult {
   purchaseOrders: PurchaseOrderSummary[];
@@ -131,7 +132,7 @@ export default function PurchaseOrdersPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading purchase orders…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load purchase orders."}

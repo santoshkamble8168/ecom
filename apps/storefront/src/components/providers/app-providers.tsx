@@ -2,7 +2,9 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { configureAnalytics } from "@ecom/analytics";
-import { useState, type ReactNode } from "react";
+import { ProductCardImageProvider } from "@ecom/ui";
+import Image from "next/image";
+import { useCallback, useState, type ReactNode } from "react";
 
 import { getToken } from "@/lib/auth";
 
@@ -22,5 +24,22 @@ export function AppProviders({ children }: { children: ReactNode }) {
       }),
   );
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  const renderProductImage = useCallback(
+    ({ src, alt, className }: { src: string; alt: string; className: string }) => (
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+        className={className}
+      />
+    ),
+    [],
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ProductCardImageProvider renderer={renderProductImage}>{children}</ProductCardImageProvider>
+    </QueryClientProvider>
+  );
 }

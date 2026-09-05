@@ -7,8 +7,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { ContentStatusBadge } from "@/components/cms/status-badge";
+import { AdminPageHeader } from "@/components/layout/page-header";
 import { apiFetch } from "@/lib/api";
 import { formatDate } from "@/lib/format";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 interface AdminBlogPostListResult {
   posts: BlogPostSummary[];
@@ -53,12 +55,15 @@ export default function BlogListPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Blog Posts</h1>
-        <Link href="/blog/new">
-          <Button type="button">New Post</Button>
-        </Link>
-      </div>
+      <AdminPageHeader
+        title="Blog Posts"
+        description="Write, edit, and publish editorial content."
+        actions={
+          <Link href="/blog/new">
+            <Button type="button">New Post</Button>
+          </Link>
+        }
+      />
 
       <Card>
         <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:flex-wrap sm:items-end">
@@ -130,7 +135,7 @@ export default function BlogListPage() {
         </CardContent>
       </Card>
 
-      {isLoading && <p className="text-neutral-500">Loading posts…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {error instanceof Error ? error.message : "Failed to load posts."}

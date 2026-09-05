@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { AdminTableSkeleton } from "@/components/layout/admin-skeleton";
 
 const KNOWN_SETTINGS: Array<{ key: string; fallback: string | boolean }> = [
   { key: "store.name", fallback: "" },
@@ -58,7 +59,7 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-display font-bold">Settings</h1>
 
-      {isLoading && <p className="text-neutral-500">Loading settings…</p>}
+      {isLoading && <AdminTableSkeleton />}
       {isError && (
         <p className="text-danger-600">
           {loadError instanceof Error ? loadError.message : "Failed to load settings."}

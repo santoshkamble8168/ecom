@@ -1,36 +1,43 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
-import { getToken } from "@/lib/api";
+import { useAdminSession } from "@/components/auth/admin-session";
+import { POST_LOGIN_PATH } from "@/components/layout/admin-nav";
+import { AdminAppSkeleton, AdminLoginSkeleton } from "@/components/layout/admin-skeleton";
 
 const PUBLIC_PATHS = ["/login"];
 
 export function AdminAuthGuard({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [ready, setReady] = useState(false);
+  const { status } = useAdminSession();
+  const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
 
   useEffect(() => {
-    const isPublic = PUBLIC_PATHS.some((path) => pathname.startsWith(path));
-    const token = getToken();
+    if (status === "booting" || status === "loading") return;
 
-    if (!isPublic && !token) {
+    if (!isPublic && status === "anonymous") {
       router.replace("/login");
       return;
     }
 
-    if (isPublic && token) {
-      router.replace("/products");
-      return;
+    if (isPublic && status === "authenticated") {
+      router.replace(POST_LOGIN_PATH);
     }
+  }, [isPublic, router, status]);
 
-    setReady(true);
-  }, [pathname, router]);
+  if (status === "booting" || status === "loading") {
+    return isPublic ? <AdminLoginSkeleton /> : <AdminAppSkeleton />;
+  }
 
-  if (!ready) {
-    return <div className="flex min-h-screen items-center justify-center text-neutral-500">Loading…</div>;
+  if (!isPublic && status === "anonymous") {
+    return <AdminAppSkeleton />;
+  }
+
+  if (isPublic && status === "authenticated") {
+    return <AdminLoginSkeleton />;
   }
 
   return <>{children}</>;
