@@ -36,6 +36,7 @@ export class SeoService {
 
     return [
       "/",
+      "/t-shirts",
       "/men",
       "/women",
       "/search",

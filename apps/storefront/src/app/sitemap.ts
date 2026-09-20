@@ -4,7 +4,21 @@ import type { MetadataRoute } from "next";
 import { apiFetch } from "@/lib/api";
 import { absoluteUrl } from "@/lib/seo";
 
-const STATIC_PATHS = ["/", "/men", "/women", "/search", "/blog", "/pages/faq", "/pages/privacy-policy"];
+const STATIC_PATHS = [
+  "/",
+  "/t-shirts",
+  "/men",
+  "/women",
+  "/search",
+  "/blog",
+  "/about",
+  "/contact",
+  "/privacy",
+  "/terms",
+  "/shipping",
+  "/returns",
+  "/pages/faq",
+];
 
 function flattenCategories(categories: CategorySummary[]): string[] {
   const slugs: string[] = [];

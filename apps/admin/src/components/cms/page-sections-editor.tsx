@@ -7,10 +7,16 @@ const INPUT_CLASS =
   "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
 
 const SECTION_KIND_LABELS: Record<PageSection["kind"], string> = {
+  hero: "Hero",
   hero_banner: "Hero Banner",
   banner_strip: "Banner Strip",
   collection_grid: "Collection Grid",
   campaign_grid: "Campaign Grid",
+  feature_grid: "Feature Grid",
+  fit_guide: "Fit Guide",
+  story: "Brand Story",
+  trust_row: "Trust Row",
+  cta_banner: "Final CTA",
   rich_text: "Rich Text",
 };
 
@@ -26,6 +32,26 @@ function defaultSectionFor(kind: PageSection["kind"]): PageSection {
       return { kind, title: "", campaignSlug: "" };
     case "rich_text":
       return { kind, html: "" };
+    case "hero":
+      return {
+        kind,
+        headline: "",
+        subheadline: "",
+        ctaLabel: "Shop T-Shirts",
+        ctaHref: "/t-shirts",
+        imageUrl: "",
+        imageAlt: "T-shirt",
+      };
+    case "feature_grid":
+      return { kind, title: "", items: [{ title: "", description: "" }] };
+    case "fit_guide":
+      return { kind, title: "", html: "" };
+    case "story":
+      return { kind, title: "", html: "" };
+    case "cta_banner":
+      return { kind, headline: "", ctaLabel: "Shop T-Shirts", ctaHref: "/t-shirts" };
+    case "trust_row":
+      return { kind, items: [{ title: "", description: "" }] };
   }
 }
 
@@ -136,6 +162,144 @@ function SectionFields({
               className={INPUT_CLASS}
             />
           </div>
+        </div>
+      );
+    case "hero":
+      return (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(
+            [
+              ["headline", section.headline],
+              ["subheadline", section.subheadline],
+              ["ctaLabel", section.ctaLabel],
+              ["ctaHref", section.ctaHref],
+              ["imageUrl", section.imageUrl],
+              ["imageAlt", section.imageAlt],
+            ] as const
+          ).map(([key, value]) => (
+            <label key={key} className="flex flex-col gap-1 text-xs font-medium text-neutral-600 dark:text-neutral-400">
+              {key}
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => onChange({ ...section, [key]: e.target.value })}
+                className={INPUT_CLASS}
+              />
+            </label>
+          ))}
+        </div>
+      );
+    case "feature_grid":
+    case "trust_row":
+      return (
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Section title"
+            value={section.title ?? ""}
+            onChange={(e) =>
+              onChange(
+                section.kind === "feature_grid"
+                  ? { ...section, title: e.target.value }
+                  : { ...section, title: e.target.value || undefined },
+              )
+            }
+            className={INPUT_CLASS}
+          />
+          {section.items.map((item, index) => (
+            <div key={index} className="grid gap-2 sm:grid-cols-2">
+              <input
+                type="text"
+                placeholder="Title"
+                value={item.title}
+                onChange={(e) =>
+                  onChange({
+                    ...section,
+                    items: section.items.map((entry, i) =>
+                      i === index ? { ...entry, title: e.target.value } : entry,
+                    ),
+                  })
+                }
+                className={INPUT_CLASS}
+              />
+              <input
+                type="text"
+                placeholder="Description"
+                value={item.description}
+                onChange={(e) =>
+                  onChange({
+                    ...section,
+                    items: section.items.map((entry, i) =>
+                      i === index ? { ...entry, description: e.target.value } : entry,
+                    ),
+                  })
+                }
+                className={INPUT_CLASS}
+              />
+            </div>
+          ))}
+        </div>
+      );
+    case "fit_guide":
+    case "story":
+      return (
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Title"
+            value={section.title}
+            onChange={(e) => onChange({ ...section, title: e.target.value })}
+            className={INPUT_CLASS}
+          />
+          <textarea
+            rows={5}
+            placeholder="HTML"
+            value={section.html}
+            onChange={(e) => onChange({ ...section, html: e.target.value })}
+            className={`${INPUT_CLASS} font-mono`}
+          />
+          {section.kind === "fit_guide" && (
+            <input
+              type="text"
+              placeholder="Image URL (optional)"
+              value={section.imageUrl ?? ""}
+              onChange={(e) => onChange({ ...section, imageUrl: e.target.value || undefined })}
+              className={INPUT_CLASS}
+            />
+          )}
+        </div>
+      );
+    case "cta_banner":
+      return (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input
+            type="text"
+            placeholder="Headline"
+            value={section.headline}
+            onChange={(e) => onChange({ ...section, headline: e.target.value })}
+            className={INPUT_CLASS}
+          />
+          <input
+            type="text"
+            placeholder="Subheadline"
+            value={section.subheadline ?? ""}
+            onChange={(e) => onChange({ ...section, subheadline: e.target.value || undefined })}
+            className={INPUT_CLASS}
+          />
+          <input
+            type="text"
+            placeholder="CTA label"
+            value={section.ctaLabel}
+            onChange={(e) => onChange({ ...section, ctaLabel: e.target.value })}
+            className={INPUT_CLASS}
+          />
+          <input
+            type="text"
+            placeholder="CTA URL"
+            value={section.ctaHref}
+            onChange={(e) => onChange({ ...section, ctaHref: e.target.value })}
+            className={INPUT_CLASS}
+          />
         </div>
       );
     case "rich_text":

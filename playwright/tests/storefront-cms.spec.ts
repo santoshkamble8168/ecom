@@ -4,7 +4,7 @@ import { expectNoAccessibilityViolations } from "../utils/accessibility";
 test.describe("Storefront CMS and blog", () => {
   test("homepage renders CMS or legacy shell content", async ({ storefrontHome, page }) => {
     await storefrontHome.goto();
-    const cmsCopy = page.getByText(/Why shop with us|New Arrivals|New Season Drop/i);
+    const cmsCopy = page.getByText(/T-Shirts Made for Every Day|Best Sellers|Built Around the Details/i);
     const legacyCta = storefrontHome.shopNowButton;
     await expect(cmsCopy.or(legacyCta).first()).toBeVisible();
   });
@@ -28,12 +28,11 @@ test.describe("Storefront CMS and blog", () => {
     await expect(page.getByRole("heading", { name: /How to Style an Oversized Tee/i })).toBeVisible();
   });
 
-  test("header still exposes Men/Women navigation", async ({ storefrontHome, page }) => {
+  test("header exposes T-Shirts navigation", async ({ storefrontHome, page }) => {
     await storefrontHome.goto();
-    await expect(storefrontHome.navLink("Men")).toBeVisible();
-    await expect(storefrontHome.navLink("Women")).toBeVisible();
-    await storefrontHome.navLink("Men").click();
-    await expect(page).toHaveURL(/\/men$/);
+    await expect(storefrontHome.navLink("T-Shirts")).toBeVisible();
+    await storefrontHome.navLink("T-Shirts").click();
+    await expect(page).toHaveURL(/\/t-shirts$/);
   });
 
   test("FAQ page has no automatically detectable accessibility violations", async ({ page }) => {

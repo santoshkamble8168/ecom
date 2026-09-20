@@ -17,12 +17,12 @@ test.describe("Storefront CMS navigation", () => {
   test("header exposes all seeded main-nav items", async ({ storefrontHome, page }) => {
     await storefrontHome.goto();
 
-    for (const label of ["Men", "Women", "New Arrivals", "Sale", "About"]) {
+    for (const label of ["T-Shirts", "New Arrivals", "Best Sellers", "About"]) {
       await expect(storefrontHome.navLink(label)).toBeVisible();
     }
 
-    await storefrontHome.navLink("Sale").click();
-    await expect(page).toHaveURL(/\/collections\/sale$/);
+    await storefrontHome.navLink("Best Sellers").click();
+    await expect(page).toHaveURL(/\/collections\/best-sellers$/);
   });
 
   test("footer exposes seeded footer menu items", async ({ storefrontHome }) => {

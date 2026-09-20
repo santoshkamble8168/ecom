@@ -11,6 +11,12 @@ export const PAGE_SECTION_KINDS = [
   "collection_grid",
   "campaign_grid",
   "rich_text",
+  "hero",
+  "feature_grid",
+  "fit_guide",
+  "story",
+  "cta_banner",
+  "trust_row",
 ] as const;
 
 /** Lowercase, single-hyphen-separated slug — no leading/trailing/double hyphens. */

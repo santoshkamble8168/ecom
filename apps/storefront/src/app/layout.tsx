@@ -21,9 +21,10 @@ const sora = Sora({ subsets: ["latin"], variable: "--font-display" });
 const FALLBACK_NAV: NavigationSummary = {
   announcement: { message: "Free shipping on orders above ₹999", linkUrl: null, linkLabel: null },
   header: [
-    { label: "Men", href: "/men" },
-    { label: "Women", href: "/women" },
+    { label: "T-Shirts", href: "/t-shirts" },
     { label: "New Arrivals", href: "/collections/new-arrivals" },
+    { label: "Best Sellers", href: "/collections/best-sellers" },
+    { label: "About", href: "/about" },
   ],
   footer: { shop: [], support: [], legal: [] },
 };
@@ -35,22 +36,41 @@ const FOOTER_NAV_MENU_CODE = "footer";
 export const metadata: Metadata = {
   metadataBase: new URL(siteOrigin()),
   title: {
-    default: "Ecom Storefront",
+    default: "Ecom | T-Shirts Made for Every Day",
     template: "%s | Ecom",
   },
-  description: "Shop tees and essentials. Production-grade commerce storefront.",
+  description:
+    "Clean cotton tees for everyday wear. Classic crew, oversized graphics, and easy returns. Free shipping above ₹999.",
+  keywords: ["tees", "t-shirts", "essentials", "ecom", "online shopping"],
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     siteName: "Ecom",
     locale: "en_IN",
+    title: "Ecom | T-Shirts Made for Every Day",
+    description:
+      "Clean cotton tees for everyday wear. Classic crew, oversized graphics, and easy returns. Free shipping above ₹999.",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ecom | T-Shirts Made for Every Day",
+    description: "Clean cotton tees for everyday wear. Free shipping above ₹999.",
+  },
+  robots: { index: true, follow: true },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#2874f0",
 };
 
 async function loadNavigation(): Promise<NavigationSummary> {
   let navigation: NavigationSummary;
+  const navFetch = { cache: "no-store" as const };
+
   try {
-    navigation = await apiFetch<NavigationSummary>("/navigation");
+    navigation = await apiFetch<NavigationSummary>("/navigation", navFetch);
   } catch {
     navigation = FALLBACK_NAV;
   }
@@ -60,8 +80,8 @@ async function loadNavigation(): Promise<NavigationSummary> {
   // operational CMS" requirement — but either falls straight back to
   // `navigation` as computed above when the corresponding menu is missing.
   const [mainNav, footerNav] = await Promise.allSettled([
-    apiFetch<MenuSummary>(`/cms/menus/${MAIN_NAV_MENU_CODE}`),
-    apiFetch<MenuSummary>(`/cms/menus/${FOOTER_NAV_MENU_CODE}`),
+    apiFetch<MenuSummary>(`/cms/menus/${MAIN_NAV_MENU_CODE}`, navFetch),
+    apiFetch<MenuSummary>(`/cms/menus/${FOOTER_NAV_MENU_CODE}`, navFetch),
   ]);
 
   if (mainNav.status === "fulfilled" && mainNav.value.items.length > 0) {

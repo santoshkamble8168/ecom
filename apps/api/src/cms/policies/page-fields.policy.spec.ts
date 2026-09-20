@@ -19,6 +19,20 @@ describe("validatePageFields", () => {
             { kind: "collection_grid", title: "New Arrivals", collectionSlug: "new-arrivals", limit: 8 },
             { kind: "campaign_grid", title: "Sale", campaignSlug: "summer-sale" },
             { kind: "rich_text", title: "Why shop with us", html: "<p>Fast shipping</p>" },
+            {
+              kind: "hero",
+              headline: "T-Shirts Made for Every Day.",
+              subheadline: "Clean designs.",
+              ctaLabel: "Shop T-Shirts",
+              ctaHref: "/t-shirts",
+              imageUrl: "https://example.com/tee.jpg",
+              imageAlt: "Cotton t-shirt",
+            },
+            {
+              kind: "feature_grid",
+              title: "Built Around the Details",
+              items: [{ title: "Cotton", description: "Everyday fabric." }],
+            },
           ],
         }),
       ).not.toThrow();

@@ -8,6 +8,15 @@ import { apiFetch } from "@/lib/api";
 import { getBannersByIds } from "@/lib/cms";
 
 import { RichHtml } from "./rich-html";
+import { parseTrustItems, TrustStrip } from "./trust-strip";
+import {
+  BrandHeroSection,
+  CtaBannerSectionView,
+  FeatureGridSectionView,
+  FitGuideSectionView,
+  StorySectionView,
+  TrustRowSectionView,
+} from "./homepage-brand";
 
 type CollectionGridSectionData = Extract<PageSection, { kind: "collection_grid" }>;
 type CampaignGridSectionData = Extract<PageSection, { kind: "campaign_grid" }>;
@@ -15,7 +24,7 @@ type RichTextSectionData = Extract<PageSection, { kind: "rich_text" }>;
 
 function HeroBannerSection({ banner }: { banner: BannerSummary }) {
   const image = (
-    <div className="relative aspect-[21/9] w-full overflow-hidden bg-neutral-100 dark:bg-neutral-900 sm:aspect-[3/1]">
+    <div className="relative min-h-[52vh] w-full overflow-hidden bg-neutral-900 sm:min-h-[60vh] sm:aspect-[21/9]">
       <StorefrontImage
         src={banner.imageUrl}
         alt={banner.altText ?? banner.title}
@@ -23,6 +32,12 @@ function HeroBannerSection({ banner }: { banner: BannerSummary }) {
         sizes="100vw"
         priority
       />
+      <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/25 to-transparent px-4 py-10 sm:px-10">
+        <p className="max-w-xl text-3xl font-display font-bold text-white sm:text-5xl">{banner.title}</p>
+        <span className="mt-4 inline-flex h-12 w-fit items-center rounded-md bg-accent-500 px-6 text-base font-bold uppercase tracking-wide text-neutral-950">
+          Shop now
+        </span>
+      </div>
     </div>
   );
 
@@ -78,6 +93,7 @@ async function CollectionGridSection({ section }: { section: CollectionGridSecti
   try {
     result = await apiFetch<ProductListResult>(
       `/collections/${encodeURIComponent(section.collectionSlug)}/products?page=1&pageSize=${pageSize}`,
+      { cache: "no-store" },
     );
   } catch (err) {
     console.error(`[CMS] Failed to load collection_grid products for "${section.collectionSlug}":`, err);
@@ -86,23 +102,45 @@ async function CollectionGridSection({ section }: { section: CollectionGridSecti
   const products = result?.items ?? [];
   if (products.length === 0) return null;
 
+  const gridCols =
+    products.length === 1
+      ? "grid-cols-1 sm:max-w-xs"
+      : products.length === 2
+        ? "grid-cols-2 sm:max-w-2xl"
+        : products.length === 3
+          ? "grid-cols-2 lg:grid-cols-3"
+          : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-display font-bold">{section.title}</h2>
-        <Link
-          href={`/collections/${section.collectionSlug}`}
-          className="text-sm font-semibold text-brand-700 hover:underline"
-        >
-          View all
-        </Link>
-      </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((product) => (
-          <Link key={product.slug} href={`/products/${product.slug}`}>
-            <ProductCard product={product} showStatus={false} />
+    <section className="border-b border-neutral-200 bg-white py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-4">
+        <div className="mb-10 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">Shop</p>
+            <h2 className="mt-2 text-3xl font-display font-semibold tracking-tight sm:text-4xl">{section.title}</h2>
+          </div>
+          <Link
+            href={`/collections/${section.collectionSlug}`}
+            className="shrink-0 text-sm font-medium text-neutral-700 underline-offset-4 hover:underline"
+          >
+            View all
           </Link>
-        ))}
+        </div>
+        <div className={`grid gap-x-4 gap-y-10 sm:gap-x-6 ${gridCols}`}>
+          {products.map((product) => (
+            <Link key={product.slug} href={`/products/${product.slug}`} className="group block">
+              <ProductCard
+                product={product}
+                showStatus={false}
+                campaignBadge={null}
+                className="rounded-none border-0 bg-transparent shadow-none"
+              />
+              <span className="mt-3 inline-block text-xs font-semibold uppercase tracking-[0.16em] text-neutral-500 transition-colors group-hover:text-neutral-950">
+                Shop
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -136,10 +174,19 @@ async function CampaignGridSection({ section }: { section: CampaignGridSectionDa
 }
 
 function RichTextSection({ section }: { section: RichTextSectionData }) {
+  const looksLikeTrust =
+    Boolean(section.title?.match(/why shop|why us|trust/i)) || Boolean(parseTrustItems(section.html));
+  const trustItems = looksLikeTrust ? parseTrustItems(section.html) : null;
+  if (trustItems) {
+    return <TrustStrip title={section.title} items={trustItems} />;
+  }
+
   return (
-    <section className="mx-auto max-w-3xl px-4 py-12">
+    <section className="mx-auto max-w-7xl px-4 py-12">
       {section.title && <h2 className="mb-4 text-2xl font-display font-bold">{section.title}</h2>}
-      <RichHtml html={section.html} />
+      <div className="max-w-3xl">
+        <RichHtml html={section.html} />
+      </div>
     </section>
   );
 }
@@ -178,6 +225,18 @@ export async function CmsPageSections({ sections }: { sections: PageSection[] })
             return <CampaignGridSection key={index} section={section} />;
           case "rich_text":
             return <RichTextSection key={index} section={section} />;
+          case "hero":
+            return <BrandHeroSection key={index} section={section} />;
+          case "feature_grid":
+            return <FeatureGridSectionView key={index} section={section} />;
+          case "fit_guide":
+            return <FitGuideSectionView key={index} section={section} />;
+          case "story":
+            return <StorySectionView key={index} section={section} />;
+          case "cta_banner":
+            return <CtaBannerSectionView key={index} section={section} />;
+          case "trust_row":
+            return <TrustRowSectionView key={index} section={section} />;
           default:
             return null;
         }

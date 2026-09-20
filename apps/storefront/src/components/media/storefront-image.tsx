@@ -13,5 +13,16 @@ export function StorefrontImage({
   sizes?: string;
   priority?: boolean;
 }) {
-  return <Image src={src} alt={alt} fill sizes={sizes} className={className} priority={priority} />;
+  const resolvedAlt = alt.trim() || "Storefront image";
+  return (
+    <Image
+      src={src}
+      alt={resolvedAlt}
+      fill
+      sizes={sizes}
+      quality={75}
+      className={className}
+      priority={priority}
+    />
+  );
 }

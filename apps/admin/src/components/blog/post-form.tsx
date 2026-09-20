@@ -36,6 +36,7 @@ export function PostForm({ postId }: { postId?: string }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [relatedSkuQuery, setRelatedSkuQuery] = useState("");
+  const [hydrated, setHydrated] = useState(false);
 
   const {
     register,

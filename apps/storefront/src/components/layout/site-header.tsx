@@ -157,11 +157,24 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:gap-6">
+      <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/95">
+        {announcement && (
+          <div className="border-b border-neutral-200 bg-neutral-950 py-2 text-center text-xs font-medium tracking-wide text-white">
+            {announcement.message}
+            {announcement.linkUrl && announcement.linkLabel && (
+              <>
+                {" · "}
+                <Link href={announcement.linkUrl} className="underline underline-offset-2">
+                  {announcement.linkLabel}
+                </Link>
+              </>
+            )}
+          </div>
+        )}
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:gap-8">
           <button
             type="button"
-            className="md:hidden"
+            className="inline-flex min-h-11 min-w-11 items-center justify-center md:hidden"
             aria-label="Open menu"
             onClick={() => setMenuOpen(true)}
           >
@@ -172,17 +185,17 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
 
           <Link
             href="/"
-            className="shrink-0 rounded-sm bg-accent-500 px-2 py-1 text-xl font-display font-bold tracking-tight text-neutral-950"
+            className="shrink-0 text-lg font-display font-semibold tracking-[0.18em] text-neutral-950 dark:text-white"
           >
             ECOM
           </Link>
 
-          <nav className="hidden shrink-0 gap-5 md:flex" aria-label="Primary">
+          <nav className="hidden shrink-0 gap-6 md:flex" aria-label="Primary">
             {navigation.header.map((link) => (
               <div key={link.href} className="group relative">
                 <Link
                   href={link.href}
-                  className="text-sm font-semibold uppercase tracking-wide text-neutral-700 transition-colors hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white"
+                  className="text-xs font-medium uppercase tracking-[0.16em] text-neutral-600 transition-colors hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white"
                 >
                   {link.label}
                 </Link>
@@ -213,9 +226,9 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") submitSearch(query);
               }}
-              placeholder="Search for products, brands and more"
+              placeholder="Search tees"
               aria-label="Search products"
-              className="w-full rounded-sm border border-brand-200 bg-white py-2 pl-9 pr-4 text-sm placeholder:text-neutral-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-neutral-800 dark:bg-neutral-900"
+              className="w-full rounded-none border-0 border-b border-neutral-300 bg-transparent py-2 pl-9 pr-4 text-sm placeholder:text-neutral-500 focus:border-neutral-950 focus:outline-none focus:ring-0 dark:border-neutral-700 dark:bg-transparent"
             />
 
             {dropdownOpen && (
@@ -262,14 +275,14 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             <Link
               href="/search"
               aria-label="Search"
-              className="text-neutral-700 sm:hidden dark:text-neutral-300"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 sm:hidden dark:text-neutral-200"
             >
               <SearchIcon className="h-5 w-5" />
             </Link>
             <Link
               href="/account"
               aria-label="Account"
-              className="hidden items-center gap-1.5 text-neutral-700 hover:text-neutral-950 sm:flex dark:text-neutral-300 dark:hover:text-white"
+              className="hidden min-h-11 items-center gap-1.5 text-neutral-800 hover:text-neutral-950 sm:flex dark:text-neutral-200 dark:hover:text-white"
             >
               <UserIcon className="h-5 w-5" />
               <span className="text-xs font-semibold uppercase tracking-wide">
@@ -279,7 +292,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             <Link
               href="/wishlist"
               aria-label="Wishlist"
-              className="text-neutral-700 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white"
             >
               <HeartIcon className="h-5 w-5" />
             </Link>
@@ -288,7 +301,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
               id="site-header-bag"
               data-bag-target="true"
-              className={`relative text-neutral-700 hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-white ${
+              className={`relative inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white ${
                 bagBounce ? "animate-bag-bounce" : ""
               }`}
             >
@@ -304,20 +317,6 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             </Link>
           </div>
         </div>
-
-        {announcement && (
-          <div className="bg-brand-500 py-2 text-center text-xs font-medium text-white">
-            {announcement.message}
-            {announcement.linkUrl && announcement.linkLabel && (
-              <>
-                {" · "}
-                <Link href={announcement.linkUrl} className="underline">
-                  {announcement.linkLabel}
-                </Link>
-              </>
-            )}
-          </div>
-        )}
       </header>
 
       {/* Mobile drawer */}

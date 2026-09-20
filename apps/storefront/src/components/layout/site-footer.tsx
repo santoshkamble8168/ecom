@@ -11,11 +11,11 @@ function FooterColumn({ title, links }: { title: string; links: Array<{ label: s
   if (links.length === 0) return null;
   return (
     <div>
-      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">{title}</h3>
+      <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-white">{title}</h3>
       <ul className="flex flex-col gap-2.5">
         {links.map((link) => (
           <li key={link.href}>
-            <Link href={link.href} className="text-sm text-neutral-400 transition-colors hover:text-white">
+            <Link href={link.href} className="text-sm text-neutral-200 transition-colors hover:text-white">
               {link.label}
             </Link>
           </li>
@@ -33,14 +33,21 @@ const SOCIAL_LINKS = [
 
 const PAYMENT_METHODS = ["Visa", "Mastercard", "UPI", "Net Banking"];
 
+const FALLBACK_LEGAL = [
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Terms and Conditions", href: "/terms" },
+];
+
 export function SiteFooter({ navigation }: SiteFooterProps) {
+  const legal = navigation.footer.legal.length > 0 ? navigation.footer.legal : FALLBACK_LEGAL;
+
   return (
-    <footer className="bg-neutral-950 text-neutral-300">
+    <footer className="bg-neutral-950 text-neutral-200">
       <div className="mx-auto grid max-w-7xl grid-cols-2 gap-10 px-4 py-14 sm:grid-cols-4">
         <FooterColumn title="Customer Service" links={navigation.footer.support} />
-        <FooterColumn title="Company" links={navigation.footer.legal} />
+        <FooterColumn title="Company" links={legal} />
         <div>
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-white">
             Connect With Us
           </h3>
           <ul className="flex flex-col gap-2.5">
@@ -50,7 +57,7 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
                   href={link.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-sm text-neutral-400 transition-colors hover:text-white"
+                  className="text-sm text-neutral-200 transition-colors hover:text-white"
                 >
                   {link.label}
                 </a>
@@ -59,18 +66,18 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
           </ul>
         </div>
         <div className="col-span-2 sm:col-span-1">
-          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-brand-300">
+          <h3 className="mb-4 text-xs font-semibold uppercase tracking-wider text-white">
             Keep Up To Date
           </h3>
-          <p className="text-sm text-neutral-400">Sign up for restocks, drops, and member-only offers.</p>
+          <p className="text-sm text-neutral-200">Sign up for restocks, drops, and member-only offers.</p>
           <NewsletterForm placeholder="Enter email address" ctaLabel="Subscribe" />
         </div>
       </div>
 
       {navigation.footer.shop.length > 0 && (
         <div className="border-t border-neutral-800">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-4 text-xs text-neutral-500">
-            <span className="font-semibold uppercase tracking-wide text-neutral-400">Shop</span>
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-5 gap-y-2 px-4 py-4 text-xs text-neutral-300">
+            <span className="font-semibold uppercase tracking-wide text-neutral-200">Shop</span>
             {navigation.footer.shop.map((link) => (
               <Link key={link.href} href={link.href} className="hover:text-white">
                 {link.label}
@@ -85,7 +92,7 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
           <p className="text-sm font-display font-bold text-white">
             ECOM<span className="text-accent-500">.</span>
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-500">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-neutral-300">
             <span>100% secure payments</span>
             {PAYMENT_METHODS.map((method) => (
               <span key={method} className="rounded border border-neutral-700 px-2 py-0.5">
@@ -93,7 +100,7 @@ export function SiteFooter({ navigation }: SiteFooterProps) {
               </span>
             ))}
           </div>
-          <p className="text-xs text-neutral-500">&copy; {new Date().getFullYear()} ECOM. All rights reserved.</p>
+          <p className="text-xs text-neutral-300">&copy; {new Date().getFullYear()} ECOM. All rights reserved.</p>
         </div>
       </div>
     </footer>

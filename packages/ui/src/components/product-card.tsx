@@ -88,8 +88,8 @@ export function ProductCard({
   const imageAlt = product.primaryImage?.altText ?? product.title;
 
   return (
-    <Card className={cn("group overflow-hidden border-neutral-100 shadow-none", className)}>
-      <div className="relative aspect-[3/4] bg-neutral-100 dark:bg-neutral-800">
+    <Card className={cn("group overflow-hidden border-neutral-100 bg-transparent shadow-none", className)}>
+      <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100 dark:bg-neutral-800">
         {product.primaryImage ? (
           renderImage ? (
             renderImage({ src: product.primaryImage.url, alt: imageAlt, className: imageClassName })
@@ -153,13 +153,13 @@ export function ProductCard({
           </button>
         )}
       </div>
-      <div className="p-3">
+      <div className="px-0 pt-3">
         {product.brand && (
-          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+          <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-neutral-400">
             {product.brand}
           </p>
         )}
-        <h3 className="line-clamp-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
+        <h3 className="mt-1 line-clamp-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
           {product.title}
         </h3>
         <div className="mt-1.5 flex items-baseline gap-2">

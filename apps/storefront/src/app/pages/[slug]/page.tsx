@@ -26,7 +26,20 @@ export async function generateMetadata({
   const page = await getPublishedCmsPage(slug);
   if (!page) return { title: "Page Not Found", robots: { index: false } };
 
-  const path = page.type === "campaign" ? `/campaign/${page.slug}` : `/pages/${page.slug}`;
+  const prettyPath: Record<string, string> = {
+    home: "/",
+    "privacy-policy": "/privacy",
+    terms: "/terms",
+    about: "/about",
+    contact: "/contact",
+    shipping: "/shipping",
+    returns: "/returns",
+    faq: "/pages/faq",
+  };
+  const path =
+    page.seoCanonicalUrl ??
+    prettyPath[page.slug] ??
+    (page.type === "campaign" ? `/campaign/${page.slug}` : `/pages/${page.slug}`);
   return {
     title: page.seoTitle ?? page.title,
     description: page.seoDescription ?? undefined,

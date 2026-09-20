@@ -14,7 +14,21 @@ export type PageSection =
   | { kind: "banner_strip"; bannerIds: string[] }
   | { kind: "collection_grid"; title: string; collectionSlug: string; limit?: number }
   | { kind: "campaign_grid"; title: string; campaignSlug: string }
-  | { kind: "rich_text"; title?: string; html: string };
+  | { kind: "rich_text"; title?: string; html: string }
+  | {
+      kind: "hero";
+      headline: string;
+      subheadline: string;
+      ctaLabel: string;
+      ctaHref: string;
+      imageUrl: string;
+      imageAlt: string;
+    }
+  | { kind: "feature_grid"; title: string; items: Array<{ title: string; description: string }> }
+  | { kind: "fit_guide"; title: string; html: string; imageUrl?: string }
+  | { kind: "story"; title: string; html: string }
+  | { kind: "cta_banner"; headline: string; subheadline?: string; ctaLabel: string; ctaHref: string }
+  | { kind: "trust_row"; title?: string; items: Array<{ title: string; description: string }> };
 
 export interface HomepageFields {
   sections: PageSection[];

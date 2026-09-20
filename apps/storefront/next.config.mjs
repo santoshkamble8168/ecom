@@ -6,6 +6,9 @@ const nextConfig = {
   transpilePackages: ["@ecom/ui", "@ecom/types", "@ecom/validation", "@ecom/analytics", "@ecom/shared"],
   images: {
     formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
     remotePatterns: [
       { protocol: "http", hostname: "localhost" },
       { protocol: "http", hostname: "127.0.0.1" },
@@ -25,6 +28,8 @@ const nextConfig = {
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
     ];
@@ -45,8 +50,16 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      { source: "/privacy-policy", destination: "/pages/privacy-policy", permanent: false },
+      { source: "/privacy-policy", destination: "/privacy", permanent: false },
+      { source: "/terms-and-conditions", destination: "/terms", permanent: false },
+      { source: "/pages/privacy-policy", destination: "/privacy", permanent: false },
+      { source: "/pages/terms", destination: "/terms", permanent: false },
+      { source: "/pages/about", destination: "/about", permanent: false },
+      { source: "/pages/contact", destination: "/contact", permanent: false },
+      { source: "/pages/shipping", destination: "/shipping", permanent: false },
+      { source: "/pages/returns", destination: "/returns", permanent: false },
       { source: "/faq", destination: "/pages/faq", permanent: false },
+      { source: "/faqs", destination: "/pages/faq", permanent: false },
     ];
   },
 };

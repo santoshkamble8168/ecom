@@ -76,6 +76,46 @@ function validateSection(section: unknown, index: number, errors: string[]): voi
         errors.push(`${path}.html is required and must be a non-empty string`);
       }
       break;
+    case "hero":
+      if (!isNonEmptyString(section.headline)) errors.push(`${path}.headline is required`);
+      if (!isNonEmptyString(section.subheadline)) errors.push(`${path}.subheadline is required`);
+      if (!isNonEmptyString(section.ctaLabel)) errors.push(`${path}.ctaLabel is required`);
+      if (!isNonEmptyString(section.ctaHref)) errors.push(`${path}.ctaHref is required`);
+      if (!isNonEmptyString(section.imageUrl)) errors.push(`${path}.imageUrl is required`);
+      if (!isNonEmptyString(section.imageAlt)) errors.push(`${path}.imageAlt is required`);
+      break;
+    case "feature_grid":
+    case "trust_row":
+      if (kind === "feature_grid" && !isNonEmptyString(section.title)) {
+        errors.push(`${path}.title is required`);
+      }
+      if (kind === "trust_row" && !isOptionalString(section.title)) {
+        errors.push(`${path}.title must be a string when provided`);
+      }
+      if (!Array.isArray(section.items) || section.items.length === 0) {
+        errors.push(`${path}.items is required and must be a non-empty array`);
+      } else {
+        section.items.forEach((item, itemIndex) => {
+          if (!isRecord(item) || !isNonEmptyString(item.title) || !isNonEmptyString(item.description)) {
+            errors.push(`${path}.items[${itemIndex}] must include title and description`);
+          }
+        });
+      }
+      break;
+    case "fit_guide":
+    case "story":
+      if (!isNonEmptyString(section.title)) errors.push(`${path}.title is required`);
+      if (!isNonEmptyString(section.html)) errors.push(`${path}.html is required`);
+      if (kind === "fit_guide" && !isOptionalString(section.imageUrl)) {
+        errors.push(`${path}.imageUrl must be a string when provided`);
+      }
+      break;
+    case "cta_banner":
+      if (!isNonEmptyString(section.headline)) errors.push(`${path}.headline is required`);
+      if (!isOptionalString(section.subheadline)) errors.push(`${path}.subheadline must be a string when provided`);
+      if (!isNonEmptyString(section.ctaLabel)) errors.push(`${path}.ctaLabel is required`);
+      if (!isNonEmptyString(section.ctaHref)) errors.push(`${path}.ctaHref is required`);
+      break;
   }
 }
 

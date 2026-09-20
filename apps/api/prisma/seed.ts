@@ -193,7 +193,7 @@ const SAMPLE_PRODUCTS = [
     basePrice: "699.00",
     compareAtPrice: "999.00",
     categorySlugs: ["men-t-shirts"],
-    collectionSlugs: ["graphic-tees", "new-arrivals"],
+    collectionSlugs: ["graphic-tees", "new-arrivals", "best-sellers"],
     imageUrl: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=800",
     variants: [
       { sku: "OGT-NVY-L", price: "699.00", size: "l", color: "navy" },
@@ -425,10 +425,10 @@ async function seedStorefront() {
   });
 
   const navItems = [
-    { label: "Men", href: "/men", location: "header" as const, sortOrder: 1 },
-    { label: "Women", href: "/women", location: "header" as const, sortOrder: 2 },
-    { label: "New Arrivals", href: "/collections/new-arrivals", location: "header" as const, sortOrder: 3 },
-    { label: "Best Sellers", href: "/collections/best-sellers", location: "header" as const, sortOrder: 4 },
+    { label: "T-Shirts", href: "/t-shirts", location: "header" as const, sortOrder: 1 },
+    { label: "New Arrivals", href: "/collections/new-arrivals", location: "header" as const, sortOrder: 2 },
+    { label: "Best Sellers", href: "/collections/best-sellers", location: "header" as const, sortOrder: 3 },
+    { label: "About", href: "/about", location: "header" as const, sortOrder: 4 },
     { label: "T-Shirts", href: "/categories/men-t-shirts", location: "footer_shop" as const, sortOrder: 1 },
     { label: "Graphic Tees", href: "/collections/graphic-tees", location: "footer_shop" as const, sortOrder: 2 },
     { label: "Contact Us", href: "/contact", location: "footer_support" as const, sortOrder: 1 },
@@ -445,18 +445,21 @@ async function seedStorefront() {
     });
   }
 
+  await prisma.navigationItem.deleteMany({
+    where: { location: "header", href: { in: ["/men", "/women"] } },
+  });
+
   const homepageBlocks = [
     {
       key: "hero",
       type: "hero",
       sortOrder: 1,
       content: {
-        headline: "Wear Your Vibe",
-        subheadline: "Premium tees for everyday style. Free shipping on orders above ₹999.",
-        ctaLabel: "Shop New Arrivals",
-        ctaHref: "/collections/new-arrivals",
+        headline: "T-Shirts Made for Every Day.",
+        subheadline: "Clean designs. Quality cotton. Comfortable fits — from classic crew to oversized graphics.",
+        ctaLabel: "Shop T-Shirts",
+        ctaHref: "/t-shirts",
         imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=1200",
-        badge: "New Season Drop",
       },
     },
     {
@@ -465,9 +468,9 @@ async function seedStorefront() {
       sortOrder: 2,
       content: {
         items: [
-          { label: "Happy Customers", value: "2L+" },
-          { label: "Products Sold", value: "10L+" },
-          { label: "Styles", value: "500+" },
+          { label: "Current styles", value: "3" },
+          { label: "Size run", value: "S–L" },
+          { label: "Return window", value: "7 days" },
         ],
       },
     },
@@ -479,8 +482,8 @@ async function seedStorefront() {
       content: {
         title: "Shop For",
         items: [
-          { label: "Men", href: "/men", imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600" },
-          { label: "Women", href: "/women", imageUrl: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600" },
+          { label: "T-Shirts", href: "/t-shirts", imageUrl: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600" },
+          { label: "New Arrivals", href: "/collections/new-arrivals", imageUrl: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600" },
         ],
       },
     },
@@ -512,8 +515,8 @@ async function seedStorefront() {
       content: {
         items: [
           { label: "Free Shipping", description: "On orders above ₹999" },
-          { label: "Easy Returns", description: "15-day hassle-free returns" },
-          { label: "Secure Payments", description: "100% secure checkout" },
+          { label: "Easy Returns", description: "7-day returns for unused items" },
+          { label: "Secure Payments", description: "UPI, cards, and net banking" },
         ],
       },
     },

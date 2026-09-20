@@ -15,15 +15,14 @@ test.describe("Storefront CMS homepage", () => {
   }) => {
     await storefrontHome.goto();
 
-    const heroBanner = storefrontHome.heroBannerLink("New Season Drop");
-    const hasCmsHomepage = await heroBanner.isVisible().catch(() => false);
+    const cmsHero = page.getByRole("heading", { name: /t-shirts made for every day/i });
+    const hasCmsHomepage = await cmsHero.isVisible().catch(() => false);
 
     if (hasCmsHomepage) {
-      await expect(heroBanner).toBeVisible();
-      await expect(storefrontHome.sectionHeading("New Arrivals")).toBeVisible();
-      await expect(page.getByRole("link", { name: "View all" })).toBeVisible();
-      await expect(page.getByRole("heading", { name: "Why shop with us" })).toBeVisible();
-      await expect(page.getByText("Fast shipping, easy returns, secure payments.")).toBeVisible();
+      await expect(page.getByRole("heading", { name: /t-shirts made for every day/i })).toBeVisible();
+      await expect(storefrontHome.sectionHeading("Best Sellers")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Built Around the Details" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Find Your Fit" })).toBeVisible();
     } else {
       // No published CMS homepage in this environment — storefront degrades
       // to the legacy hardcoded `/home` blocks; just confirm the shell

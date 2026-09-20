@@ -19,6 +19,9 @@ test.describe("Admin CMS pages", () => {
     await expect(adminPagesList.heading).toBeVisible();
     await expect(adminPagesList.rowByTitle("Homepage")).toBeVisible();
     await expect(adminPagesList.rowByTitle("Privacy Policy")).toBeVisible();
+    await expect(adminPagesList.rowByTitle("Terms and Conditions")).toBeVisible();
+    await expect(adminPagesList.rowByTitle("About Ecom")).toBeVisible();
+    await expect(adminPagesList.rowByTitle("Contact us")).toBeVisible();
     await expect(adminPagesList.rowByTitle("Frequently Asked Questions")).toBeVisible();
   });
 
@@ -39,12 +42,14 @@ test.describe("Admin CMS pages", () => {
     await expect(adminPageEditor.seoDescriptionInput).toBeVisible();
     await expect(adminPageEditor.seoCanonicalInput).toBeVisible();
 
-    // Section list renders the homepage's seeded sections in order:
-    // hero_banner, collection_grid, rich_text.
     await expect(adminPageEditor.sectionsLabel).toBeVisible();
-    await expect(adminPageEditor.sectionHeading("Hero Banner")).toBeVisible();
+    await expect(adminPageEditor.sectionHeading("Hero")).toBeVisible();
     await expect(adminPageEditor.sectionHeading("Collection Grid")).toBeVisible();
-    await expect(adminPageEditor.sectionHeading("Rich Text")).toBeVisible();
+    await expect(adminPageEditor.sectionHeading("Feature Grid")).toBeVisible();
+    await expect(adminPageEditor.sectionHeading("Fit Guide")).toBeVisible();
+    await expect(adminPageEditor.sectionHeading("Brand Story")).toBeVisible();
+    await expect(adminPageEditor.sectionHeading("Trust Row")).toBeVisible();
+    await expect(adminPageEditor.sectionHeading("Final CTA")).toBeVisible();
   });
 
   test("has no automatically detectable accessibility violations", async ({ adminPagesList, page }) => {

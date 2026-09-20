@@ -16,7 +16,7 @@ export class StorefrontHomePage {
     this.page = page;
     this.announcementBar = page.getByText("Free shipping on orders above ₹999");
     this.primaryNav = page.getByRole("navigation", { name: "Primary" });
-    this.shopNowButton = page.getByRole("button", { name: "Shop Now" });
+    this.shopNowButton = page.getByRole("link", { name: /shop t-shirts|shop now|shop all/i }).first();
     this.footer = page.locator("footer");
   }
 

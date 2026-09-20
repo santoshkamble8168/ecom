@@ -52,7 +52,7 @@ export default function PagesListPage() {
     <div className="flex flex-col gap-6">
       <AdminPageHeader
         title="Pages"
-        description="Edit CMS pages, publish, and manage SEO content."
+        description="Edit storefront pages, publish content, and manage SEO titles, descriptions, and social previews."
         actions={
           <Link href="/pages/new">
             <Button type="button">New Page</Button>

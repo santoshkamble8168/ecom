@@ -1,5 +1,6 @@
 import { ConflictError } from "@ecom/shared";
 import type {
+  ContactMessageResult,
   HomepageBlock,
   HomepageSummary,
   NavigationNode,
@@ -17,6 +18,8 @@ import { AppLogger } from "../logger/logger.service";
 import { PricingService } from "../pricing/pricing.service";
 import { PrismaService } from "../prisma/prisma.service";
 
+import { shouldDropAsBot } from "./bot-protection";
+import type { ContactMessageDto } from "./dto/contact-message.dto";
 import type { NewsletterSubscribeDto } from "./dto/newsletter-subscribe.dto";
 
 @Injectable()
@@ -188,16 +191,34 @@ export class StorefrontService {
   }
 
   async subscribeNewsletter(dto: NewsletterSubscribeDto): Promise<NewsletterSubscribeResult> {
+    const email = dto.email.trim().toLowerCase();
+    if (shouldDropAsBot(dto.website)) {
+      this.logger.warn("Dropped newsletter subscribe as bot (honeypot)");
+      return { email, subscribed: true };
+    }
+
     const existing = await this.prisma.newsletterSubscriber.findUnique({
-      where: { email: dto.email },
+      where: { email },
     });
     if (existing) {
       throw new ConflictError("This email is already subscribed");
     }
 
-    await this.prisma.newsletterSubscriber.create({ data: { email: dto.email } });
-    this.logger.log(`Newsletter subscription: ${dto.email}`);
-    return { email: dto.email, subscribed: true };
+    await this.prisma.newsletterSubscriber.create({ data: { email } });
+    this.logger.log(`Newsletter subscription: ${email}`);
+    return { email, subscribed: true };
+  }
+
+  async submitContact(dto: ContactMessageDto): Promise<ContactMessageResult> {
+    if (shouldDropAsBot(dto.website)) {
+      this.logger.warn("Dropped contact message as bot (honeypot)");
+      return { received: true };
+    }
+
+    this.logger.log(
+      `Contact message from ${dto.email.trim().toLowerCase()} (${dto.name.trim()}): ${dto.message.trim().slice(0, 200)}`,
+    );
+    return { received: true };
   }
 
   /**

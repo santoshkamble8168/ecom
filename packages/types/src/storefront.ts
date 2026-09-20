@@ -106,3 +106,7 @@ export interface NewsletterSubscribeResult {
   email: string;
   subscribed: boolean;
 }
+
+export interface ContactMessageResult {
+  received: boolean;
+}

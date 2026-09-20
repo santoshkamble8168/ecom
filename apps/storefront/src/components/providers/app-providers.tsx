@@ -6,11 +6,13 @@ import { ProductCardImageProvider } from "@ecom/ui";
 import Image from "next/image";
 import { useCallback, useState, type ReactNode } from "react";
 
+import { CookieConsentBanner } from "@/components/consent/cookie-consent-banner";
 import { getToken } from "@/lib/auth";
 
 configureAnalytics({
   endpoint: "/api/v1/analytics/events",
   getAuthToken: getToken,
+  enabled: false,
   debug: process.env.NEXT_PUBLIC_ANALYTICS_DEBUG === "true",
 });
 
@@ -31,7 +33,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
         alt={alt}
         fill
         sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-        className={className}
+        quality={75}
+        className={`${className} object-cover`}
       />
     ),
     [],
@@ -39,7 +42,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ProductCardImageProvider renderer={renderProductImage}>{children}</ProductCardImageProvider>
+      <ProductCardImageProvider renderer={renderProductImage}>
+        {children}
+        <CookieConsentBanner />
+      </ProductCardImageProvider>
     </QueryClientProvider>
   );
 }

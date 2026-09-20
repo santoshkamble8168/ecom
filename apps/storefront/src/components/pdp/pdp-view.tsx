@@ -335,7 +335,7 @@ export function PdpView({ product }: PdpViewProps) {
     flyer.className = "fly-to-bag";
     flyer.style.left = `${from.left + from.width / 2 - 32}px`;
     flyer.style.top = `${from.top + from.height / 2 - 32}px`;
-    flyer.innerHTML = `<img src="${imageUrl}" alt="" style="width:100%;height:100%;object-fit:cover" />`;
+    flyer.innerHTML = `<img src="${imageUrl}" alt="${product.title.replace(/"/g, "&quot;")}" style="width:100%;height:100%;object-fit:cover" />`;
     document.body.appendChild(flyer);
 
     requestAnimationFrame(() => {

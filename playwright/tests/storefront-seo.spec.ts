@@ -9,6 +9,14 @@ test.describe("Storefront SEO", () => {
     expect(body).toContain("Sitemap:");
   });
 
+  test("sitemap lists privacy and terms", async ({ request, baseURL }) => {
+    const res = await request.get(`${baseURL}/sitemap.xml`);
+    expect(res.ok()).toBeTruthy();
+    const body = await res.text();
+    expect(body).toContain("/privacy");
+    expect(body).toContain("/terms");
+  });
+
   test("homepage includes Organization and WebSite JSON-LD", async ({ storefrontHome, page }) => {
     await storefrontHome.goto();
     const jsonLd = page.locator('script[type="application/ld+json"]');

@@ -13,11 +13,12 @@ test.describe("Storefront shell", () => {
   test("exposes primary navigation with working links", async ({ storefrontHome, page }) => {
     await storefrontHome.goto();
 
-    await expect(storefrontHome.navLink("Men")).toBeVisible();
-    await expect(storefrontHome.navLink("Women")).toBeVisible();
+    await expect(storefrontHome.navLink("T-Shirts")).toBeVisible();
+    await expect(storefrontHome.navLink("New Arrivals")).toBeVisible();
+    await expect(storefrontHome.navLink("Best Sellers")).toBeVisible();
 
-    await storefrontHome.navLink("Men").click();
-    await expect(page).toHaveURL(/\/men$/);
+    await storefrontHome.navLink("T-Shirts").click();
+    await expect(page).toHaveURL(/\/t-shirts$/);
   });
 
   test("has no automatically detectable accessibility violations", async ({

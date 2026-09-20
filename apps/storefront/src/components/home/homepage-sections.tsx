@@ -3,6 +3,7 @@ import { ProductCard } from "@ecom/ui";
 import Link from "next/link";
 
 import { CampaignLink } from "@/components/analytics/campaign-link";
+import { TrustStrip } from "@/components/cms/trust-strip";
 import { StorefrontImage } from "@/components/media/storefront-image";
 import { NewsletterForm } from "./newsletter-form";
 
@@ -10,7 +11,7 @@ function HeroSection({ block }: { block: Extract<HomepageBlock, { type: "hero" }
   return (
     <section className="relative min-h-[70vh] overflow-hidden bg-neutral-900 text-white">
       <div className="absolute inset-0">
-        <StorefrontImage src={block.imageUrl} alt="" className="object-cover" sizes="100vw" priority />
+        <StorefrontImage src={block.imageUrl} alt={block.headline} className="object-cover" sizes="100vw" priority />
       </div>
       <div className="absolute inset-0 bg-black/45" aria-hidden="true" />
       <div className="relative mx-auto flex min-h-[70vh] max-w-7xl flex-col justify-end gap-4 px-4 py-16 md:justify-center md:py-24">
@@ -119,18 +120,7 @@ function ProductRailSection({ block }: { block: Extract<HomepageBlock, { type: "
 }
 
 function TrustBadgesSection({ block }: { block: Extract<HomepageBlock, { type: "trust-badges" }> }) {
-  return (
-    <section className="border-t border-neutral-200 bg-neutral-50 py-12 dark:border-neutral-800 dark:bg-neutral-900">
-      <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 px-4 sm:grid-cols-3">
-        {block.items.map((item) => (
-          <div key={item.label} className="text-center">
-            <p className="font-semibold">{item.label}</p>
-            <p className="mt-1 text-sm text-neutral-500">{item.description}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
+  return <TrustStrip title="Why shop with us" items={block.items} />;
 }
 
 function NewsletterSection({ block }: { block: Extract<HomepageBlock, { type: "newsletter" }> }) {
