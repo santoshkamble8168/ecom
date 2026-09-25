@@ -76,7 +76,12 @@ export class PaymentsService {
       orderBy: { createdAt: "desc" },
     });
     if (existingOpen) {
-      return this.toPaymentSummary(existingOpen);
+      const staleMock =
+        !this.razorpay.isMockMode() &&
+        (existingOpen.providerOrderId?.startsWith("order_mock_") ?? false);
+      if (!staleMock) {
+        return this.toPaymentSummary(existingOpen);
+      }
     }
 
     if (checkout.paymentMethod === "cod") {
@@ -236,6 +241,10 @@ export class PaymentsService {
     if (!valid) {
       await this.markFailed(payment.id, "invalid_signature", "Payment signature verification failed");
       throw new ValidationError("Invalid payment signature");
+    }
+
+    if (payment.providerOrderId && params.razorpayOrderId !== payment.providerOrderId) {
+      throw new ValidationError("Payment does not match this order");
     }
 
     const order = await this.finalizeOrder(checkout, payment.id, "razorpay");

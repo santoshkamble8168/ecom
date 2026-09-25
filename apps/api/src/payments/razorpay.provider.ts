@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 
-import { RAZORPAY_MODE, toPaise } from "./policies/payment.policy";
+import { isRazorpayMockMode, toPaise } from "./policies/payment.policy";
 
 export interface RazorpayOrderResult {
   providerOrderId: string;
@@ -14,7 +14,7 @@ export interface RazorpayOrderResult {
 @Injectable()
 export class RazorpayProvider {
   isMockMode(): boolean {
-    return RAZORPAY_MODE === "mock" || !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET;
+    return isRazorpayMockMode();
   }
 
   getKeyId(): string {

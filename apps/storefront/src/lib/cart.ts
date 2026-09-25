@@ -15,8 +15,6 @@ function authHeaders(): HeadersInit {
 }
 
 function sessionQuery(): string {
-  const token = getToken();
-  if (token) return "";
   return `?sessionId=${encodeURIComponent(getSessionId())}`;
 }
 
@@ -29,6 +27,7 @@ async function parseCartResponse(response: Response): Promise<CartSummary> {
 export async function fetchCart(): Promise<CartSummary> {
   const response = await fetch(`${API_URL}/cart${sessionQuery()}`, {
     headers: authHeaders(),
+    cache: "no-store",
   });
   return parseCartResponse(response);
 }
@@ -41,7 +40,7 @@ export async function addToCart(productSlug: string, variantSku: string, quantit
       productSlug,
       variantSku,
       quantity,
-      sessionId: getToken() ? undefined : getSessionId(),
+      sessionId: getSessionId(),
     }),
   });
   return parseCartResponse(response);
@@ -70,7 +69,7 @@ export async function applyCoupon(code: string): Promise<CartSummary> {
     headers: authHeaders(),
     body: JSON.stringify({
       code,
-      sessionId: getToken() ? undefined : getSessionId(),
+      sessionId: getSessionId(),
     }),
   });
   return parseCartResponse(response);
@@ -90,7 +89,7 @@ export async function saveForLater(itemId: string): Promise<CartSummary> {
     headers: authHeaders(),
     body: JSON.stringify({
       itemId,
-      sessionId: getToken() ? undefined : getSessionId(),
+      sessionId: getSessionId(),
     }),
   });
   return parseCartResponse(response);

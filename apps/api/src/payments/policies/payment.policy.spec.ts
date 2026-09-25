@@ -7,7 +7,7 @@ import {
   verifyRazorpayWebhookSignature,
   PAYMENT_EXPIRY_MINUTES,
   PAYMENT_MAX_RETRIES,
-  RAZORPAY_MODE,
+  razorpayMode,
 } from "./payment.policy";
 
 describe("payment.policy", () => {
@@ -61,7 +61,7 @@ describe("payment.policy", () => {
   });
 
   it("defaults razorpay mode to mock when unset", () => {
-    expect(["mock", "test", "live"]).toContain(RAZORPAY_MODE);
+    expect(["mock", "test", "live"]).toContain(razorpayMode());
   });
 
   it("reads payment expiry minutes", () => {

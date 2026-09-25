@@ -261,56 +261,9 @@ export class CartService {
   }
 
   async merge(sessionId: string, userId: string): Promise<CartSummary> {
-    const guestCart = await this.prisma.cart.findUnique({ where: { sessionId } });
-    if (!guestCart) {
-      return this.getCart(userId);
-    }
-
-    const userCart = await this.resolveCart(userId, undefined, true);
-    if (!userCart) throw new ValidationError("Unable to resolve user cart");
-
-    const guestItems = await this.prisma.cartItem.findMany({ where: { cartId: guestCart.id } });
-    for (const item of guestItems) {
-      const target = await this.prisma.cartItem.findFirst({
-        where: {
-          cartId: userCart.id,
-          variantSku: item.variantSku,
-          savedForLater: item.savedForLater,
-        },
-      });
-      if (target) {
-        await this.prisma.cartItem.update({
-          where: { id: target.id },
-          data: { quantity: Math.min(10, target.quantity + item.quantity) },
-        });
-      } else {
-        await this.prisma.cartItem.create({
-          data: {
-            cartId: userCart.id,
-            productSlug: item.productSlug,
-            variantSku: item.variantSku,
-            quantity: item.quantity,
-            savedForLater: item.savedForLater,
-          },
-        });
-      }
-    }
-
-    const guestCoupons = await this.prisma.cartCoupon.findMany({ where: { cartId: guestCart.id } });
-    for (const coupon of guestCoupons) {
-      await this.prisma.cartCoupon.upsert({
-        where: { cartId_code: { cartId: userCart.id, code: coupon.code } },
-        update: {},
-        create: {
-          cartId: userCart.id,
-          code: coupon.code,
-          discountAmount: coupon.discountAmount,
-        },
-      });
-    }
-
-    await this.prisma.cart.delete({ where: { id: guestCart.id } });
-    return this.buildSummary(userCart.id);
+    const cart = await this.resolveCart(userId, sessionId, true);
+    if (!cart) throw new ValidationError("Unable to resolve user cart");
+    return this.buildSummary(cart.id);
   }
 
   async moveWishlistToCart(
@@ -357,16 +310,77 @@ export class CartService {
     const expiresAt = new Date(Date.now() + CART_TTL_DAYS * 24 * 60 * 60 * 1000);
 
     if (userId) {
-      const existing = await this.prisma.cart.findUnique({ where: { userId } });
-      if (existing) return existing;
-      if (!create) return null;
-      return this.prisma.cart.create({ data: { userId, expiresAt } });
+      let userCart = await this.prisma.cart.findUnique({ where: { userId } });
+      const guestCart = sessionId
+        ? await this.prisma.cart.findUnique({ where: { sessionId } })
+        : null;
+      const guestIsAnonymous = guestCart != null && guestCart.userId == null && guestCart.id !== userCart?.id;
+
+      if (!userCart && (create || guestIsAnonymous)) {
+        userCart = await this.prisma.cart.create({ data: { userId, expiresAt } });
+      }
+      if (userCart && guestIsAnonymous && guestCart) {
+        await this.absorbGuestCart(guestCart.id, userCart.id);
+      }
+      return userCart;
     }
 
     const existing = await this.prisma.cart.findUnique({ where: { sessionId: sessionId! } });
     if (existing) return existing;
     if (!create) return null;
     return this.prisma.cart.create({ data: { sessionId: sessionId!, expiresAt } });
+  }
+
+  /**
+   * Moves an anonymous cart onto the signed-in cart. One shopper, one bag:
+   * lines added before login, or while the access token was not accepted,
+   * show up on the account cart.
+   */
+  private async absorbGuestCart(guestCartId: string, userCartId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const guestItems = await tx.cartItem.findMany({ where: { cartId: guestCartId } });
+      for (const item of guestItems) {
+        const target = await tx.cartItem.findFirst({
+          where: { cartId: userCartId, variantSku: item.variantSku, savedForLater: item.savedForLater },
+        });
+        if (target) {
+          await tx.cartItem.update({
+            where: { id: target.id },
+            data: { quantity: Math.min(10, target.quantity + item.quantity) },
+          });
+        } else {
+          await tx.cartItem.create({
+            data: {
+              cartId: userCartId,
+              productSlug: item.productSlug,
+              variantSku: item.variantSku,
+              quantity: item.quantity,
+              savedForLater: item.savedForLater,
+            },
+          });
+        }
+      }
+
+      const guestCoupons = await tx.cartCoupon.findMany({ where: { cartId: guestCartId } });
+      for (const coupon of guestCoupons) {
+        await tx.cartCoupon.upsert({
+          where: { cartId_code: { cartId: userCartId, code: coupon.code } },
+          update: {},
+          create: {
+            cartId: userCartId,
+            code: coupon.code,
+            discountAmount: coupon.discountAmount,
+          },
+        });
+      }
+
+      await tx.checkoutSession.updateMany({
+        where: { cartId: guestCartId },
+        data: { cartId: userCartId },
+      });
+
+      await tx.cart.delete({ where: { id: guestCartId } });
+    });
   }
 
   private async buildSummary(cartId: string): Promise<CartSummary> {

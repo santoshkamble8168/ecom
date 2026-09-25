@@ -21,14 +21,11 @@ function authHeaders(): HeadersInit {
   };
 }
 
-function sessionBody(): { sessionId?: string } {
-  const token = getToken();
-  return token ? {} : { sessionId: getSessionId() };
+function sessionBody(): { sessionId: string } {
+  return { sessionId: getSessionId() };
 }
 
 function sessionQuery(): string {
-  const token = getToken();
-  if (token) return "";
   return `?sessionId=${encodeURIComponent(getSessionId())}`;
 }
 
@@ -124,6 +121,7 @@ export async function reviewCheckout(id: string): Promise<CheckoutReviewResult> 
   const response = await fetch(`${API_URL}/checkout/${id}/review${sessionQuery()}`, {
     method: "POST",
     headers: authHeaders(),
+    body: JSON.stringify(sessionBody()),
   });
   return parseResponse(response);
 }

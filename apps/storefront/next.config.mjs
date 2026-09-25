@@ -50,6 +50,7 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      { source: "/favicon.ico", destination: "/icon", permanent: false },
       { source: "/privacy-policy", destination: "/privacy", permanent: false },
       { source: "/terms-and-conditions", destination: "/terms", permanent: false },
       { source: "/pages/privacy-policy", destination: "/privacy", permanent: false },

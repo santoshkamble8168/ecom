@@ -30,6 +30,22 @@ function getOptionMap(variant: PdpProduct["variants"][number]): Record<string, s
   return map;
 }
 
+/** Color stays off the PDP until each color has its own imagery. */
+const HIDDEN_OPTION_KEYS = new Set(["color"]);
+
+function matchesSelectedOptions(
+  variant: PdpProduct["variants"][number],
+  selectedOptions: Record<string, string>,
+): boolean {
+  if (!variant.isActive) return false;
+  const map = getOptionMap(variant);
+  const required = Object.entries(selectedOptions).filter(
+    ([key, slug]) => Boolean(slug) && !HIDDEN_OPTION_KEYS.has(key),
+  );
+  if (required.length === 0) return false;
+  return required.every(([key, slug]) => map[key] === slug);
+}
+
 /* ────────────────────────────────────────────────────────────────────
    SVG Icons
 ──────────────────────────────────────────────────────────────────── */
@@ -176,6 +192,7 @@ interface SizePickerModalProps {
   onAddToBag: () => void;
   addingToCart: boolean;
   confirmLabel: string;
+  error?: string | null;
 }
 
 function SizePickerModal({
@@ -188,6 +205,7 @@ function SizePickerModal({
   onAddToBag,
   addingToCart,
   confirmLabel,
+  error,
 }: SizePickerModalProps) {
   const sizeGroup = attributeGroups.find((g) => g.key === "size");
   const hasSizeSelected = !!(sizeGroup && selectedOptions["size"]);
@@ -239,6 +257,12 @@ function SizePickerModal({
           </div>
         ))}
 
+      {error && (
+        <p className="mb-3 rounded-md border border-danger-500/40 bg-danger-50 px-3 py-2 text-sm text-danger-600" role="alert">
+          {error}
+        </p>
+      )}
+
       <button
         type="button"
         disabled={!hasSizeSelected || addingToCart}
@@ -276,6 +300,7 @@ export function PdpView({ product }: PdpViewProps) {
   const [reviews, setReviews] = useState<ProductReview[]>([]);
   const [wishlisted, setWishlisted] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [cartError, setCartError] = useState<string | null>(null);
   const [addedToCart, setAddedToCart] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>("details");
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
@@ -309,13 +334,12 @@ export function PdpView({ product }: PdpViewProps) {
   }, [product.variants]);
 
   // No default size — user must explicitly select.
-  // Auto-select non-size attributes (e.g. color) so variant matching works.
+  // Hidden attributes (color) are omitted so they cannot block a valid size.
   useEffect(() => {
     const defaults: Record<string, string> = {};
     for (const group of attributeGroups) {
-      if (group.key !== "size") {
-        defaults[group.key] = group.values[0]?.slug ?? "";
-      }
+      if (group.key === "size" || HIDDEN_OPTION_KEYS.has(group.key)) continue;
+      defaults[group.key] = group.values[0]?.slug ?? "";
     }
     setSelectedOptions(defaults);
     setAddedToCart(false);
@@ -351,11 +375,7 @@ export function PdpView({ product }: PdpViewProps) {
   }
 
   const selectedVariant = useMemo(() => {
-    return product.variants.find((variant) => {
-      if (!variant.isActive) return false;
-      const map = getOptionMap(variant);
-      return Object.entries(selectedOptions).every(([key, slug]) => map[key] === slug);
-    });
+    return product.variants.find((variant) => matchesSelectedOptions(variant, selectedOptions));
   }, [product.variants, selectedOptions]);
 
   const sizeSelected = !!selectedOptions["size"];
@@ -446,21 +466,29 @@ export function PdpView({ product }: PdpViewProps) {
       return;
     }
     if (!sizeSelected) {
+      setCartError(null);
       setSizePickerOpen(true);
       return;
     }
-    if (!selectedVariant) return;
+    if (!selectedVariant) {
+      setCartError("This size is unavailable right now. Please choose another size.");
+      return;
+    }
     void performAddToCart(intent);
   }
 
   function handleModalAddToBag() {
-    if (!selectedVariant) return;
+    if (!selectedVariant) {
+      setCartError("This size is unavailable right now. Please choose another size.");
+      return;
+    }
     void performAddToCart(ctaIntentRef.current);
   }
 
   async function performAddToCart(intent: "bag" | "buy" = ctaIntent) {
     if (!selectedVariant) return;
     setAddingToCart(true);
+    setCartError(null);
     try {
       await addToCart(product.slug, selectedVariant.sku, quantity);
 
@@ -484,7 +512,8 @@ export function PdpView({ product }: PdpViewProps) {
         setShowToast(false);
       }, 4500);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add to cart");
+      setSizePickerOpen(false);
+      setCartError(err instanceof Error ? err.message : "Could not add this item to your bag");
     } finally {
       setAddingToCart(false);
     }
@@ -492,6 +521,7 @@ export function PdpView({ product }: PdpViewProps) {
 
   function handleSelectSize(key: string, slug: string) {
     setSelectedOptions((prev) => ({ ...prev, [key]: slug }));
+    setCartError(null);
     track("variant_select", { productSlug: product.slug, attribute: key, value: slug });
   }
 
@@ -516,14 +546,16 @@ export function PdpView({ product }: PdpViewProps) {
           <div className="hidden flex-col gap-2 sm:flex">
             {images.map((img, i) => (
               <button
-                key={img.url}
+                key={`${img.url}-${i}`}
                 type="button"
                 onClick={() => setActiveImage(i)}
                 className={`h-16 w-16 overflow-hidden rounded border transition-colors ${activeImage === i ? "border-brand-700 ring-1 ring-brand-700" : "border-neutral-200"}`}
               >
-                <span className="relative block h-full w-full">
-                  <StorefrontImage src={img.url} alt={`${product.title} view ${i + 1}`} className="object-cover" sizes="64px" />
-                </span>
+                <img
+                  src={img.url}
+                  alt={`${product.title} view ${i + 1}`}
+                  className="h-full w-full object-cover"
+                />
               </button>
             ))}
           </div>
@@ -645,6 +677,12 @@ export function PdpView({ product }: PdpViewProps) {
 
           {/* Celebration banner — shown after add-to-cart success */}
           <CelebrationBanner show={showCelebration} savings={savings} freeShipping={Number(actualPrice) >= 999} />
+
+          {cartError && (
+            <p className="mt-4 rounded-md border border-danger-500/40 bg-danger-50 px-3 py-2 text-sm text-danger-600" role="alert">
+              {cartError}
+            </p>
+          )}
 
           <div className="mt-6">
             <p id="pdp-quantity-label" className="mb-2 text-sm font-semibold">
@@ -888,7 +926,13 @@ export function PdpView({ product }: PdpViewProps) {
                 {review.title && <p className="mt-1 font-semibold text-neutral-900 dark:text-neutral-100">{review.title}</p>}
                 {review.body && <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">{review.body}</p>}
                 <p className="mt-2 text-xs text-neutral-400">
-                  {review.authorName} · {new Date(review.createdAt).toLocaleDateString()}
+                  {review.authorName} ·{" "}
+                  {new Date(review.createdAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    timeZone: "Asia/Kolkata",
+                  })}
                 </p>
               </div>
             ))}
@@ -967,6 +1011,7 @@ export function PdpView({ product }: PdpViewProps) {
         onAddToBag={handleModalAddToBag}
         addingToCart={addingToCart}
         confirmLabel={ctaIntent === "buy" ? "Buy Now" : "Add to Bag"}
+        error={cartError}
       />
 
       {/* Bottom toast */}

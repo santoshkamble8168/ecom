@@ -154,7 +154,7 @@ export class CheckoutService {
     });
 
     await this.logUpdated(userId, updated.id, "address");
-    return this.hydrateSession(updated);
+    return this.applyDefaultShipping(updated.id, userId, params.sessionId);
   }
 
   async updateShipping(
@@ -185,6 +185,83 @@ export class CheckoutService {
     });
 
     const selected = selectShippingOption(options, shippingMethodCode);
+    return this.persistShipping(session, selected, userId);
+  }
+
+  /**
+   * Applies the first serviceable method (lowest sort order). Shoppers do not
+   * pick a delivery option; the fee comes from the admin-configured method.
+   */
+  async applyDefaultShipping(
+    id: string,
+    userId?: string,
+    sessionId?: string,
+  ): Promise<CheckoutSession> {
+    const session = await this.loadAuthorizedSession(id, userId, sessionId);
+    this.assertActive(session);
+    const options = await this.resolveOptions(session);
+    const selected = options[0];
+    if (!selected) {
+      throw new ValidationError("Delivery is not available for this pincode");
+    }
+    return this.persistShipping(session, selected, userId);
+  }
+
+  async listShippingMethodsForAdmin(): Promise<
+    Array<{ code: string; label: string; baseFee: string; isActive: boolean }>
+  > {
+    const methods = await this.prisma.shippingMethod.findMany({ orderBy: { sortOrder: "asc" } });
+    return methods.map((method) => ({
+      code: method.code,
+      label: method.label,
+      baseFee: method.baseFee.toFixed(2),
+      isActive: method.isActive,
+    }));
+  }
+
+  async updateShippingFee(code: string, baseFee: number, adminId: string): Promise<{ code: string; baseFee: string }> {
+    if (!Number.isFinite(baseFee) || baseFee < 0) {
+      throw new ValidationError("Shipping fee must be zero or a positive amount");
+    }
+    const method = await this.prisma.shippingMethod.findUnique({ where: { code } });
+    if (!method) throw new NotFoundError("Shipping method not found");
+    const updated = await this.prisma.shippingMethod.update({
+      where: { code },
+      data: { baseFee: baseFee.toFixed(2) },
+    });
+    await this.auditService.log({
+      userId: adminId,
+      action: "ShippingFeeUpdated",
+      entityType: "shipping_method",
+      entityId: updated.id,
+      metadata: { code, baseFee: updated.baseFee.toFixed(2) },
+    });
+    return { code: updated.code, baseFee: updated.baseFee.toFixed(2) };
+  }
+
+  private async resolveOptions(session: {
+    cartId: string;
+    addressId: string | null;
+    guestAddress: Prisma.JsonValue | null;
+  }) {
+    const pincode = await this.resolvePincode(session);
+    const methods = await this.prisma.shippingMethod.findMany({
+      where: { isActive: true },
+      include: { zones: true },
+      orderBy: { sortOrder: "asc" },
+    });
+    const cartSummary = await this.cartService.getSummaryForCartId(session.cartId);
+    const qualifiesFree =
+      Number(cartSummary.shipping) === 0 ||
+      cartSummary.appliedCoupons.some((c) => c.type === "free_shipping");
+    return resolveShippingOptions({ pincode, methods, freeShipping: qualifiesFree });
+  }
+
+  private async persistShipping(
+    session: { id: string; subtotal: unknown; discount: unknown; taxAmount: unknown },
+    selected: { code: string; label: string; fee: number; estimatedDaysMin: number; estimatedDaysMax: number },
+    userId?: string,
+  ) {
     const taxable = Math.max(0, Number(session.subtotal) - Number(session.discount));
     const taxAmount = Number(session.taxAmount);
     const total = taxable + selected.fee + taxAmount;
@@ -198,7 +275,8 @@ export class CheckoutService {
         estimatedDaysMax: selected.estimatedDaysMax,
         shippingFee: selected.fee.toFixed(2),
         total: total.toFixed(2),
-        status: "shipping_selected",
+        paymentMethod: "razorpay",
+        status: "payment_selected",
       },
     });
 
@@ -273,10 +351,21 @@ export class CheckoutService {
     const session = await this.loadAuthorizedSession(id, userId, sessionId);
     this.assertActive(session);
 
+    if (!session.paymentMethod && session.shippingMethodCode) {
+      await this.prisma.checkoutSession.update({
+        where: { id: session.id },
+        data: {
+          paymentMethod: "razorpay",
+          status: session.status === "order_prepared" ? session.status : "payment_selected",
+        },
+      });
+      session.paymentMethod = "razorpay";
+    }
+
     const issues: string[] = [];
     if (!session.addressId && !session.guestAddress) issues.push("Delivery address is required");
-    if (!session.shippingMethodCode) issues.push("Delivery option is required");
-    if (!session.paymentMethod) issues.push("Payment method is required");
+    if (!session.shippingMethodCode) issues.push("Shipping could not be applied for this address");
+    if (!session.paymentMethod) issues.push("Payment could not be started");
 
     const cartSummary = await this.cartService.getSummaryForCartId(session.cartId);
     const unavailable = cartSummary.items.filter((i) => !i.available);
@@ -605,9 +694,6 @@ export class CheckoutService {
   private assertActive(session: { status: CheckoutStatus }): void {
     if (session.status === "expired" || session.status === "cancelled") {
       throw new ValidationError("Checkout session is no longer active");
-    }
-    if (session.status === "order_prepared") {
-      throw new ValidationError("Checkout already completed");
     }
   }
 

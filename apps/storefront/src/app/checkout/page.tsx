@@ -1,6 +1,6 @@
 "use client";
 
-import type { CheckoutSession, CustomerAddress, ShippingOption } from "@ecom/types";
+import type { CheckoutSession, CustomerAddress } from "@ecom/types";
 import { INDIAN_STATES, validateCheckoutAddress } from "@ecom/validation";
 import { Button } from "@ecom/ui";
 import Link from "next/link";
@@ -13,15 +13,13 @@ import { apiFetch, getToken } from "@/lib/auth";
 import { formatInr } from "@/lib/cart";
 import {
   createCheckout,
-  fetchShippingOptions,
   lookupPincode,
   placeOrder,
   reviewCheckout,
   updateCheckoutAddress,
   updateCheckoutPayment,
-  updateCheckoutShipping,
 } from "@/lib/checkout";
-import { initiatePayment, mockCapturePayment } from "@/lib/payments";
+import { initiatePayment, payWithRazorpay } from "@/lib/payments";
 
 const LOGIN_HREF = `/account?next=${encodeURIComponent("/checkout")}`;
 const ADDRESS_DRAFT_KEY = "ecom_checkout_address_draft";
@@ -77,10 +75,8 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [addresses, setAddresses] = useState<CustomerAddress[]>([]);
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [shippingLoading, setShippingLoading] = useState(false);
   const [pincodeHint, setPincodeHint] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -89,29 +85,8 @@ export default function CheckoutPage() {
   const [guestAddress, setGuestAddress] = useState(EMPTY_GUEST_ADDRESS);
   const [useGuestForm, setUseGuestForm] = useState(!getToken());
   const [editingAddress, setEditingAddress] = useState(true);
-  const [selectedShipping, setSelectedShipping] = useState<string | null>(null);
   const [loggedIn, setLoggedIn] = useState(Boolean(getToken()));
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-
-  const loadShippingOptions = useCallback(async (checkoutId: string) => {
-    setShippingLoading(true);
-    try {
-      const options = await fetchShippingOptions(checkoutId);
-      setShippingOptions(options);
-      setSelectedShipping((prev) => {
-        if (prev && options.some((o) => o.code === prev)) return prev;
-        return options[0]?.code ?? null;
-      });
-      if (options.length === 0) {
-        setError("No delivery options for this pincode. Try a valid Indian pincode (e.g. 110001, 560001).");
-      }
-    } catch (err) {
-      setShippingOptions([]);
-      setError(err instanceof Error ? err.message : "Could not load delivery options");
-    } finally {
-      setShippingLoading(false);
-    }
-  }, []);
 
   const init = useCallback(async () => {
     setLoading(true);
@@ -137,7 +112,6 @@ export default function CheckoutPage() {
           country: checkout.address.country || "IN",
           isDefault: false,
         });
-        await loadShippingOptions(checkout.id);
       } else if (draft && hasDraft) {
         setGuestAddress(draft);
       }
@@ -165,7 +139,7 @@ export default function CheckoutPage() {
     } finally {
       setLoading(false);
     }
-  }, [loadShippingOptions]);
+  }, []);
 
   useEffect(() => {
     void init();
@@ -283,29 +257,7 @@ export default function CheckoutPage() {
             // Address book refresh is best-effort
           }
         }
-        await loadShippingOptions(updated.id);
       },
-    );
-  }
-
-  async function saveShipping() {
-    if (!session || !selectedShipping) return;
-    await runAction(
-      () => updateCheckoutShipping(session.id, selectedShipping),
-      (updated) => setSession(updated),
-    );
-  }
-
-  async function savePayment() {
-    if (!session) return;
-    if (!getToken()) {
-      setError("Please log in to continue to payment");
-      goToLogin();
-      return;
-    }
-    await runAction(
-      () => updateCheckoutPayment(session.id, "razorpay"),
-      (updated) => setSession(updated),
     );
   }
 
@@ -324,6 +276,11 @@ export default function CheckoutPage() {
     setError(null);
     setSuccess(null);
     try {
+      if (!session.paymentMethod) {
+        const withPayment = await updateCheckoutPayment(session.id, "razorpay");
+        setSession(withPayment);
+      }
+
       const review = await reviewCheckout(session.id);
       setSession(review.session);
       if (!review.valid) {
@@ -334,7 +291,10 @@ export default function CheckoutPage() {
       await placeOrder(session.id, crypto.randomUUID());
 
       const payment = await initiatePayment(session.id);
-      const captured = await mockCapturePayment(payment.id);
+      const captured = await payWithRazorpay(payment, {
+        name: session.address?.fullName,
+        contact: session.address?.phone,
+      });
       window.dispatchEvent(new Event("cart-updated"));
       setSuccess("Payment successful");
       router.push(`/order/confirmation?order=${encodeURIComponent(captured.order.orderNumber)}`);
@@ -373,7 +333,6 @@ export default function CheckoutPage() {
   const stepDone = {
     address: Boolean(session.address) && !editingAddress,
     shipping: Boolean(session.shipping),
-    payment: Boolean(session.paymentMethod),
   };
 
   const inputClass = (field?: FieldKey) =>
@@ -417,7 +376,6 @@ export default function CheckoutPage() {
                   className="text-xs font-medium text-info-600 hover:underline"
                   onClick={() => {
                     setEditingAddress(true);
-                    setShippingOptions([]);
                   }}
                 >
                   Change
@@ -621,150 +579,6 @@ export default function CheckoutPage() {
               </>
             )}
           </section>
-
-          {/* Shipping */}
-          <section
-            className={`rounded-lg border bg-white p-5 ${
-              stepDone.address ? "border-neutral-200" : "border-neutral-100 opacity-60"
-            }`}
-          >
-            <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-              2. Delivery option
-            </h2>
-
-            {!stepDone.address && (
-              <p className="mt-3 text-sm text-neutral-500">
-                Save your delivery address to see available shipping options.
-              </p>
-            )}
-
-            {stepDone.address && shippingLoading && (
-              <p className="mt-3 text-sm text-neutral-500">Loading delivery options…</p>
-            )}
-
-            {stepDone.address && !shippingLoading && shippingOptions.length === 0 && (
-              <div className="mt-3 rounded-md border border-warning-500/40 bg-warning-50 px-3 py-3 text-sm text-warning-600">
-                <p className="font-medium text-neutral-900">No delivery options for this pincode</p>
-                <p className="mt-1 text-xs text-neutral-600">
-                  Change the address and try a valid Indian pincode (e.g. 110001 Delhi, 400001 Mumbai,
-                  560001 Bengaluru).
-                </p>
-                <button
-                  type="button"
-                  className="mt-2 text-xs font-semibold text-info-600 hover:underline"
-                  onClick={() => setEditingAddress(true)}
-                >
-                  Edit address
-                </button>
-              </div>
-            )}
-
-            {stepDone.address && !shippingLoading && shippingOptions.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {shippingOptions.map((option) => (
-                  <label
-                    key={option.code}
-                    className={`flex cursor-pointer items-center justify-between rounded-md border p-3 ${
-                      selectedShipping === option.code
-                        ? "border-brand-500 bg-brand-50"
-                        : "border-neutral-200 hover:border-neutral-400"
-                    }`}
-                  >
-                    <span className="flex items-center gap-3 text-sm">
-                      <input
-                        type="radio"
-                        name="shipping"
-                        checked={selectedShipping === option.code}
-                        onChange={() => setSelectedShipping(option.code)}
-                      />
-                      <span>
-                        <span className="font-medium">{option.label}</span>
-                        <br />
-                        <span className="text-xs text-neutral-500">
-                          {option.estimatedDaysMin}–{option.estimatedDaysMax} business days
-                        </span>
-                      </span>
-                    </span>
-                    <span className="text-sm font-medium">
-                      {Number(option.fee) === 0 ? "FREE" : formatInr(option.fee)}
-                    </span>
-                  </label>
-                ))}
-                {!stepDone.shipping && (
-                  <Button
-                    className="mt-2 bg-accent-500 text-neutral-950 hover:bg-accent-600"
-                    disabled={actionLoading || !selectedShipping}
-                    onClick={() => void saveShipping()}
-                  >
-                    Continue
-                  </Button>
-                )}
-                {stepDone.shipping && session.shipping && (
-                  <p className="mt-2 text-sm text-neutral-600">
-                    Selected: {session.shipping.label} — {formatInr(session.shipping.fee)}
-                  </p>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Payment — online only */}
-          <section
-            className={`rounded-lg border bg-white p-5 ${
-              stepDone.shipping ? "border-neutral-200" : "border-neutral-100 opacity-60"
-            }`}
-          >
-            <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-              3. Payment method
-            </h2>
-
-            {!stepDone.shipping && (
-              <p className="mt-3 text-sm text-neutral-500">
-                Choose a delivery option to continue to payment.
-              </p>
-            )}
-
-            {stepDone.shipping && (
-              <div className="mt-4 space-y-3">
-                {!loggedIn && (
-                  <div className="rounded-md border border-brand-200 bg-brand-50 px-3 py-3 text-sm text-neutral-800">
-                    <p className="font-medium">Login required to place order</p>
-                    <p className="mt-1 text-xs text-neutral-600">
-                      Sign in to pay securely and track your order. Your bag and address stay saved.
-                    </p>
-                    <Link
-                      href={LOGIN_HREF}
-                      onClick={() => {
-                        if (session.address) writeAddressDraft(addressFromSession(session.address));
-                        else writeAddressDraft(guestAddress);
-                      }}
-                      className="mt-3 inline-flex rounded-md bg-brand-600 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-brand-700"
-                    >
-                      Login / Sign up
-                    </Link>
-                  </div>
-                )}
-                <div className="rounded-md border border-brand-500 bg-brand-50 p-3">
-                  <p className="text-sm font-medium">Pay Online (Razorpay)</p>
-                  <p className="mt-1 text-xs text-neutral-500">
-                    UPI, cards, and net banking. Cash on Delivery is not available.
-                  </p>
-                </div>
-                {!stepDone.payment && (
-                  <Button
-                    className="bg-accent-500 text-neutral-950 hover:bg-accent-600"
-                    disabled={actionLoading || !loggedIn}
-                    onClick={() => void savePayment()}
-                  >
-                    {loggedIn ? "Continue to pay" : "Login to continue"}
-                  </Button>
-                )}
-                {stepDone.payment && (
-                  <p className="text-sm text-neutral-600">Online payment selected</p>
-                )}
-              </div>
-            )}
-          </section>
         </div>
 
         <aside className="h-fit rounded-lg border border-neutral-200 bg-white p-5 lg:sticky lg:top-24">
@@ -846,7 +660,8 @@ export default function CheckoutPage() {
               className="mt-4 w-full bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600 disabled:opacity-50"
               disabled={
                 actionLoading ||
-                !stepDone.payment ||
+                !stepDone.address ||
+                !stepDone.shipping ||
                 !acceptedTerms ||
                 session.status === "order_prepared"
               }
@@ -856,7 +671,7 @@ export default function CheckoutPage() {
             </Button>
           )}
           <p className="mt-2 text-center text-xs text-neutral-400">
-            Secure online payment · Easy returns · Order updates by email
+            Easy returns · Order updates by email
           </p>
         </aside>
       </div>

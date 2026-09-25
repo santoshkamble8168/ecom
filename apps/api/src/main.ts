@@ -12,7 +12,7 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { AppLogger } from "./logger/logger.service";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   const logger = await app.resolve(AppLogger);
   logger.setContext("Bootstrap");

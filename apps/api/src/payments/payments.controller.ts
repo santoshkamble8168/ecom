@@ -11,6 +11,7 @@ import {
 import { ApiTags } from "@nestjs/swagger";
 import { SkipThrottle } from "@nestjs/throttler";
 import { PERMISSIONS } from "@ecom/types";
+import { ValidationError } from "@ecom/shared";
 import { IsOptional, IsString, Length } from "class-validator";
 
 import type { AuthenticatedUser } from "../auth/types/authenticated-user";
@@ -110,9 +111,10 @@ export class PaymentsController {
     @Req() req: { rawBody?: Buffer; body?: unknown },
     @Headers("x-razorpay-signature") signature?: string,
   ) {
-    const rawBody =
-      req.rawBody?.toString("utf8") ??
-      (typeof req.body === "string" ? req.body : JSON.stringify(req.body ?? {}));
+    const rawBody = req.rawBody?.toString("utf8");
+    if (!rawBody) {
+      throw new ValidationError("Webhook body is missing");
+    }
     return this.paymentsService.handleRazorpayWebhook(rawBody, signature);
   }
 
