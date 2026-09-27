@@ -61,4 +61,32 @@ describe("validateApiEnv", () => {
       /DATABASE_URL/,
     );
   });
+
+  it("allows mock Razorpay without keys outside production", () => {
+    const env = validateApiEnv(VALID_ENV);
+    expect(env.RAZORPAY_MODE).toBe("mock");
+  });
+
+  it("rejects production boot when Razorpay is mock or keys are missing", () => {
+    expect(() => validateApiEnv({ ...VALID_ENV, NODE_ENV: "production" })).toThrow(/RAZORPAY_MODE/);
+    expect(() =>
+      validateApiEnv({
+        ...VALID_ENV,
+        NODE_ENV: "production",
+        RAZORPAY_MODE: "test",
+      }),
+    ).toThrow(/RAZORPAY_KEY_ID/);
+  });
+
+  it("accepts production when Razorpay test keys are set", () => {
+    const env = validateApiEnv({
+      ...VALID_ENV,
+      NODE_ENV: "production",
+      RAZORPAY_MODE: "test",
+      RAZORPAY_KEY_ID: "rzp_test_key",
+      RAZORPAY_KEY_SECRET: "test_key_secret",
+      RAZORPAY_WEBHOOK_SECRET: "test_webhook_secret",
+    });
+    expect(env.RAZORPAY_MODE).toBe("test");
+  });
 });

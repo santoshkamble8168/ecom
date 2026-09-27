@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { getToken } from "@/lib/auth";
+import { decodeJwtPayload, ensureAccessToken, getToken, signOut } from "@/lib/auth";
 import { fetchCart } from "@/lib/cart";
 import { getApiUrl } from "@/lib/api-url";
 
@@ -58,6 +58,61 @@ function UserIcon({ className }: { className?: string }) {
   );
 }
 
+const ACCOUNT_LINKS = [
+  { href: "/account?tab=orders", label: "Orders" },
+  { href: "/account?tab=wishlist", label: "Wishlist" },
+  { href: "/account?tab=addresses", label: "Addresses" },
+  { href: "/account?tab=profile", label: "Profile" },
+  { href: "/account?tab=preferences", label: "Notifications" },
+  { href: "/track", label: "Track order" },
+] as const;
+
+function AccountMenu({
+  email,
+  onNavigate,
+  onSignOut,
+}: {
+  email?: string;
+  onNavigate: () => void;
+  onSignOut: () => void;
+}) {
+  return (
+    <div
+      role="menu"
+      aria-label="Account"
+      className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-neutral-200 bg-white py-2 shadow-lg dark:border-neutral-800 dark:bg-neutral-950"
+    >
+      <div className="border-b border-neutral-100 px-4 py-3 dark:border-neutral-800">
+        <p className="text-xs font-medium uppercase tracking-wide text-neutral-400">Account</p>
+        <p className="mt-1 truncate text-sm font-semibold text-neutral-950 dark:text-white">{email ?? "Signed in"}</p>
+      </div>
+      <div className="py-1">
+        {ACCOUNT_LINKS.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            role="menuitem"
+            className="block px-4 py-2.5 text-sm font-medium text-neutral-800 hover:bg-neutral-50 dark:text-neutral-100 dark:hover:bg-neutral-900"
+            onClick={onNavigate}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
+      <div className="border-t border-neutral-100 pt-1 dark:border-neutral-800">
+        <button
+          type="button"
+          role="menuitem"
+          className="block w-full px-4 py-2.5 text-left text-sm font-semibold text-danger-600 hover:bg-danger-50"
+          onClick={onSignOut}
+        >
+          Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function SiteHeader({ navigation }: SiteHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -69,7 +124,9 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   const [cartCount, setCartCount] = useState(0);
   const [bagBounce, setBagBounce] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
   const bagBounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refreshCartCount = useCallback(async () => {
@@ -83,6 +140,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
 
   useEffect(() => {
     setSignedIn(Boolean(getToken()));
+    void ensureAccessToken().finally(() => setSignedIn(Boolean(getToken())));
     const syncAuth = () => setSignedIn(Boolean(getToken()));
     window.addEventListener("storage", syncAuth);
     window.addEventListener("focus", syncAuth);
@@ -140,9 +198,19 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
         setSearchFocused(false);
       }
+      if (accountMenuRef.current && !accountMenuRef.current.contains(e.target as Node)) {
+        setAccountOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setAccountOpen(false);
     }
     document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, []);
 
   function submitSearch(term: string) {
@@ -154,11 +222,20 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
 
   const announcement = navigation.announcement;
   const dropdownOpen = searchFocused && (suggestions.length > 0 || trending.length > 0 || query.length > 0);
+  const onCart = pathname === "/cart" || pathname.startsWith("/cart/");
+  const accountEmail = signedIn ? decodeJwtPayload(getToken() ?? "")?.email : undefined;
+
+  async function handleSignOut() {
+    setAccountOpen(false);
+    setMenuOpen(false);
+    await signOut();
+    router.push("/");
+  }
 
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/95">
-        {announcement && (
+        {announcement && !onCart && (
           <div className="border-b border-neutral-200 bg-neutral-950 py-2 text-center text-xs font-medium tracking-wide text-white">
             {announcement.message}
             {announcement.linkUrl && announcement.linkLabel && (
@@ -172,6 +249,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
           </div>
         )}
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:gap-8">
+          {!onCart && (
           <button
             type="button"
             className="inline-flex min-h-11 min-w-11 items-center justify-center md:hidden"
@@ -182,6 +260,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+          )}
 
           <Link
             href="/"
@@ -190,6 +269,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             ECOM
           </Link>
 
+          {!onCart && (
           <nav className="hidden shrink-0 gap-6 md:flex" aria-label="Primary">
             {navigation.header.map((link) => (
               <div key={link.href} className="group relative">
@@ -215,7 +295,9 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               </div>
             ))}
           </nav>
+          )}
 
+          {!onCart && (
           <div ref={searchBoxRef} className="relative ml-auto hidden max-w-md flex-1 sm:block">
             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
@@ -270,32 +352,64 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               </div>
             )}
           </div>
+          )}
 
-          <div className="ml-auto flex items-center gap-4 sm:ml-0">
-            <Link
-              href="/search"
-              aria-label="Search"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 sm:hidden dark:text-neutral-200"
-            >
-              <SearchIcon className="h-5 w-5" />
-            </Link>
-            <Link
-              href="/account"
-              aria-label="Account"
-              className="hidden min-h-11 items-center gap-1.5 text-neutral-800 hover:text-neutral-950 sm:flex dark:text-neutral-200 dark:hover:text-white"
-            >
-              <UserIcon className="h-5 w-5" />
-              <span className="text-xs font-semibold uppercase tracking-wide">
-                {signedIn ? "Account" : "Login"}
-              </span>
-            </Link>
-            <Link
-              href="/wishlist"
-              aria-label="Wishlist"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white"
-            >
-              <HeartIcon className="h-5 w-5" />
-            </Link>
+          <div className={`flex items-center gap-1 sm:gap-3 ${onCart ? "ml-auto" : "ml-auto sm:ml-0"}`}>
+            {!onCart && (
+              <Link
+                href="/search"
+                aria-label="Search"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 sm:hidden dark:text-neutral-200"
+              >
+                <SearchIcon className="h-5 w-5" />
+              </Link>
+            )}
+            {onCart && !signedIn ? (
+              <button
+                type="button"
+                aria-label="Login"
+                className="inline-flex min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white"
+                onClick={() => window.dispatchEvent(new Event("open-cart-login"))}
+              >
+                <UserIcon className="h-5 w-5 animate-login-nudge" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Login</span>
+              </button>
+            ) : signedIn ? (
+              <div className="relative" ref={accountMenuRef}>
+                <button
+                  type="button"
+                  aria-label="Account menu"
+                  aria-haspopup="menu"
+                  aria-expanded={accountOpen}
+                  className={`${onCart ? "inline-flex" : "hidden sm:inline-flex"} min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white`}
+                  onClick={() => setAccountOpen((open) => !open)}
+                >
+                  <UserIcon className="h-5 w-5" />
+                  <span className="text-xs font-semibold uppercase tracking-wide">Account</span>
+                </button>
+                {accountOpen && (
+                  <AccountMenu email={accountEmail} onNavigate={() => setAccountOpen(false)} onSignOut={() => void handleSignOut()} />
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/account"
+                aria-label="Login"
+                className={`${onCart ? "inline-flex" : "hidden sm:flex"} min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white`}
+              >
+                <UserIcon className="h-5 w-5" />
+                <span className="text-xs font-semibold uppercase tracking-wide">Login</span>
+              </Link>
+            )}
+            {!onCart && (
+              <Link
+                href="/account?tab=wishlist"
+                aria-label="Wishlist"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white"
+              >
+                <HeartIcon className="h-5 w-5" />
+              </Link>
+            )}
             <Link
               href="/cart"
               aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
@@ -305,15 +419,17 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 bagBounce ? "animate-bag-bounce" : ""
               }`}
             >
-              <BagIcon className="h-5 w-5" />
-              {cartCount > 0 && (
-                <span
-                  key={cartCount}
-                  className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold text-white animate-pop"
-                >
-                  {cartCount}
-                </span>
-              )}
+              <span className="relative inline-flex">
+                <BagIcon className="h-5 w-5" />
+                {cartCount > 0 && (
+                  <span
+                    key={cartCount}
+                    className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger-500 px-1 text-[10px] font-bold leading-none text-white animate-pop"
+                  >
+                    {cartCount}
+                  </span>
+                )}
+              </span>
             </Link>
           </div>
         </div>
@@ -374,13 +490,38 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 </li>
               ))}
             </ul>
-            <div className="mt-8 flex flex-col gap-4 border-t border-neutral-200 pt-6 dark:border-neutral-800">
-              <Link href="/account" className="flex items-center gap-2 text-sm font-medium" onClick={() => setMenuOpen(false)}>
-                <UserIcon className="h-5 w-5" /> {signedIn ? "Account" : "Login"}
-              </Link>
-              <Link href="/wishlist" className="flex items-center gap-2 text-sm font-medium" onClick={() => setMenuOpen(false)}>
-                <HeartIcon className="h-5 w-5" /> Wishlist
-              </Link>
+            <div className="mt-8 flex flex-col gap-1 border-t border-neutral-200 pt-6 dark:border-neutral-800">
+              {signedIn ? (
+                <>
+                  <p className="px-2 pb-2 text-xs text-neutral-500">{accountEmail ?? "Signed in"}</p>
+                  {ACCOUNT_LINKS.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="rounded-md px-2 py-2.5 text-sm font-medium hover:bg-neutral-50 dark:hover:bg-neutral-900"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                  <button
+                    type="button"
+                    className="rounded-md px-2 py-2.5 text-left text-sm font-semibold text-danger-600 hover:bg-danger-50"
+                    onClick={() => void handleSignOut()}
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <Link href="/account" className="flex items-center gap-2 px-2 py-2.5 text-sm font-medium" onClick={() => setMenuOpen(false)}>
+                  <UserIcon className="h-5 w-5" /> Login
+                </Link>
+              )}
+              {!signedIn && (
+                <Link href="/account?tab=wishlist" className="flex items-center gap-2 px-2 py-2.5 text-sm font-medium" onClick={() => setMenuOpen(false)}>
+                  <HeartIcon className="h-5 w-5" /> Wishlist
+                </Link>
+              )}
             </div>
           </nav>
         </div>

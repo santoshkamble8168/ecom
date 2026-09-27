@@ -880,8 +880,7 @@ export function PdpView({ product }: PdpViewProps) {
         />
       </section>
 
-      {/* Reviews */}
-      <section className="mt-12">
+      <section id="reviews" className="mt-12 scroll-mt-24">
         <h2 className="mb-4 text-xl font-semibold">Customer Reviews</h2>
 
         {product.reviewSummary.totalReviews > 0 && (

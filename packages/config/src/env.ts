@@ -77,6 +77,34 @@ export const apiEnvSchema = z.object({
   RECOMMENDATION_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   PERSONALIZATION_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
   SEMANTIC_SEARCH_PROVIDER: z.enum(["none"]).default("none"),
+
+  // Payments — mock is local development only. Production must be test or live.
+  RAZORPAY_MODE: z.enum(["mock", "test", "live"]).default("mock"),
+  RAZORPAY_KEY_ID: z.string().optional(),
+  RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+}).superRefine((env, ctx) => {
+  const liveMode = env.RAZORPAY_MODE === "test" || env.RAZORPAY_MODE === "live";
+  const production = env.NODE_ENV === "production";
+  if (production && !liveMode) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["RAZORPAY_MODE"],
+      message: "Production requires RAZORPAY_MODE=test or live",
+    });
+  }
+  if (production || liveMode) {
+    for (const key of ["RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"] as const) {
+      const value = env[key]?.trim() ?? "";
+      if (value.length < 8) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: "Required in production and whenever RAZORPAY_MODE is test or live",
+        });
+      }
+    }
+  }
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

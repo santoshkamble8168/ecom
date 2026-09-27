@@ -5,13 +5,32 @@ import { ValidationError } from "@ecom/shared";
 export const PAYMENT_EXPIRY_MINUTES = Number(process.env.PAYMENT_EXPIRY_MINUTES ?? 30);
 export const PAYMENT_MAX_RETRIES = Number(process.env.PAYMENT_MAX_RETRIES ?? 3);
 export const COD_MAX_ORDER_VALUE = Number(process.env.COD_MAX_ORDER_VALUE ?? 15000);
+const PAYABLE_STATUSES = new Set(["created", "pending", "authorized"]);
+
 export function razorpayMode(): string {
   return process.env.RAZORPAY_MODE ?? "mock";
 }
 
+/** Mock capture is local development only. Missing keys never force mock mode. */
 export function isRazorpayMockMode(): boolean {
-  const mode = razorpayMode();
-  return mode === "mock" || !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET;
+  if (process.env.NODE_ENV === "production") return false;
+  return razorpayMode() === "mock";
+}
+
+export function assertPaymentPayable(status: string): void {
+  if (!PAYABLE_STATUSES.has(status)) {
+    throw new ValidationError("Payment is no longer payable");
+  }
+}
+
+export function assertRazorpayOrderBound(storedOrderId: string | null, claimedOrderId: string): void {
+  if (!storedOrderId || storedOrderId !== claimedOrderId) {
+    throw new ValidationError("Payment does not match this order");
+  }
+}
+
+export function razorpayAmountMatches(localAmount: number, amountPaise: number): boolean {
+  return Number.isInteger(amountPaise) && toPaise(localAmount) === amountPaise;
 }
 
 export function assertCodEligible(amount: number): void {

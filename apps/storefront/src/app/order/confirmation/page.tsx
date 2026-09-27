@@ -3,7 +3,7 @@
 import type { OrderConfirmation } from "@ecom/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import { formatInr } from "@/lib/cart";
 import { fetchOrder } from "@/lib/payments";
@@ -28,7 +28,24 @@ function ConfirmationContent() {
   }, [orderNumber]);
 
   if (loading) {
-    return <div className="mx-auto max-w-lg px-4 py-16 text-neutral-500">Confirming your order…</div>;
+    return (
+      <div
+        className="mx-auto max-w-lg px-4 py-16"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <div className="mx-auto mb-6 h-16 w-16 animate-pulse rounded-full bg-neutral-200 dark:bg-neutral-800" />
+        <div className="mx-auto h-7 w-48 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
+        <div className="mx-auto mt-3 h-4 w-64 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
+        <div className="mt-8 space-y-3 rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+          <div className="h-4 w-full animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
+          <div className="h-4 w-2/3 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
+          <div className="h-4 w-1/2 animate-pulse rounded bg-neutral-200 dark:bg-neutral-800" />
+        </div>
+        <span className="sr-only">Confirming your order</span>
+      </div>
+    );
   }
 
   if (error || !order) {
@@ -44,8 +61,9 @@ function ConfirmationContent() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-16 text-center">
-      <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success-50 text-success-600">
+    <div className="relative mx-auto max-w-lg px-4 py-16 text-center">
+      <OrderCelebration />
+      <div className="animate-celebrate-pop mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-success-50 text-success-600">
         <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
           <circle cx="12" cy="12" r="9" />
@@ -89,6 +107,43 @@ function ConfirmationContent() {
           My Account
         </Link>
       </div>
+    </div>
+  );
+}
+
+const CONFETTI_COLORS = ["#ffe500", "#16a34a", "#2874f0", "#f43f5e", "#ffffff"];
+
+function OrderCelebration() {
+  const pieces = useMemo(
+    () =>
+      Array.from({ length: 42 }, (_, index) => ({
+        id: index,
+        left: `${(index * 37) % 100}%`,
+        delay: `${(index % 8) * 0.08}s`,
+        duration: `${1.5 + (index % 5) * 0.25}s`,
+        color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+        width: index % 3 === 0 ? 10 : 7,
+        height: index % 2 === 0 ? 14 : 8,
+      })),
+    [],
+  );
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden" aria-hidden="true">
+      {pieces.map((piece) => (
+        <span
+          key={piece.id}
+          className="animate-confetti absolute top-0 rounded-sm"
+          style={{
+            left: piece.left,
+            width: piece.width,
+            height: piece.height,
+            backgroundColor: piece.color,
+            animationDelay: piece.delay,
+            animationDuration: piece.duration,
+          }}
+        />
+      ))}
     </div>
   );
 }

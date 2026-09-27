@@ -7,18 +7,10 @@ import type {
   RazorpayMockCaptureResult,
 } from "@ecom/types";
 
-import { getToken } from "./auth";
+import { authHeaders } from "./auth";
 import { getSessionId } from "./session";
 
 const API_URL = getApiUrl();
-
-function authHeaders(): HeadersInit {
-  const token = getToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
 
 function sessionBody(): { sessionId: string } {
   return { sessionId: getSessionId() };
@@ -37,7 +29,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 export async function initiatePayment(checkoutId: string): Promise<PaymentSummary> {
   const response = await fetch(`${API_URL}/payments`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: JSON.stringify({ checkoutId, ...sessionBody() }),
   });
   return parseResponse(response);
@@ -46,7 +38,7 @@ export async function initiatePayment(checkoutId: string): Promise<PaymentSummar
 export async function confirmCod(checkoutId: string): Promise<CodConfirmationResult> {
   const response = await fetch(`${API_URL}/checkout/${checkoutId}/cod${sessionQuery()}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: JSON.stringify(sessionBody()),
   });
   return parseResponse(response);
@@ -55,7 +47,7 @@ export async function confirmCod(checkoutId: string): Promise<CodConfirmationRes
 export async function mockCapturePayment(paymentId: string): Promise<RazorpayMockCaptureResult> {
   const response = await fetch(`${API_URL}/payments/${paymentId}/mock-capture${sessionQuery()}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: JSON.stringify(sessionBody()),
   });
   return parseResponse(response);
@@ -67,7 +59,7 @@ export async function confirmRazorpayPayment(
 ): Promise<RazorpayMockCaptureResult> {
   const response = await fetch(`${API_URL}/payments/${paymentId}/confirm${sessionQuery()}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: JSON.stringify({ ...params, ...sessionBody() }),
   });
   return parseResponse(response);
@@ -93,12 +85,11 @@ export async function payWithRazorpay(payment: PaymentSummary, prefill?: {
   contact?: string;
 }): Promise<RazorpayMockCaptureResult> {
   const checkout = payment.razorpay;
+  if (checkout?.mock) {
+    return mockCapturePayment(payment.id);
+  }
   if (!checkout?.keyId || !payment.providerOrderId) {
     throw new Error("Payment could not be started");
-  }
-  const useHostedCheckout = Boolean(checkout.keyId) && !checkout.keyId.includes("mock") && checkout.mock !== true;
-  if (!useHostedCheckout) {
-    return mockCapturePayment(payment.id);
   }
 
   await loadRazorpayCheckout();
@@ -134,14 +125,14 @@ export async function payWithRazorpay(payment: PaymentSummary, prefill?: {
 export async function retryPayment(paymentId: string): Promise<PaymentSummary> {
   const response = await fetch(`${API_URL}/payments/${paymentId}/retry${sessionQuery()}`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: await authHeaders(),
   });
   return parseResponse(response);
 }
 
 export async function fetchOrder(orderNumber: string): Promise<OrderConfirmation> {
   const response = await fetch(`${API_URL}/orders/${orderNumber}${sessionQuery()}`, {
-    headers: authHeaders(),
+    headers: await authHeaders(),
   });
   return parseResponse(response);
 }

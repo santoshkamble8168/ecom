@@ -6,6 +6,9 @@ export interface CustomerPreferences {
   newsletter?: boolean;
   smsAlerts?: boolean;
   sizePreference?: string;
+  firstName?: string;
+  lastName?: string;
+  gender?: "male" | "female";
 }
 
 export interface CustomerProfile {
@@ -45,6 +48,11 @@ export interface RoleSummary {
   permissionKeys: string[];
 }
 
+export interface OrderItemPreview {
+  title: string;
+  imageUrl: string | null;
+}
+
 export interface CustomerOrderSummary {
   id: string;
   orderNumber: string;
@@ -65,6 +73,7 @@ export interface CustomerOrderSummary {
   paymentMethod: "razorpay" | "cod";
   paymentStatus: string | null;
   itemCount: number;
+  previews: OrderItemPreview[];
   confirmedAt: string | null;
   createdAt: string;
 }

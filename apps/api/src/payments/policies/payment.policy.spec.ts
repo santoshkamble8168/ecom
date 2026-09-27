@@ -1,7 +1,11 @@
 import {
   assertCodEligible,
+  assertPaymentPayable,
+  assertRazorpayOrderBound,
   canRetryPayment,
   generateOrderNumber,
+  isRazorpayMockMode,
+  razorpayAmountMatches,
   toPaise,
   verifyRazorpayPaymentSignature,
   verifyRazorpayWebhookSignature,
@@ -61,7 +65,49 @@ describe("payment.policy", () => {
   });
 
   it("defaults razorpay mode to mock when unset", () => {
-    expect(["mock", "test", "live"]).toContain(razorpayMode());
+    const previous = process.env.RAZORPAY_MODE;
+    delete process.env.RAZORPAY_MODE;
+    expect(razorpayMode()).toBe("mock");
+    if (previous === undefined) delete process.env.RAZORPAY_MODE;
+    else process.env.RAZORPAY_MODE = previous;
+  });
+
+  it("treats mock mode as local development only", () => {
+    const previousNode = process.env.NODE_ENV;
+    const previousMode = process.env.RAZORPAY_MODE;
+    const previousKey = process.env.RAZORPAY_KEY_ID;
+
+    process.env.NODE_ENV = "development";
+    delete process.env.RAZORPAY_MODE;
+    delete process.env.RAZORPAY_KEY_ID;
+    expect(isRazorpayMockMode()).toBe(true);
+
+    process.env.RAZORPAY_MODE = "test";
+    expect(isRazorpayMockMode()).toBe(false);
+
+    process.env.NODE_ENV = "production";
+    process.env.RAZORPAY_MODE = "mock";
+    expect(isRazorpayMockMode()).toBe(false);
+
+    if (previousNode === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNode;
+    if (previousMode === undefined) delete process.env.RAZORPAY_MODE;
+    else process.env.RAZORPAY_MODE = previousMode;
+    if (previousKey === undefined) delete process.env.RAZORPAY_KEY_ID;
+    else process.env.RAZORPAY_KEY_ID = previousKey;
+  });
+
+  it("rejects a confirm that is not payable or bound to the stored order", () => {
+    expect(() => assertPaymentPayable("captured")).toThrow("no longer payable");
+    expect(() => assertPaymentPayable("pending")).not.toThrow();
+    expect(() => assertRazorpayOrderBound(null, "order_cheap")).toThrow("does not match");
+    expect(() => assertRazorpayOrderBound("order_real", "order_cheap")).toThrow("does not match");
+    expect(() => assertRazorpayOrderBound("order_real", "order_real")).not.toThrow();
+  });
+
+  it("matches Razorpay paise to the local amount", () => {
+    expect(razorpayAmountMatches(499.5, 49950)).toBe(true);
+    expect(razorpayAmountMatches(499.5, 100)).toBe(false);
   });
 
   it("reads payment expiry minutes", () => {

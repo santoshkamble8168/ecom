@@ -1,7 +1,7 @@
 import type { CustomerAddress, CustomerOrderSummary, CustomerPreferences, UserProfile } from "@ecom/types";
-import { NotFoundError } from "@ecom/shared";
+import { ConflictError, NotFoundError } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
-import type { Address, Prisma } from "@prisma/client";
+import { Prisma, type Address } from "@prisma/client";
 
 import { AuditService } from "../audit/audit.service";
 import { PrismaService } from "../prisma/prisma.service";
@@ -9,6 +9,17 @@ import { PrismaService } from "../prisma/prisma.service";
 import type { CreateAddressDto } from "./dto/create-address.dto";
 import type { UpdateAddressDto } from "./dto/update-address.dto";
 import type { UpdateProfileDto } from "./dto/update-profile.dto";
+
+function orderItemPreview(item: unknown): CustomerOrderSummary["previews"][number] {
+  if (!item || typeof item !== "object") {
+    return { title: "Item", imageUrl: null };
+  }
+  const product = (item as { product?: { title?: string; primaryImage?: { url?: string } | null } | null }).product;
+  return {
+    title: product?.title?.trim() || "Item",
+    imageUrl: product?.primaryImage?.url ?? null,
+  };
+}
 
 @Injectable()
 export class UsersService {
@@ -30,11 +41,24 @@ export class UsersService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto): Promise<UserProfile> {
-    const user = await this.prisma.user.update({
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(dto.displayName !== undefined ? { displayName: dto.displayName } : {}),
+          ...(dto.email !== undefined ? { email: dto.email.toLowerCase() } : {}),
+          ...(dto.phone !== undefined ? { phone: dto.phone } : {}),
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        throw new ConflictError("That email or mobile number is already in use");
+      }
+      throw error;
+    }
+
+    const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      data: {
-        displayName: dto.displayName,
-      },
       include: {
         roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
         profile: true,
@@ -102,6 +126,7 @@ export class UsersService {
         paymentMethod: order.paymentMethod as CustomerOrderSummary["paymentMethod"],
         paymentStatus: payment?.status ?? null,
         itemCount: items.length,
+        previews: items.slice(0, 4).map(orderItemPreview),
         confirmedAt: order.confirmedAt?.toISOString() ?? null,
         createdAt: order.createdAt.toISOString(),
       };

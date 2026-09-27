@@ -9,7 +9,7 @@ import type {
   ShipmentSummary,
   TrackingEventSummary,
 } from "@ecom/types";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
+import { Button } from "@ecom/ui";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -45,33 +45,54 @@ function formatDateTime(iso: string): string {
   });
 }
 
-function StatusBadge({ status }: { status: OrderDetail["status"] }) {
-  const meta = orderStatusMeta(status);
-  return (
-    <span className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${meta.badgeClassName}`}>
-      {meta.label}
-    </span>
-  );
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
 
-function OrderTimeline({ events }: { events: OrderStatusEvent[] }) {
-  if (events.length === 0) {
-    return <p className="text-sm text-neutral-500">No status history yet.</p>;
+function milestoneSteps(order: OrderDetail): { label: string; at: string | null; done: boolean; failed: boolean }[] {
+  const dated = [...order.timeline].sort((a, b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+  const atStatus = (status: OrderStatusEvent["toStatus"]) =>
+    dated.find((event) => event.toStatus === status)?.createdAt ?? null;
+  const shippedAt = order.shipments.find((shipment) => shipment.shippedAt)?.shippedAt ?? atStatus("shipped");
+  const deliveredAt = order.shipments.find((shipment) => shipment.deliveredAt)?.deliveredAt ?? atStatus("delivered");
+
+  if (order.status === "cancelled" || order.status === "failed") {
+    const steps = dated.map((event) => ({
+      label: orderStatusMeta(event.toStatus).label,
+      at: event.createdAt,
+      done: true,
+      failed: event.toStatus === "cancelled" || event.toStatus === "failed",
+    }));
+    return steps.length > 0
+      ? steps
+      : [{ label: orderStatusMeta(order.status).label, at: order.createdAt, done: true, failed: true }];
   }
+
+  return [
+    { label: "Order confirmed", at: order.confirmedAt ?? atStatus("confirmed") ?? order.createdAt, done: true, failed: false },
+    { label: "Shipped", at: shippedAt, done: Boolean(shippedAt) || order.status === "delivered", failed: false },
+    { label: "Delivered", at: deliveredAt, done: Boolean(deliveredAt) || order.status === "delivered", failed: false },
+  ].filter((step) => step.done || step.label === "Order confirmed");
+}
+
+function MilestoneList({ steps }: { steps: ReturnType<typeof milestoneSteps> }) {
   return (
-    <ol className="space-y-4">
-      {events.map((event, idx) => (
-        <li key={`${event.toStatus}-${event.createdAt}-${idx}`} className="flex gap-3">
-          <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600" />
-          <div className="text-sm">
-            <p className="font-medium text-neutral-900 dark:text-neutral-100">
-              {orderStatusMeta(event.toStatus).label}
-            </p>
-            {event.reason && <p className="text-neutral-500">{event.reason}</p>}
-            <p className="text-xs text-neutral-400">
-              {formatDateTime(event.createdAt)} · {event.actorType}
-            </p>
-          </div>
+    <ol>
+      {steps.map((step, index) => (
+        <li key={`${step.label}-${index}`} className="relative flex gap-3 pb-4 last:pb-0">
+          {index < steps.length - 1 ? (
+            <span
+              className={`absolute left-[9px] top-5 h-[calc(100%-8px)] w-px ${step.done && !step.failed ? "bg-success-500" : "bg-neutral-200"}`}
+              aria-hidden="true"
+            />
+          ) : null}
+          <span className="relative z-10">
+            {step.done ? <CheckIcon failed={step.failed} /> : <PendingIcon />}
+          </span>
+          <p className="text-sm text-neutral-900">
+            {step.label}
+            {step.at ? <span className="text-neutral-500">, {shortDate(step.at)}</span> : null}
+          </p>
         </li>
       ))}
     </ol>
@@ -269,6 +290,7 @@ export default function OrderDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [showUpdates, setShowUpdates] = useState(false);
 
   const load = useCallback(async () => {
     if (!orderId) return;
@@ -461,82 +483,167 @@ export default function OrderDetailPage() {
     );
   }
 
+  const listingPrice = order.items.reduce((sum, item) => {
+    const compare = item.product?.compareAtPrice ? Number(item.product.compareAtPrice) : Number(item.unitPrice);
+    return sum + compare * item.quantity;
+  }, 0);
+  const specialPrice = order.items.reduce((sum, item) => sum + Number(item.lineTotal), 0);
+  const addressLine = [order.address.line1, order.address.line2, order.address.city, `${order.address.state} ${order.address.postalCode}`]
+    .filter(Boolean)
+    .join(", ");
+  const returnNote =
+    order.actions.returnEligible && order.actions.returnWindowEndsAt
+      ? `Return window open until ${formatDate(order.actions.returnWindowEndsAt)}`
+      : order.actions.returnWindowEndsAt
+        ? `Return policy ended on ${formatDate(order.actions.returnWindowEndsAt)}`
+        : "Returns are available after delivery";
+  const paymentLabel = order.paymentMethod === "cod" ? "Cash on delivery" : "Online payment";
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <Link href="/account" className="text-sm font-medium text-info-600 hover:underline">
-          ← Back to orders
+    <div className="min-h-screen bg-neutral-100">
+      <div className="mx-auto max-w-6xl px-4 py-6">
+        <Link href="/account?tab=orders" className="text-sm font-medium text-info-600 hover:underline">
+          ← Orders
         </Link>
-      </div>
+        <p className="mt-2 text-xs text-neutral-500">
+          Order {order.orderNumber} · Placed {formatDate(order.createdAt)}
+        </p>
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold">Order {order.orderNumber}</h1>
-          <p className="mt-1 text-sm text-neutral-500">Placed on {formatDate(order.createdAt)}</p>
-        </div>
-        <StatusBadge status={order.status} />
-      </div>
+        {actionError && (
+          <div className="mt-4 rounded-md border border-danger-500/40 bg-danger-50 px-4 py-3 text-sm text-danger-600">
+            {actionError}
+          </div>
+        )}
 
-      {actionError && (
-        <div className="mb-4 rounded-md border border-danger-500/40 bg-danger-50 px-4 py-3 text-sm text-danger-600">
-          {actionError}
-        </div>
-      )}
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="space-y-4">
+            {order.items.map((item) => (
+              <article key={item.id} className="rounded-sm border border-neutral-200 bg-white p-4">
+                <div className="flex gap-4">
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/products/${item.productSlug}`} className="text-sm font-medium leading-snug text-neutral-950 hover:text-info-600">
+                      {item.product?.title ?? item.productSlug}
+                    </Link>
+                    {item.variantLabel ? <p className="mt-2 text-sm text-neutral-500">{item.variantLabel}</p> : null}
+                    <p className="mt-1 text-sm text-neutral-500">
+                      Seller: <span className="font-medium text-neutral-800">{item.product?.brand ?? "ECOM"}</span>
+                    </p>
+                    <p className="mt-2 text-lg font-semibold text-neutral-950">{formatInr(item.lineTotal)}</p>
+                    {item.quantity > 1 ? (
+                      <p className="text-xs text-neutral-500">Qty {item.quantity}</p>
+                    ) : null}
+                  </div>
+                  <Link href={`/products/${item.productSlug}`} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-sm bg-neutral-100">
+                    {item.product?.primaryImage ? (
+                      <StorefrontImage
+                        src={item.product.primaryImage.url}
+                        alt={item.product.title}
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    ) : null}
+                  </Link>
+                </div>
+              </article>
+            ))}
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Order summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-2 text-sm sm:grid-cols-2">
-              <div className="flex justify-between sm:block">
-                <dt className="text-neutral-500">Payment method</dt>
-                <dd className="font-medium uppercase">{order.paymentMethod}</dd>
+            <section className="rounded-sm border border-neutral-200 bg-white px-4 py-4">
+              <MilestoneList steps={milestoneSteps(order)} />
+              <button
+                type="button"
+                className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-info-600 hover:underline"
+                onClick={() => setShowUpdates((open) => !open)}
+              >
+                {showUpdates ? "Hide updates" : "See all updates"}
+                <ChevronIcon open={showUpdates} />
+              </button>
+              {showUpdates ? (
+                <div className="mt-4 space-y-4 border-t border-neutral-200 pt-4">
+                  {order.timeline.length === 0 ? (
+                    <p className="text-sm text-neutral-500">
+                      Order confirmed on {formatDate(order.confirmedAt ?? order.createdAt)}.
+                    </p>
+                  ) : (
+                    <ol className="space-y-3">
+                      {[...order.timeline].reverse().map((event, index) => (
+                        <li key={`${event.toStatus}-${event.createdAt}-${index}`} className="text-sm">
+                          <p className="font-medium text-neutral-900">{orderStatusMeta(event.toStatus).label}</p>
+                          {event.reason ? <p className="text-neutral-500">{event.reason}</p> : null}
+                          <p className="text-xs text-neutral-400">{formatDateTime(event.createdAt)}</p>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                  {order.shipments.map((shipment) => (
+                    <ShipmentCard key={shipment.id} shipment={shipment} />
+                  ))}
+                </div>
+              ) : null}
+              <p className="mt-4 text-sm text-neutral-500">{returnNote}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {order.actions.cancellable && !showCancelForm ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowCancelForm(true)}>
+                    Cancel order
+                  </Button>
+                ) : null}
+                {order.actions.returnEligible && !showReturnForm ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowReturnForm(true)}>
+                    Request return
+                  </Button>
+                ) : null}
+                {order.actions.exchangeEligible && !showExchangeForm ? (
+                  <Button variant="outline" size="sm" onClick={() => setShowExchangeForm(true)}>
+                    Request exchange
+                  </Button>
+                ) : null}
               </div>
-              <div className="flex justify-between sm:block">
-                <dt className="text-neutral-500">Payment status</dt>
-                <dd className="font-medium">{order.paymentStatus ?? "—"}</dd>
-              </div>
-              <div className="flex justify-between sm:block">
-                <dt className="text-neutral-500">Items</dt>
-                <dd>{order.itemCount}</dd>
-              </div>
-              <div className="flex justify-between border-t border-neutral-200 pt-2 text-base font-bold sm:block sm:border-0 sm:pt-0 sm:text-sm sm:font-medium">
-                <dt className="text-neutral-500 sm:font-normal">Order total</dt>
-                <dd>{formatInr(order.total)}</dd>
-              </div>
-            </dl>
+            </section>
 
-            <div className="mt-4 flex flex-wrap gap-3">
-              {order.actions.cancellable && !showCancelForm && (
-                <Button variant="destructive" size="sm" onClick={() => setShowCancelForm(true)}>
-                  Cancel order
-                </Button>
-              )}
-              {order.actions.returnEligible && !showReturnForm && (
-                <Button variant="outline" size="sm" onClick={() => setShowReturnForm(true)}>
-                  Request return
-                </Button>
-              )}
-              {order.actions.exchangeEligible && !showExchangeForm && (
-                <Button variant="outline" size="sm" onClick={() => setShowExchangeForm(true)}>
-                  Request exchange
-                </Button>
-              )}
-            </div>
+            <Link
+              href="/contact"
+              className="flex items-center justify-center gap-2 rounded-sm border border-neutral-200 bg-white py-4 text-sm font-medium text-neutral-800 hover:bg-neutral-50"
+            >
+              <ChatIcon />
+              Chat with us
+            </Link>
 
-            {order.actions.returnWindowEndsAt && order.actions.returnEligible && (
-              <p className="mt-2 text-xs text-neutral-400">
-                Returns accepted until {formatDate(order.actions.returnWindowEndsAt)}
-              </p>
+            <section className="rounded-sm border border-neutral-200 bg-white p-4">
+              <h2 className="text-base font-semibold text-neutral-950">Rate your experience</h2>
+              <div className="mt-3 space-y-2">
+                {order.items.map((item) => (
+                  <Link
+                    key={`rate-${item.id}`}
+                    href={`/products/${item.productSlug}#reviews`}
+                    className="flex items-center justify-between gap-3 rounded-sm bg-neutral-50 px-3 py-3 text-sm hover:bg-neutral-100"
+                  >
+                    <span className="inline-flex items-center gap-2 text-neutral-700">
+                      <StarOutlineIcon />
+                      Rate {item.product?.title ?? "the product"}
+                    </span>
+                    <span className="flex shrink-0 gap-1 text-neutral-300" aria-hidden="true">
+                      {Array.from({ length: 5 }, (_, star) => (
+                        <StarOutlineIcon key={star} />
+                      ))}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+
+            {(order.returnRequests.length > 0 || order.exchangeRequests.length > 0) && (
+              <section className="space-y-3 rounded-sm border border-neutral-200 bg-white p-4">
+                <h2 className="text-base font-semibold">Your requests</h2>
+                {order.returnRequests.map((request) => (
+                  <ReturnRequestCard key={request.id} request={request} />
+                ))}
+                {order.exchangeRequests.map((request) => (
+                  <ExchangeRequestCard key={request.id} request={request} />
+                ))}
+              </section>
             )}
-            {order.actions.exchangeWindowEndsAt && order.actions.exchangeEligible && (
-              <p className="mt-1 text-xs text-neutral-400">
-                Exchanges accepted until {formatDate(order.actions.exchangeWindowEndsAt)}
-              </p>
-            )}
 
+            {showCancelForm || showReturnForm || showExchangeForm ? (
+              <div className="rounded-sm border border-neutral-200 bg-white p-4">
             {showCancelForm && (
               <div className="mt-4 rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
                 <label className="text-sm">
@@ -773,129 +880,143 @@ export default function OrderDetailPage() {
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Items</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {order.items.map((item) => (
-              <div key={item.id} className="flex gap-3">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-800">
-                  {item.product?.primaryImage && (
-                    <StorefrontImage
-                      src={item.product.primaryImage.url}
-                      alt={item.product.title}
-                      className="object-cover"
-                      sizes="64px"
-                    />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 text-sm">
-                  <p className="truncate font-medium">{item.product?.title ?? item.productSlug}</p>
-                  {item.variantLabel && <p className="text-neutral-500">Size: {item.variantLabel}</p>}
-                  <p className="text-neutral-500">Qty: {item.quantity}</p>
-                </div>
-                <div className="shrink-0 text-right text-sm">
-                  <p className="font-semibold">{formatInr(item.lineTotal)}</p>
-                  <p className="text-xs text-neutral-400">{formatInr(item.unitPrice)} each</p>
-                </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            ) : null}
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Shipping address</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-neutral-700 dark:text-neutral-300">
-            <p className="font-medium text-neutral-900 dark:text-neutral-100">{order.address.fullName}</p>
-            <p>{order.address.line1}</p>
-            {order.address.line2 && <p>{order.address.line2}</p>}
-            <p>
-              {order.address.city}, {order.address.state} — {order.address.postalCode}
-            </p>
-            <p>{order.address.country}</p>
-            <p className="mt-1">{order.address.phone}</p>
-          </CardContent>
-        </Card>
+          <aside className="space-y-4 lg:sticky lg:top-4">
+            <section className="rounded-sm border border-neutral-200 bg-white p-4 text-sm">
+              <p className="flex items-start gap-2 text-neutral-800">
+                <HomeIcon />
+                <span className="min-w-0">
+                  <span className="font-semibold">Delivery</span>{" "}
+                  <span className="text-neutral-600">{addressLine}</span>
+                </span>
+              </p>
+              <p className="mt-3 flex items-start gap-2 text-neutral-800">
+                <UserIcon />
+                <span>
+                  <span className="font-semibold">{order.address.fullName}</span>{" "}
+                  <span className="text-neutral-600">{order.address.phone}</span>
+                </span>
+              </p>
+            </section>
 
-        {order.shipments.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Shipments</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {order.shipments.map((shipment) => (
-                <ShipmentCard key={shipment.id} shipment={shipment} />
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {(order.returnRequests.length > 0 || order.exchangeRequests.length > 0) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Your requests</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {order.returnRequests.map((request) => (
-                <ReturnRequestCard key={request.id} request={request} />
-              ))}
-              {order.exchangeRequests.map((request) => (
-                <ExchangeRequestCard key={request.id} request={request} />
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Order status history</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OrderTimeline events={order.timeline} />
-          </CardContent>
-        </Card>
-
-        {(order.invoice || isInvoiceable(order.status)) && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Invoice</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              {order.invoice ? (
-                <dl className="grid gap-1 sm:grid-cols-2">
-                  <div>
-                    <dt className="inline text-neutral-500">Invoice number: </dt>
-                    <dd className="inline font-medium">{order.invoice.invoiceNumber}</dd>
+            <section className="rounded-sm border border-neutral-200 bg-white p-4 text-sm">
+              <dl className="space-y-3">
+                <div className="flex justify-between gap-4 text-neutral-600">
+                  <dt>Listing price</dt>
+                  <dd>{formatInr(listingPrice)}</dd>
+                </div>
+                {specialPrice < listingPrice ? (
+                  <div className="flex justify-between gap-4 text-neutral-800">
+                    <dt>Special price</dt>
+                    <dd className="font-semibold">{formatInr(specialPrice)}</dd>
                   </div>
-                  <div>
-                    <dt className="inline text-neutral-500">Issued: </dt>
-                    <dd className="inline">{formatDate(order.invoice.issuedAt)}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline text-neutral-500">Total: </dt>
-                    <dd className="inline font-medium">{formatInr(order.invoice.total)}</dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="text-neutral-500">No invoice generated yet for this order.</p>
-              )}
-              <Button size="sm" variant="outline" disabled={invoiceLoading} onClick={() => void handleViewInvoice()}>
-                {invoiceLoading
-                  ? "Preparing…"
-                  : order.invoice
-                    ? "View / print invoice"
-                    : "Generate invoice"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+                ) : null}
+                <div className="flex justify-between gap-4 border-t border-dashed border-neutral-300 pt-3 font-semibold text-neutral-950">
+                  <dt>Total amount</dt>
+                  <dd>{formatInr(order.total)}</dd>
+                </div>
+              </dl>
+              <div className="mt-4 flex items-center justify-between border-t border-neutral-200 pt-4 text-neutral-700">
+                <span>Paid by</span>
+                <span className="inline-flex items-center gap-2 font-medium">
+                  <CardIcon />
+                  {paymentLabel}
+                  {order.paymentStatus ? <span className="text-xs capitalize text-neutral-500">{order.paymentStatus}</span> : null}
+                </span>
+              </div>
+              {order.invoice || isInvoiceable(order.status) ? (
+                <button
+                  type="button"
+                  disabled={invoiceLoading}
+                  onClick={() => void handleViewInvoice()}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-sm border border-neutral-300 bg-white py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50 disabled:opacity-50"
+                >
+                  <DownloadIcon />
+                  {invoiceLoading ? "Preparing…" : "Download invoice"}
+                </button>
+              ) : null}
+            </section>
+          </aside>
+        </div>
       </div>
     </div>
+  );
+}
+
+function CheckIcon({ failed }: { failed?: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className={`h-5 w-5 ${failed ? "text-danger-600" : "text-success-600"}`} aria-hidden="true">
+      <circle cx="10" cy="10" r="9" fill="currentColor" />
+      <path d="M6 10.2 8.6 12.8 14 7.4" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function PendingIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-5 w-5 text-neutral-300" aria-hidden="true">
+      <circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg viewBox="0 0 20 20" className={`h-4 w-4 transition-transform ${open ? "rotate-90" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m7 5 5 5-5 5" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 17.5 4 20V6.5A1.5 1.5 0 0 1 5.5 5h13A1.5 1.5 0 0 1 20 6.5v9A1.5 1.5 0 0 1 18.5 17H7Z" />
+    </svg>
+  );
+}
+
+function StarOutlineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+      <path strokeLinejoin="round" d="m12 3.5 2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 16.8 7.2 18.4l.9-5.4L4.2 9.2l5.4-.8L12 3.5Z" />
+    </svg>
+  );
+}
+
+function HomeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 11.5 12 4l8 7.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-8.5Z" />
+    </svg>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <circle cx="12" cy="8" r="3" />
+      <path strokeLinecap="round" d="M5.5 19.5a6.5 6.5 0 0 1 13 0" />
+    </svg>
+  );
+}
+
+function CardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="3" y="6" width="18" height="12" rx="2" />
+      <path d="M3 10h18" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14" />
+    </svg>
   );
 }

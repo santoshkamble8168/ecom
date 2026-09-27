@@ -32,24 +32,36 @@ export function Dialog({
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
   const descriptionId = useId();
+
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return undefined;
 
-    previouslyFocused.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const panel = panelRef.current;
+    const activeOnOpen = document.activeElement;
+    if (activeOnOpen instanceof HTMLElement && panel && !panel.contains(activeOnOpen)) {
+      previouslyFocused.current = activeOnOpen;
+    }
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    const panel = panelRef.current;
-    const firstFocusable = panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-    (firstFocusable ?? panel)?.focus();
+    const focusInside = Boolean(panel && activeOnOpen instanceof Node && panel.contains(activeOnOpen));
+    if (!focusInside) {
+      const preferred = panel?.querySelector<HTMLElement>(
+        "input:not([disabled]), textarea:not([disabled]), select:not([disabled])",
+      );
+      const firstFocusable = panel?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+      (preferred ?? firstFocusable ?? panel)?.focus();
+    }
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !panel) return;
@@ -79,9 +91,11 @@ export function Dialog({
     return () => {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
-      previouslyFocused.current?.focus();
+      if (!panel?.isConnected) {
+        previouslyFocused.current?.focus();
+      }
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

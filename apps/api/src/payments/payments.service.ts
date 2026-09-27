@@ -19,9 +19,12 @@ import { PromotionsService } from "../promotions/promotions.service";
 
 import {
   assertCodEligible,
+  assertPaymentPayable,
+  assertRazorpayOrderBound,
   canRetryPayment,
   generateOrderNumber,
   PAYMENT_EXPIRY_MINUTES,
+  razorpayAmountMatches,
   toPaise,
   verifyRazorpayPaymentSignature,
   verifyRazorpayWebhookSignature,
@@ -170,8 +173,8 @@ export class PaymentsService {
     userId?: string,
     sessionId?: string,
   ): Promise<RazorpayMockCaptureResult> {
-    if (!this.razorpay.isMockMode()) {
-      throw new ValidationError("Mock capture is only available in mock mode");
+    if (process.env.NODE_ENV === "production" || !this.razorpay.isMockMode()) {
+      throw new NotFoundError();
     }
 
     const payment = await this.prisma.payment.findUnique({ where: { id: paymentId } });
@@ -232,8 +235,18 @@ export class PaymentsService {
     if (!payment) throw new NotFoundError("Payment not found");
     const checkout = await this.loadCheckout(payment.checkoutId, userId, sessionId);
 
+    assertPaymentPayable(payment.status);
+    assertRazorpayOrderBound(payment.providerOrderId, params.razorpayOrderId);
+    if (!payment.providerOrderId) {
+      throw new ValidationError("Payment does not match this order");
+    }
+
+    if (this.razorpay.isMockMode()) {
+      throw new ValidationError("Payment confirmation requires Razorpay test or live mode");
+    }
+
     const valid = verifyRazorpayPaymentSignature({
-      orderId: params.razorpayOrderId,
+      orderId: payment.providerOrderId,
       paymentId: params.razorpayPaymentId,
       signature: params.razorpaySignature,
       secret: this.razorpay.getKeySecret(),
@@ -243,8 +256,19 @@ export class PaymentsService {
       throw new ValidationError("Invalid payment signature");
     }
 
-    if (payment.providerOrderId && params.razorpayOrderId !== payment.providerOrderId) {
+    const remote = await this.razorpay.fetchPayment(params.razorpayPaymentId);
+    assertRazorpayOrderBound(payment.providerOrderId, remote.orderId);
+    if (remote.id !== params.razorpayPaymentId) {
       throw new ValidationError("Payment does not match this order");
+    }
+    if (remote.currency !== payment.currency) {
+      throw new ValidationError("Payment currency does not match this order");
+    }
+    if (!razorpayAmountMatches(Number(payment.amount), remote.amountPaise)) {
+      throw new ValidationError("Payment amount does not match this order");
+    }
+    if (remote.status !== "captured") {
+      throw new ValidationError("Payment is not captured");
     }
 
     const order = await this.finalizeOrder(checkout, payment.id, "razorpay");
@@ -252,7 +276,6 @@ export class PaymentsService {
       where: { id: payment.id },
       data: {
         status: "captured",
-        providerOrderId: params.razorpayOrderId,
         providerPaymentId: params.razorpayPaymentId,
         orderId: order.id,
         capturedAt: new Date(),
@@ -282,7 +305,9 @@ export class PaymentsService {
       id?: string;
       event?: string;
       payload?: {
-        payment?: { entity?: { id?: string; order_id?: string; status?: string } };
+        payment?: {
+          entity?: { id?: string; order_id?: string; status?: string; amount?: number; currency?: string };
+        };
         order?: { entity?: { id?: string; receipt?: string } };
       };
     };
@@ -303,7 +328,7 @@ export class PaymentsService {
       return { received: true, processed: true };
     }
 
-    if (!signatureValid && !this.razorpay.isMockMode()) {
+    if (!signatureValid) {
       await this.prisma.paymentWebhook.create({
         data: {
           provider: "razorpay",
@@ -360,8 +385,22 @@ export class PaymentsService {
       return { received: true, processed: false };
     }
 
-    if (eventType.includes("captured") || payload.payload?.payment?.entity?.status === "captured") {
+    const paymentEntity = payload.payload?.payment?.entity;
+    if (eventType.includes("captured") || paymentEntity?.status === "captured") {
       if (payment.status !== "captured") {
+        assertPaymentPayable(payment.status);
+        if (paymentEntity?.order_id) {
+          assertRazorpayOrderBound(payment.providerOrderId, paymentEntity.order_id);
+        }
+        if (
+          typeof paymentEntity?.amount !== "number" ||
+          !razorpayAmountMatches(Number(payment.amount), paymentEntity.amount)
+        ) {
+          throw new ValidationError("Webhook amount does not match payment");
+        }
+        if (paymentEntity.currency && paymentEntity.currency !== payment.currency) {
+          throw new ValidationError("Webhook currency does not match payment");
+        }
         const checkout = await this.prisma.checkoutSession.findUniqueOrThrow({
           where: { id: payment.checkoutId },
         });

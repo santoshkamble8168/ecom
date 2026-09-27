@@ -11,6 +11,14 @@ export interface RazorpayOrderResult {
   mock: boolean;
 }
 
+export interface RazorpayPaymentResult {
+  id: string;
+  orderId: string;
+  amountPaise: number;
+  currency: string;
+  status: string;
+}
+
 @Injectable()
 export class RazorpayProvider {
   isMockMode(): boolean {
@@ -18,15 +26,15 @@ export class RazorpayProvider {
   }
 
   getKeyId(): string {
-    return process.env.RAZORPAY_KEY_ID || "rzp_test_mock_key";
+    return this.requireCredential("RAZORPAY_KEY_ID");
   }
 
   getKeySecret(): string {
-    return process.env.RAZORPAY_KEY_SECRET || "mock_razorpay_secret";
+    return this.requireCredential("RAZORPAY_KEY_SECRET");
   }
 
   getWebhookSecret(): string {
-    return process.env.RAZORPAY_WEBHOOK_SECRET || this.getKeySecret();
+    return process.env.RAZORPAY_WEBHOOK_SECRET?.trim() ?? "";
   }
 
   async createOrder(params: {
@@ -39,7 +47,7 @@ export class RazorpayProvider {
         providerOrderId: `order_mock_${randomUUID().replace(/-/g, "").slice(0, 14)}`,
         amountPaise: toPaise(params.amount),
         currency: params.currency,
-        keyId: this.getKeyId(),
+        keyId: "",
         mock: true,
       };
     }
@@ -101,5 +109,44 @@ export class RazorpayProvider {
 
     const data = (await response.json()) as { id: string };
     return { providerRefundId: data.id, mock: false };
+  }
+
+  async fetchPayment(providerPaymentId: string): Promise<RazorpayPaymentResult> {
+    if (this.isMockMode()) {
+      throw new Error("Razorpay payment lookup is not available in mock mode");
+    }
+
+    const auth = Buffer.from(`${this.getKeyId()}:${this.getKeySecret()}`).toString("base64");
+    const response = await fetch(`https://api.razorpay.com/v1/payments/${providerPaymentId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Razorpay payment lookup failed: ${text}`);
+    }
+
+    const data = (await response.json()) as {
+      id: string;
+      amount: number;
+      currency: string;
+      order_id: string;
+      status: string;
+    };
+    return {
+      id: data.id,
+      orderId: data.order_id,
+      amountPaise: data.amount,
+      currency: data.currency,
+      status: data.status,
+    };
+  }
+
+  private requireCredential(name: "RAZORPAY_KEY_ID" | "RAZORPAY_KEY_SECRET"): string {
+    const value = process.env[name]?.trim();
+    if (!value) {
+      throw new Error(`${name} is required when Razorpay is not in mock mode`);
+    }
+    return value;
   }
 }
