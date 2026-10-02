@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type React from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { getToken } from "@/lib/auth";
+import { authHeaders, ensureAccessToken } from "@/lib/auth";
 import { SORT_OPTIONS } from "@/lib/discovery";
 import { getSessionId } from "@/lib/session";
 import { getApiUrl } from "@/lib/api-url";
@@ -142,9 +142,10 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
   }, [filterKey, activeFilterCount, sizes, colors, brands, minPrice, maxPrice, onSale]);
 
   useEffect(() => {
-    fetch(`${API_URL}/wishlist?sessionId=${encodeURIComponent(getSessionId())}`, {
-      headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
-    })
+    authHeaders()
+      .then((headers) =>
+        fetch(`${API_URL}/wishlist?sessionId=${encodeURIComponent(getSessionId())}`, { headers }),
+      )
       .then((r) => r.json())
       .then((body) => {
         if (body.success) {
@@ -160,9 +161,9 @@ export function PlpView({ title, description, apiPath, searchMode }: PlpViewProp
     e.preventDefault();
     e.stopPropagation();
     const existingId = wishlistIds.get(slug);
-    const token = getToken();
-    const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     try {
+      const token = await ensureAccessToken();
+      const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
       if (existingId) {
         setWishlistIds((prev) => {
           const next = new Map(prev);

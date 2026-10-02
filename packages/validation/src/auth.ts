@@ -14,7 +14,7 @@ export const verifyOtpSchema = z.object({
 });
 
 export const refreshTokenSchema = z.object({
-  refreshToken: z.string().min(10),
+  refreshToken: z.string().min(10).optional(),
 });
 
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;

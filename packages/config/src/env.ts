@@ -21,6 +21,12 @@ export const apiEnvSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16),
   JWT_REFRESH_TTL: z.string().default("30d"),
 
+  // Refresh-token cookie for browser apps. Use `none` only when the API is on a
+  // different site from storefront/admin (requires HTTPS).
+  AUTH_COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).default("lax"),
+  AUTH_COOKIE_DOMAIN: z.string().optional(),
+  AUTH_COOKIE_SECURE: z.enum(["true", "false"]).optional(),
+
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   GOOGLE_CALLBACK_URL: z.string().url().optional(),

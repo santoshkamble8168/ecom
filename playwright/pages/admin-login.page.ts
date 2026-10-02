@@ -1,28 +1,29 @@
-import type { Locator, Page } from "@playwright/test";
+import type { BrowserContext, Cookie, Locator, Page } from "@playwright/test";
 
-interface CachedTokens {
-  accessToken: string;
-  refreshToken: string;
-}
+const REFRESH_COOKIE = "ecom_rt_admin";
+const SESSION_HINT_KEY = "ecom_admin_session";
 
 /**
- * Tokens obtained from a real OTP login, keyed by account email and reused
- * across every test in this worker process. `POST /auth/otp/request` is
- * throttled server-side to 5 requests / 10 minutes per IP (see
+ * Refresh cookies obtained from a real OTP login, keyed by account email and
+ * reused across every test in this worker process. `POST /auth/otp/request`
+ * is throttled server-side to 5 requests / 10 minutes per IP (see
  * `OTP_REQUEST_THROTTLE` in `apps/api/src/auth/auth.controller.ts`), and a
  * full suite logs in far more than 5 times across spec files, so we only
- * drive the real UI OTP flow once per account and reuse the resulting
- * tokens afterwards by writing them straight into `localStorage`.
+ * drive the real UI OTP flow once per account and reuse the session after.
+ *
+ * The refresh token lives in an httpOnly cookie and is rotated (the old one
+ * revoked) on every `/auth/refresh`, so the cache follows each rotation the
+ * browser performs instead of holding a snapshot.
  */
-const tokenCache = new Map<string, CachedTokens>();
+const cookieCache = new Map<string, Cookie>();
 
 /**
  * Encapsulates the admin OTP login flow at `/login`. In development, seeded
  * demo accounts accept a fixed OTP (`DEV_DEMO_OTP`, default `123456`)
  * instead of a real one-time code — see `apps/api/src/auth/demo-accounts.ts`.
  * CMS/blog/banner admin routes are gated behind `AdminAuthGuard`, which
- * redirects to `/login` whenever no token is present in `localStorage`, so
- * specs that need real seeded data must log in first via `loginAsAdmin()`.
+ * redirects to `/login` when the refresh cookie cannot restore a session,
+ * so specs that need real seeded data must log in first via `loginAsAdmin()`.
  */
 export class AdminLoginPage {
   readonly page: Page;
@@ -47,20 +48,22 @@ export class AdminLoginPage {
 
   /**
    * Logs in as a seeded demo account and waits for the post-login redirect.
-   * Reuses a cached token (see `tokenCache` above) instead of repeating the
-   * OTP request/verify round trip whenever one is already available for
-   * this email in the current worker process.
+   * Reuses the cached refresh cookie (see `cookieCache` above) instead of
+   * repeating the OTP request/verify round trip whenever it is still valid.
    */
   async loginAsAdmin(email = "admin@ecom.local", otp = "123456"): Promise<void> {
-    const cached = tokenCache.get(email);
+    const context = this.page.context();
+    trackRefreshCookie(context, email);
+
+    const cached = cookieCache.get(email);
     if (cached) {
+      await context.addCookies([cached]);
       await this.goto();
-      await this.page.evaluate((tokens: CachedTokens) => {
-        localStorage.setItem("ecom_admin_token", tokens.accessToken);
-        localStorage.setItem("ecom_admin_refresh_token", tokens.refreshToken);
-      }, cached);
+      await this.page.evaluate((key) => localStorage.setItem(key, "1"), SESSION_HINT_KEY);
+      const refreshed = this.page.waitForResponse((r) => new URL(r.url()).pathname.endsWith("/auth/refresh"));
       await this.page.goto("/");
-      return;
+      if ((await refreshed).ok()) return;
+      cookieCache.delete(email);
     }
 
     await this.goto();
@@ -69,13 +72,22 @@ export class AdminLoginPage {
     await this.otpInput.fill(otp);
     await this.verifyButton.click();
     await this.page.waitForURL((url) => new URL(url).pathname === "/");
-
-    const tokens = await this.page.evaluate(() => ({
-      accessToken: localStorage.getItem("ecom_admin_token"),
-      refreshToken: localStorage.getItem("ecom_admin_refresh_token"),
-    }));
-    if (tokens.accessToken && tokens.refreshToken) {
-      tokenCache.set(email, { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
-    }
   }
+}
+
+const trackedContexts = new WeakSet<BrowserContext>();
+
+function trackRefreshCookie(context: BrowserContext, email: string): void {
+  if (trackedContexts.has(context)) return;
+  trackedContexts.add(context);
+  context.on("requestfinished", (request) => {
+    if (!/\/auth\/(refresh|otp\/verify)$/.test(new URL(request.url()).pathname)) return;
+    void context
+      .cookies()
+      .then((cookies) => {
+        const cookie = cookies.find((c) => c.name === REFRESH_COOKIE);
+        if (cookie) cookieCache.set(email, cookie);
+      })
+      .catch(() => undefined);
+  });
 }

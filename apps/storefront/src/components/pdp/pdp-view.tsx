@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { StorefrontImage } from "@/components/media/storefront-image";
 
-import { apiFetch, getToken } from "@/lib/auth";
+import { apiFetch, authHeaders } from "@/lib/auth";
 import { addToCart } from "@/lib/cart";
 import { getSessionId } from "@/lib/session";
 import { getApiUrl } from "@/lib/api-url";
@@ -393,14 +393,13 @@ export function PdpView({ product }: PdpViewProps) {
   );
 
   const trackView = useCallback(() => {
-    void fetch(`${API_URL}/recently-viewed`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
-      body: JSON.stringify({ productSlug: product.slug, sessionId: getSessionId() }),
-    });
+    void authHeaders().then((headers) =>
+      fetch(`${API_URL}/recently-viewed`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ productSlug: product.slug, sessionId: getSessionId() }),
+      }),
+    );
   }, [product.slug]);
 
   useEffect(() => {
@@ -411,9 +410,8 @@ export function PdpView({ product }: PdpViewProps) {
       .then((body) => {
         if (body.success) setReviews(body.data.items);
       });
-    fetch(`${API_URL}/wishlist?sessionId=${getSessionId()}`, {
-      headers: getToken() ? { Authorization: `Bearer ${getToken()}` } : {},
-    })
+    authHeaders()
+      .then((headers) => fetch(`${API_URL}/wishlist?sessionId=${getSessionId()}`, { headers }))
       .then((r) => r.json())
       .then((body) => {
         if (body.success) {
@@ -439,10 +437,7 @@ export function PdpView({ product }: PdpViewProps) {
     if (wishlisted) return;
     await fetch(`${API_URL}/wishlist/items`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-      },
+      headers: await authHeaders(),
       body: JSON.stringify({
         productSlug: product.slug,
         variantSku: selectedVariant?.sku,

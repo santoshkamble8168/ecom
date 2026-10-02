@@ -13,7 +13,7 @@ import { StorefrontImage } from "@/components/media/storefront-image";
 import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
 import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
 import { getApiUrl } from "@/lib/api-url";
-import { apiFetch, ensureAccessToken, getToken } from "@/lib/auth";
+import { apiFetch, ensureAccessToken, hasSession } from "@/lib/auth";
 import {
   addToCart,
   addToWishlist,
@@ -178,7 +178,7 @@ export default function CartPage() {
 
   useEffect(() => {
     void loadCart();
-    setSignedIn(Boolean(getToken()));
+    setSignedIn(hasSession());
   }, [loadCart]);
 
   useEffect(() => {

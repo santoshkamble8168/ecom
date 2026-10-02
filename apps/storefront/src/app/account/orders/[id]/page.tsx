@@ -16,7 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { StorefrontImage } from "@/components/media/storefront-image";
 
-import { getToken } from "@/lib/auth";
+import { hasSession } from "@/lib/auth";
 import { formatInr } from "@/lib/cart";
 import {
   cancelOrder,
@@ -308,7 +308,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (!orderId) return;
-    if (!getToken()) {
+    if (!hasSession()) {
       router.replace(`/account?next=${encodeURIComponent(`/account/orders/${orderId}`)}`);
       return;
     }

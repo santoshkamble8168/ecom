@@ -17,7 +17,7 @@ import { AccountSidebar } from "@/components/account/account-sidebar";
 import { StorefrontImage } from "@/components/media/storefront-image";
 import { StorefrontRecommendationRail } from "@/components/recommendations/recommendation-rail";
 import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
-import { apiFetch, clearToken, getToken, setTokens, signOut } from "@/lib/auth";
+import { apiFetch, authHeaders, clearSession, hasSession, setSession, signOut } from "@/lib/auth";
 import { formatInr, mergeCartOnLogin, moveWishlistToCart } from "@/lib/cart";
 import { orderStatusMeta } from "@/lib/orders";
 import { getSessionId } from "@/lib/session";
@@ -151,9 +151,8 @@ function AccountPageContent() {
 
   async function loadWishlist() {
     const sessionId = getSessionId();
-    const token = getToken();
     const response = await fetch(`${getApiUrl()}/wishlist?sessionId=${encodeURIComponent(sessionId)}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: await authHeaders(),
     });
     const body = (await response.json()) as { success?: boolean; data?: WishlistItem[] };
     if (body.success && body.data) setWishlist(body.data);
@@ -178,7 +177,7 @@ function AccountPageContent() {
   useEffect(() => {
     let cancelled = false;
     async function boot() {
-      if (!getToken()) {
+      if (!hasSession()) {
         if (!cancelled) setReady(true);
         return;
       }
@@ -186,7 +185,7 @@ function AccountPageContent() {
         await loadAccount();
         if (!cancelled) redirectAfterLogin();
       } catch {
-        clearToken();
+        clearSession();
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -200,7 +199,7 @@ function AccountPageContent() {
 
   useEffect(() => {
     const onAuth = () => {
-      if (getToken()) return;
+      if (hasSession()) return;
       setLoggedIn(false);
       setProfile(null);
       setAddresses([]);
@@ -233,11 +232,11 @@ function AccountPageContent() {
     setLoading(true);
     setError(null);
     try {
-      const tokens = await apiFetch<{ accessToken: string; refreshToken: string }>("/auth/otp/verify", {
+      const tokens = await apiFetch<{ accessToken: string }>("/auth/otp/verify", {
         method: "POST",
         body: JSON.stringify({ channel: "email", destination: email, code }),
       });
-      setTokens(tokens.accessToken, tokens.refreshToken);
+      setSession(tokens.accessToken);
       await mergeCartOnLogin();
       await loadAccount();
       setStep("request");
@@ -371,10 +370,9 @@ function AccountPageContent() {
 
   async function removeWishlistItem(id: string) {
     const sessionId = getSessionId();
-    const token = getToken();
     await fetch(`${getApiUrl()}/wishlist/items/${id}?sessionId=${encodeURIComponent(sessionId)}`, {
       method: "DELETE",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: await authHeaders(),
     });
     setWishlist((prev) => prev.filter((item) => item.id !== id));
   }

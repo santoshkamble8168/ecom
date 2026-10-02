@@ -3,7 +3,7 @@
 import { Button, Dialog } from "@ecom/ui";
 import { useState } from "react";
 
-import { apiFetch, setTokens } from "@/lib/auth";
+import { apiFetch, setSession } from "@/lib/auth";
 import { mergeCartOnLogin } from "@/lib/cart";
 
 interface LoginModalProps {
@@ -52,11 +52,11 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
     setLoading(true);
     setError(null);
     try {
-      const tokens = await apiFetch<{ accessToken: string; refreshToken: string }>("/auth/otp/verify", {
+      const tokens = await apiFetch<{ accessToken: string }>("/auth/otp/verify", {
         method: "POST",
         body: JSON.stringify({ channel: "email", destination: email, code }),
       });
-      setTokens(tokens.accessToken, tokens.refreshToken);
+      setSession(tokens.accessToken);
       await mergeCartOnLogin();
       reset();
       onSuccess();

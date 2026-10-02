@@ -11,7 +11,7 @@ import type {
 
 import { getApiUrl } from "@/lib/api-url";
 
-import { apiFetch, getToken } from "./auth";
+import { apiFetch, ensureAccessToken } from "./auth";
 
 const API_URL = getApiUrl();
 
@@ -72,7 +72,7 @@ export function fetchInvoice(id: string): Promise<OrderInvoiceSummary> {
 }
 
 export async function openInvoiceView(id: string): Promise<void> {
-  const token = getToken();
+  const token = await ensureAccessToken();
   const response = await fetch(`${API_URL}/orders/${id}/invoice/view`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });

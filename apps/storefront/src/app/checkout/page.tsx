@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import { PriceDetails } from "@/components/checkout/price-details";
 import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
 
-import { apiFetch, ensureAccessToken, getToken } from "@/lib/auth";
+import { apiFetch, ensureAccessToken, hasSession } from "@/lib/auth";
 import { formatInr } from "@/lib/cart";
 import {
   createCheckout,
@@ -87,9 +87,9 @@ export default function CheckoutPage() {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [guestAddress, setGuestAddress] = useState(EMPTY_GUEST_ADDRESS);
-  const [useGuestForm, setUseGuestForm] = useState(!getToken());
+  const [useGuestForm, setUseGuestForm] = useState(!hasSession());
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
-  const [loggedIn, setLoggedIn] = useState(Boolean(getToken()));
+  const [loggedIn, setLoggedIn] = useState(hasSession());
 
   const init = useCallback(async () => {
     setLoading(true);
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
   useEffect(() => () => setCheckoutStep("address"), []);
 
   useEffect(() => {
-    const syncAuth = () => setLoggedIn(Boolean(getToken()));
+    const syncAuth = () => setLoggedIn(hasSession());
     syncAuth();
     window.addEventListener("storage", syncAuth);
     window.addEventListener("focus", syncAuth);

@@ -4,7 +4,7 @@ import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
 import { useState } from "react";
 
 import { POST_LOGIN_PATH } from "@/components/layout/admin-nav";
-import { apiFetch, setToken } from "@/lib/api";
+import { apiFetch, setSession } from "@/lib/api";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("admin@ecom.local");
@@ -33,11 +33,11 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      const tokens = await apiFetch<{ accessToken: string; refreshToken: string }>("/auth/otp/verify", {
+      const tokens = await apiFetch<{ accessToken: string }>("/auth/otp/verify", {
         method: "POST",
         body: JSON.stringify({ channel: "email", destination: email, code }),
       });
-      setToken(tokens.accessToken, tokens.refreshToken);
+      setSession(tokens.accessToken);
       window.location.href = POST_LOGIN_PATH;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to verify OTP");

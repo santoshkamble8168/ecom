@@ -12,7 +12,8 @@ export interface UserSummary {
 
 export interface AuthTokens {
   accessToken: string;
-  refreshToken: string;
+  /** Omitted for browser apps (`X-Ecom-Client` header): the refresh token is set as an httpOnly cookie. */
+  refreshToken?: string;
   expiresIn: number;
 }
 

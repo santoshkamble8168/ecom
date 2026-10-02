@@ -56,6 +56,7 @@ async function bootstrap() {
       "Authorization",
       "Idempotency-Key",
       "X-Requested-With",
+      "X-Ecom-Client",
       "Accept",
     ],
     exposedHeaders: ["X-Request-Id"],

@@ -4,7 +4,7 @@ import type { Permission, UserProfile } from "@ecom/types";
 import { useQuery } from "@tanstack/react-query";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 
-import { apiFetch, getToken } from "@/lib/api";
+import { apiFetch, ensureAccessToken } from "@/lib/api";
 
 export type AdminSessionStatus = "booting" | "loading" | "authenticated" | "anonymous";
 
@@ -24,7 +24,13 @@ export function AdminSessionProvider({ children }: { children: ReactNode }) {
   const [tokenPresent, setTokenPresent] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setTokenPresent(Boolean(getToken()));
+    let cancelled = false;
+    void ensureAccessToken().then((token) => {
+      if (!cancelled) setTokenPresent(Boolean(token));
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const query = useQuery({

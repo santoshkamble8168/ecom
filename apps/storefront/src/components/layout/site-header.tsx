@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { CheckoutProgress } from "@/components/checkout/checkout-steps";
-import { decodeJwtPayload, ensureAccessToken, getToken, signOut } from "@/lib/auth";
+import { decodeJwtPayload, ensureAccessToken, getToken, hasSession, signOut } from "@/lib/auth";
 import { fetchCart } from "@/lib/cart";
 import { useCheckoutStep } from "@/lib/checkout-step";
 import { getApiUrl } from "@/lib/api-url";
@@ -127,6 +127,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   const [cartCount, setCartCount] = useState(0);
   const [bagBounce, setBagBounce] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [accountEmail, setAccountEmail] = useState<string | undefined>();
   const [accountOpen, setAccountOpen] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
@@ -142,9 +143,13 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   }, []);
 
   useEffect(() => {
-    setSignedIn(Boolean(getToken()));
-    void ensureAccessToken().finally(() => setSignedIn(Boolean(getToken())));
-    const syncAuth = () => setSignedIn(Boolean(getToken()));
+    const syncAuth = () => {
+      setSignedIn(hasSession());
+      const token = getToken();
+      setAccountEmail(token ? decodeJwtPayload(token)?.email : undefined);
+    };
+    syncAuth();
+    void ensureAccessToken().finally(syncAuth);
     window.addEventListener("storage", syncAuth);
     window.addEventListener("focus", syncAuth);
     window.addEventListener("auth-changed", syncAuth);
@@ -228,8 +233,6 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   const onCart = pathname === "/cart" || pathname.startsWith("/cart/");
   const onCheckout = pathname === "/checkout" || pathname.startsWith("/checkout/");
   const minimal = onCart || onCheckout;
-  const accountEmail = signedIn ? decodeJwtPayload(getToken() ?? "")?.email : undefined;
-
   async function handleSignOut() {
     setAccountOpen(false);
     setMenuOpen(false);
