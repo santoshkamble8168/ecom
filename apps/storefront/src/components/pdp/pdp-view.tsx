@@ -293,7 +293,6 @@ export function PdpView({ product }: PdpViewProps) {
   const router = useRouter();
   const [activeImage, setActiveImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
-  const [quantity, setQuantity] = useState(1);
   const [pincode, setPincode] = useState("");
   const [delivery, setDelivery] = useState<DeliveryEstimate | null>(null);
   const [deliveryError, setDeliveryError] = useState<string | null>(null);
@@ -490,7 +489,7 @@ export function PdpView({ product }: PdpViewProps) {
     setAddingToCart(true);
     setCartError(null);
     try {
-      await addToCart(product.slug, selectedVariant.sku, quantity);
+      await addToCart(product.slug, selectedVariant.sku, 1);
 
       setSizePickerOpen(false);
 
@@ -683,33 +682,6 @@ export function PdpView({ product }: PdpViewProps) {
               {cartError}
             </p>
           )}
-
-          <div className="mt-6">
-            <p id="pdp-quantity-label" className="mb-2 text-sm font-semibold">
-              Quantity
-            </p>
-            <div className="flex items-center gap-3" role="group" aria-labelledby="pdp-quantity-label">
-              <button
-                type="button"
-                className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50 transition-colors"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                aria-label="Decrease quantity"
-              >
-                −
-              </button>
-              <span className="w-8 text-center font-medium" aria-live="polite">
-                {quantity}
-              </span>
-              <button
-                type="button"
-                className="h-9 w-9 rounded border border-neutral-300 text-lg hover:bg-neutral-50 transition-colors"
-                onClick={() => setQuantity((q) => Math.min(10, q + 1))}
-                aria-label="Increase quantity"
-              >
-                +
-              </button>
-            </div>
-          </div>
 
           {/* ─── Primary CTA: Add to Bag / Go to Bag ─── */}
           <div className="mt-6 flex gap-3">

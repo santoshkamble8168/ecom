@@ -5,8 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { CheckoutProgress } from "@/components/checkout/checkout-steps";
 import { decodeJwtPayload, ensureAccessToken, getToken, signOut } from "@/lib/auth";
 import { fetchCart } from "@/lib/cart";
+import { useCheckoutStep } from "@/lib/checkout-step";
 import { getApiUrl } from "@/lib/api-url";
 
 interface SiteHeaderProps {
@@ -116,6 +118,7 @@ function AccountMenu({
 export function SiteHeader({ navigation }: SiteHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const checkoutStep = useCheckoutStep();
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -223,6 +226,8 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   const announcement = navigation.announcement;
   const dropdownOpen = searchFocused && (suggestions.length > 0 || trending.length > 0 || query.length > 0);
   const onCart = pathname === "/cart" || pathname.startsWith("/cart/");
+  const onCheckout = pathname === "/checkout" || pathname.startsWith("/checkout/");
+  const minimal = onCart || onCheckout;
   const accountEmail = signedIn ? decodeJwtPayload(getToken() ?? "")?.email : undefined;
 
   async function handleSignOut() {
@@ -235,7 +240,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
   return (
     <>
       <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/95 backdrop-blur-sm dark:border-neutral-800 dark:bg-neutral-950/95">
-        {announcement && !onCart && (
+        {announcement && !minimal && (
           <div className="border-b border-neutral-200 bg-neutral-950 py-2 text-center text-xs font-medium tracking-wide text-white">
             {announcement.message}
             {announcement.linkUrl && announcement.linkLabel && (
@@ -249,7 +254,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
           </div>
         )}
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:gap-8">
-          {!onCart && (
+          {!minimal && (
           <button
             type="button"
             className="inline-flex min-h-11 min-w-11 items-center justify-center md:hidden"
@@ -269,7 +274,11 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
             ECOM
           </Link>
 
-          {!onCart && (
+          {minimal && (
+            <CheckoutProgress current={onCart ? "bag" : checkoutStep} className="min-w-0 flex-1" />
+          )}
+
+          {!minimal && (
           <nav className="hidden shrink-0 gap-6 md:flex" aria-label="Primary">
             {navigation.header.map((link) => (
               <div key={link.href} className="group relative">
@@ -297,7 +306,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
           </nav>
           )}
 
-          {!onCart && (
+          {!minimal && (
           <div ref={searchBoxRef} className="relative ml-auto hidden max-w-md flex-1 sm:block">
             <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
             <input
@@ -354,8 +363,8 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
           </div>
           )}
 
-          <div className={`flex items-center gap-1 sm:gap-3 ${onCart ? "ml-auto" : "ml-auto sm:ml-0"}`}>
-            {!onCart && (
+          <div className={`flex items-center gap-1 sm:gap-3 ${minimal ? "" : "ml-auto sm:ml-0"}`}>
+            {!minimal && (
               <Link
                 href="/search"
                 aria-label="Search"
@@ -372,7 +381,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 onClick={() => window.dispatchEvent(new Event("open-cart-login"))}
               >
                 <UserIcon className="h-5 w-5 animate-login-nudge" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Login</span>
+                <span className="hidden text-xs font-semibold uppercase tracking-wide sm:inline">Login</span>
               </button>
             ) : signedIn ? (
               <div className="relative" ref={accountMenuRef}>
@@ -381,11 +390,11 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                   aria-label="Account menu"
                   aria-haspopup="menu"
                   aria-expanded={accountOpen}
-                  className={`${onCart ? "inline-flex" : "hidden sm:inline-flex"} min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white`}
+                  className={`${minimal ? "inline-flex" : "hidden sm:inline-flex"} min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white`}
                   onClick={() => setAccountOpen((open) => !open)}
                 >
                   <UserIcon className="h-5 w-5" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">Account</span>
+                  <span className="hidden text-xs font-semibold uppercase tracking-wide sm:inline">Account</span>
                 </button>
                 {accountOpen && (
                   <AccountMenu email={accountEmail} onNavigate={() => setAccountOpen(false)} onSignOut={() => void handleSignOut()} />
@@ -393,15 +402,15 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
               </div>
             ) : (
               <Link
-                href="/account"
+                href={onCheckout ? `/account?next=${encodeURIComponent("/checkout")}` : "/account"}
                 aria-label="Login"
-                className={`${onCart ? "inline-flex" : "hidden sm:flex"} min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white`}
+                className={`${minimal ? "inline-flex" : "hidden sm:flex"} min-h-11 items-center gap-1.5 px-2 text-neutral-800 hover:text-neutral-950 dark:text-neutral-200 dark:hover:text-white`}
               >
                 <UserIcon className="h-5 w-5" />
-                <span className="text-xs font-semibold uppercase tracking-wide">Login</span>
+                <span className="hidden text-xs font-semibold uppercase tracking-wide sm:inline">Login</span>
               </Link>
             )}
-            {!onCart && (
+            {!minimal && (
               <Link
                 href="/account?tab=wishlist"
                 aria-label="Wishlist"
@@ -410,6 +419,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 <HeartIcon className="h-5 w-5" />
               </Link>
             )}
+            {!minimal && (
             <Link
               href="/cart"
               aria-label={cartCount > 0 ? `Cart, ${cartCount} items` : "Cart"}
@@ -431,6 +441,7 @@ export function SiteHeader({ navigation }: SiteHeaderProps) {
                 )}
               </span>
             </Link>
+            )}
           </div>
         </div>
       </header>

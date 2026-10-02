@@ -7,11 +7,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { CheckoutSteps } from "@/components/checkout/checkout-steps";
 import { PriceDetails } from "@/components/checkout/price-details";
 import { CommerceSkeleton } from "@/components/ui/commerce-skeleton";
 
 import { apiFetch, ensureAccessToken, getToken } from "@/lib/auth";
+import { formatInr } from "@/lib/cart";
 import {
   createCheckout,
   lookupPincode,
@@ -20,6 +20,7 @@ import {
   updateCheckoutAddress,
   updateCheckoutPayment,
 } from "@/lib/checkout";
+import { setCheckoutStep } from "@/lib/checkout-step";
 import { initiatePayment, payWithRazorpay } from "@/lib/payments";
 
 const LOGIN_HREF = `/account?next=${encodeURIComponent("/checkout")}`;
@@ -163,6 +164,12 @@ export default function CheckoutPage() {
   useEffect(() => {
     void init();
   }, [init]);
+
+  useEffect(() => {
+    setCheckoutStep(placingOrder || paymentOpen ? "payment" : "address");
+  }, [placingOrder, paymentOpen]);
+
+  useEffect(() => () => setCheckoutStep("address"), []);
 
   useEffect(() => {
     const syncAuth = () => setLoggedIn(Boolean(getToken()));
@@ -419,135 +426,111 @@ export default function CheckoutPage() {
   };
 
   const inputClass = (field?: FieldKey) =>
-    `mt-1 w-full rounded-md border bg-white px-3 py-2 text-neutral-900 ${
+    `mt-1 w-full rounded-sm border bg-white px-3 py-2 text-neutral-900 ${
       field && fieldErrors[field]
         ? "border-danger-500 focus:outline-none focus:ring-2 focus:ring-danger-500/30"
-        : "border-neutral-300 focus:outline-none focus:ring-2 focus:ring-accent-500/30"
+        : "border-neutral-300 focus:border-neutral-500 focus:outline-none"
     }`;
 
+  const hasSaved = loggedIn && addresses.length > 0;
+  const formMode = useGuestForm || !hasSaved;
+  const itemCount = session.items.reduce((count, item) => count + item.quantity, 0);
+  const canPlaceOrder =
+    !actionLoading && stepDone.address && stepDone.shipping && session.status !== "order_prepared";
+  const heading = editingAddressId ? "Edit Address" : formMode ? "Add Delivery Address" : "Select Delivery Address";
+
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <CheckoutSteps current={stepDone.address && stepDone.shipping ? "payment" : "address"} />
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-display font-bold">Checkout</h1>
-        <Link href="/cart" className="text-sm font-medium text-info-600 hover:text-info-600/80 hover:underline">
-          ← Back to cart
-        </Link>
-      </div>
+    <div className="mx-auto max-w-5xl px-4 py-6 pb-28 lg:pb-10">
+      <div className="grid items-start lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="lg:border-r lg:border-neutral-200 lg:pr-4 lg:dark:border-neutral-800">
+          {error && <p className="mb-4 rounded-sm bg-danger-50 px-3 py-2 text-sm text-danger-600">{error}</p>}
+          {success && (
+            <p role="status" className="mb-4 rounded-sm bg-success-50 px-3 py-2 text-sm text-success-700">
+              {success}
+            </p>
+          )}
 
-      {error && (
-        <div className="mb-4 rounded-md border border-danger-500/40 bg-danger-50 px-4 py-3 text-sm text-danger-600">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="mb-4 rounded-md border border-success-500/40 bg-success-50 px-4 py-3 text-sm text-success-700">
-          {success}
-        </div>
-      )}
+          <div className="flex items-center justify-between gap-3 px-1">
+            <h1 className="text-base font-bold text-neutral-900 dark:text-neutral-100">{heading}</h1>
+            {hasSaved && !formMode && (
+              <button
+                type="button"
+                className="shrink-0 rounded-sm border border-brand-600 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-brand-600 transition-colors hover:bg-brand-50 dark:hover:bg-neutral-800"
+                onClick={() => {
+                  setEditingAddressId(null);
+                  setGuestAddress(EMPTY_GUEST_ADDRESS);
+                  setFieldErrors({});
+                  setUseGuestForm(true);
+                }}
+              >
+                Add New Address
+              </button>
+            )}
+          </div>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
-        <div className="space-y-6">
-          {/* Address */}
-          <section className="rounded-lg border border-neutral-200 bg-white p-5">
-            <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-500">
-              1. Delivery address
-            </h2>
-
-            {loggedIn && addresses.length > 0 && (
-              <div className="mt-4">
-                <div
-                  className="grid grid-cols-2 gap-1 rounded-lg bg-neutral-100 p-1"
-                  role="tablist"
-                  aria-label="Delivery address"
-                >
-                  <button
-                    type="button"
-                    role="tab"
-                        aria-selected={!useGuestForm || Boolean(editingAddressId)}
-                        onClick={() => {
-                          setUseGuestForm(false);
-                          setEditingAddressId(null);
-                        }}
-                        className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                          !useGuestForm || editingAddressId
-                            ? "bg-white text-neutral-950 shadow-sm"
-                            : "text-neutral-600 hover:text-neutral-950"
-                        }`}
-                  >
-                    Saved addresses
-                  </button>
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={useGuestForm && !editingAddressId}
-                    onClick={() => {
-                      setEditingAddressId(null);
-                      setGuestAddress(EMPTY_GUEST_ADDRESS);
-                      setFieldErrors({});
-                      setUseGuestForm(true);
-                    }}
-                    className={`rounded-md px-3 py-2 text-sm font-semibold ${
-                      useGuestForm && !editingAddressId
-                        ? "bg-white text-neutral-950 shadow-sm"
-                        : "text-neutral-600 hover:text-neutral-950"
+          {hasSaved && !formMode && (
+            <div className="mt-3 space-y-2" role="radiogroup" aria-label="Saved addresses">
+              {addresses.map((addr) => {
+                const selected = selectedAddressId === addr.id;
+                return (
+                  <div
+                    key={addr.id}
+                    className={`flex items-start gap-3 rounded-sm border bg-white p-4 dark:bg-neutral-950 ${
+                      selected
+                        ? "border-brand-600"
+                        : "border-neutral-200 hover:border-neutral-400 dark:border-neutral-800"
                     }`}
                   >
-                    New address
-                  </button>
-                </div>
-                {!useGuestForm && (
-                  <div className="mt-3 space-y-2">
-                    {addresses.map((addr) => (
-                      <div
-                        key={addr.id}
-                        className={`flex items-start gap-3 rounded-md border p-3 ${
-                          selectedAddressId === addr.id
-                            ? "border-brand-500 bg-brand-50"
-                            : "border-neutral-200 hover:border-neutral-400"
-                        }`}
-                      >
-                        <label className="flex min-w-0 flex-1 cursor-pointer gap-3">
-                          <input
-                            type="radio"
-                            name="address"
-                            checked={selectedAddressId === addr.id}
-                            onChange={() => void selectSavedAddress(addr.id)}
-                            className="mt-1"
-                          />
-                          <span className="text-sm">
-                            <span className="font-medium">{addr.fullName}</span>
-                            <br />
-                            {addr.line1}, {addr.city} — {addr.postalCode}
-                            <br />
-                            {addr.phone}
-                          </span>
-                        </label>
-                        <button
-                          type="button"
-                          className="shrink-0 rounded-md border border-neutral-300 bg-white px-2.5 py-1 text-xs font-semibold text-neutral-800 hover:bg-neutral-50"
-                          onClick={() => startEditAddress(addr)}
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    ))}
+                    <label className="flex min-w-0 flex-1 cursor-pointer gap-3">
+                      <input
+                        type="radio"
+                        name="address"
+                        checked={selected}
+                        onChange={() => void selectSavedAddress(addr.id)}
+                        className="mt-1 h-4 w-4 accent-brand-600"
+                      />
+                      <span className="min-w-0 text-sm text-neutral-700 dark:text-neutral-300">
+                        <span className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-neutral-900 dark:text-neutral-100">{addr.fullName}</span>
+                          {addr.label && (
+                            <span className="rounded-full border border-success-600 px-2 py-px text-[10px] font-bold uppercase tracking-wide text-success-600">
+                              {addr.label}
+                            </span>
+                          )}
+                        </span>
+                        <span className="mt-1.5 block">
+                          {addr.line1}
+                          {addr.line2 ? `, ${addr.line2}` : ""}
+                        </span>
+                        <span className="block">
+                          {addr.city}, {addr.state} — {addr.postalCode}
+                        </span>
+                        <span className="mt-1.5 block">
+                          Mobile: <span className="font-bold text-neutral-900 dark:text-neutral-100">{addr.phone}</span>
+                        </span>
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-sm border border-neutral-300 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-neutral-800 hover:border-neutral-500 dark:border-neutral-700 dark:text-neutral-200"
+                      onClick={() => startEditAddress(addr)}
+                    >
+                      Edit
+                    </button>
                   </div>
-                )}
-              </div>
-            )}
+                );
+              })}
+            </div>
+          )}
 
-            {loggedIn && addresses.length === 0 && (
-              <p className="mt-4 text-sm text-neutral-500">
-                No saved addresses yet. Enter your delivery details below.
-              </p>
-            )}
-
-            {(useGuestForm || !loggedIn || addresses.length === 0) && (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {editingAddressId && (
-                  <p className="text-sm font-medium text-neutral-700 sm:col-span-2">Edit this address</p>
-                )}
+          {formMode && (
+            <section className="mt-3 rounded-sm border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-950">
+              {loggedIn && addresses.length === 0 && (
+                <p className="mb-3 text-sm text-neutral-500">
+                  No saved addresses yet. Enter your delivery details below.
+                </p>
+              )}
+              <div className="grid gap-3 sm:grid-cols-2">
                     <label className="text-sm sm:col-span-2">
                       <span className="text-neutral-500">Full name</span>
                       <input
@@ -665,22 +648,21 @@ export default function CheckoutPage() {
                         <span className="mt-1 block text-xs text-danger-600">{fieldErrors.state}</span>
                       )}
                     </label>
-                  </div>
-            )}
+              </div>
 
-            {(useGuestForm || !loggedIn || addresses.length === 0) && (
               <div className="mt-4 flex flex-wrap items-center gap-2">
                 <Button
-                  className="bg-accent-500 text-neutral-950 hover:bg-accent-600"
+                  className="rounded-sm bg-accent-500 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
                   disabled={actionLoading}
                   onClick={() => void saveAddress()}
                 >
-                  {editingAddressId ? "Save changes" : "Save address & continue"}
+                  {editingAddressId ? "Save Changes" : "Save Address & Continue"}
                 </Button>
-                {editingAddressId && (
+                {hasSaved && (
                   <Button
                     type="button"
                     variant="outline"
+                    className="rounded-sm text-sm font-bold uppercase tracking-wide"
                     disabled={actionLoading}
                     onClick={() => {
                       setEditingAddressId(null);
@@ -692,13 +674,21 @@ export default function CheckoutPage() {
                   </Button>
                 )}
               </div>
-            )}
-          </section>
+            </section>
+          )}
+
+          <Link
+            href="/cart"
+            className="mt-4 inline-block px-1 text-sm font-medium text-brand-600 hover:underline"
+          >
+            ← Back to bag
+          </Link>
         </div>
 
-        <aside className="h-fit lg:sticky lg:top-24">
+        <aside className="mt-6 lg:sticky lg:top-24 lg:mt-0 lg:pl-4">
           <PriceDetails
-            itemCount={session.items.reduce((count, item) => count + item.quantity, 0)}
+            className="rounded-none border-0 bg-transparent px-0 pb-0 pt-0 dark:bg-transparent"
+            itemCount={itemCount}
             items={session.items}
             subtotal={session.pricing.subtotal}
             discount={session.pricing.discount}
@@ -713,19 +703,14 @@ export default function CheckoutPage() {
                   if (session.address) writeAddressDraft(addressFromSession(session.address));
                   else writeAddressDraft(guestAddress);
                 }}
-                className="mt-4 flex w-full items-center justify-center rounded-md bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
+                className="mt-4 flex w-full items-center justify-center rounded-sm bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
               >
                 Login to place order
               </Link>
             ) : (
               <Button
-                className="mt-4 w-full bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600 disabled:opacity-50"
-                disabled={
-                  actionLoading ||
-                  !stepDone.address ||
-                  !stepDone.shipping ||
-                  session.status === "order_prepared"
-                }
+                className="mt-4 w-full rounded-sm bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600 disabled:opacity-50"
+                disabled={!canPlaceOrder}
                 onClick={() => void handlePlaceOrder()}
               >
                 {actionLoading ? "Processing…" : "Pay & Place Order"}
@@ -734,6 +719,30 @@ export default function CheckoutPage() {
           </PriceDetails>
         </aside>
       </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-neutral-200 bg-white p-3 lg:hidden dark:border-neutral-800 dark:bg-neutral-950">
+        {!loggedIn ? (
+          <Link
+            href={LOGIN_HREF}
+            onClick={() => {
+              if (session.address) writeAddressDraft(addressFromSession(session.address));
+              else writeAddressDraft(guestAddress);
+            }}
+            className="flex w-full items-center justify-center rounded-sm bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600"
+          >
+            Login to place order
+          </Link>
+        ) : (
+          <Button
+            className="w-full rounded-sm bg-accent-500 py-3 text-sm font-bold uppercase tracking-wide text-neutral-950 hover:bg-accent-600 disabled:opacity-50"
+            disabled={!canPlaceOrder}
+            onClick={() => void handlePlaceOrder()}
+          >
+            {actionLoading ? "Processing…" : `Pay & Place Order · ${formatInr(session.pricing.total)}`}
+          </Button>
+        )}
+      </div>
+
       {placingOrder && !paymentOpen && <PlacingOrderOverlay />}
     </div>
   );

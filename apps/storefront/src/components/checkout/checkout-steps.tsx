@@ -8,45 +8,37 @@ const STEPS = [
 
 export type CheckoutStep = (typeof STEPS)[number]["id"];
 
-export function CheckoutSteps({ current }: { current: CheckoutStep }) {
+export function CheckoutProgress({ current, className = "" }: { current: CheckoutStep; className?: string }) {
   const currentIndex = STEPS.findIndex((step) => step.id === current);
 
   return (
-    <ol className="mb-6 flex items-center" aria-label="Checkout progress">
+    <ol className={`flex items-center justify-center ${className}`} aria-label="Checkout progress">
       {STEPS.map((step, index) => {
         const done = index < currentIndex;
         const active = index === currentIndex;
         const href = "href" in step ? step.href : undefined;
-        const marker = (
-          <span
-            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-              done || active ? "bg-neutral-950 text-white" : "bg-neutral-200 text-neutral-500"
-            }`}
-          >
-            {done ? "✓" : index + 1}
-          </span>
-        );
-        const label = (
-          <span className={`text-sm font-semibold ${active ? "text-neutral-950" : "text-neutral-500"}`}>
-            {step.label}
-          </span>
-        );
+        const labelClass = `border-b-2 pb-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] sm:text-xs sm:tracking-[0.2em] ${
+          active
+            ? "border-brand-600 text-brand-700 dark:text-brand-400"
+            : "border-transparent text-neutral-600 dark:text-neutral-400"
+        }`;
 
         return (
-          <li key={step.id} className={`flex items-center ${index < STEPS.length - 1 ? "min-w-0 flex-1" : ""}`}>
+          <li key={step.id} className="flex items-center">
             {done && href ? (
-              <Link href={href} className="flex items-center gap-2 hover:underline">
-                {marker}
-                {label}
+              <Link href={href} className={`${labelClass} hover:text-neutral-900 dark:hover:text-neutral-100`}>
+                {step.label}
               </Link>
             ) : (
-              <span className="flex items-center gap-2" aria-current={active ? "step" : undefined}>
-                {marker}
-                {label}
+              <span className={labelClass} aria-current={active ? "step" : undefined}>
+                {step.label}
               </span>
             )}
             {index < STEPS.length - 1 && (
-              <span className={`mx-3 h-px min-w-4 flex-1 ${done ? "bg-neutral-950" : "bg-neutral-200"}`} />
+              <span
+                className="mx-1.5 w-4 border-t border-dashed border-neutral-400 sm:mx-3 sm:w-20"
+                aria-hidden="true"
+              />
             )}
           </li>
         );

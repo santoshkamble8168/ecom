@@ -116,6 +116,24 @@ export async function moveWishlistToCart(wishlistItemId: string): Promise<CartSu
   return parseCartResponse(response);
 }
 
+export async function addToWishlist(productSlug: string, variantSku?: string): Promise<void> {
+  const response = await fetch(`${API_URL}/wishlist/items`, {
+    method: "POST",
+    headers: await authHeaders(),
+    body: JSON.stringify({
+      productSlug,
+      variantSku,
+      sessionId: getSessionId(),
+    }),
+  });
+  const body = (await response.json()) as ApiResponse<unknown>;
+  if (!body.success) throw new Error(body.error.message);
+}
+
 export function formatInr(amount: string | number): string {
-  return `₹${Number(amount).toLocaleString("en-IN")}`;
+  const value = Number(amount);
+  return `₹${value.toLocaleString("en-IN", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

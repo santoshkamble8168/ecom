@@ -129,7 +129,7 @@ export function Dialog({
             type="button"
             aria-label="Close"
             onClick={onClose}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="relative z-10 ml-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
           >
             ✕
           </button>

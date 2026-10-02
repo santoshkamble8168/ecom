@@ -74,12 +74,12 @@ export function NewsletterForm({
           placeholder={placeholder}
           aria-invalid={status === "error"}
           aria-label="Email address"
-          className="min-h-11 flex-1 rounded-md bg-white px-4 py-2 text-sm text-neutral-900 placeholder:text-neutral-600 focus:outline-none"
+          className="min-h-11 min-w-0 flex-1 rounded-md bg-white px-4 py-2 text-sm text-neutral-900 placeholder:text-neutral-600 focus:outline-none"
         />
         <Button
           type="submit"
           disabled={status === "loading"}
-          className="min-h-11 bg-accent-500 text-neutral-950 hover:bg-accent-600"
+          className="min-h-11 shrink-0 bg-accent-500 text-neutral-950 hover:bg-accent-600"
         >
           {status === "loading" ? "..." : ctaLabel}
         </Button>

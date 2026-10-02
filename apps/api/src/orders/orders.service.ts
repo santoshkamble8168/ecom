@@ -58,7 +58,7 @@ type LineItemSnapshot = {
   variantSku: string;
   quantity: number;
   unitPrice: string;
-  product: { title: string } | null;
+  product: { title: string; primaryImage?: { url?: string } | null } | null;
   variantLabel: string | null;
 };
 
@@ -764,6 +764,10 @@ export class OrdersService {
       paymentMethod: order.paymentMethod,
       paymentStatus: order.payments[0]?.status ?? null,
       itemCount: items.reduce((sum, i) => sum + i.quantity, 0),
+      previews: items.slice(0, 4).map((item) => ({
+        title: item.product?.title?.trim() || "Item",
+        imageUrl: item.product?.primaryImage?.url ?? null,
+      })),
       confirmedAt: order.confirmedAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
     };
