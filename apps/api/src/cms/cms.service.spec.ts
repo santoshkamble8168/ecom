@@ -1,4 +1,4 @@
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from "@ecom/shared";
+import { ConflictError, NotFoundError, ValidationError } from "@ecom/shared";
 import type { ConfigService } from "@nestjs/config";
 
 import type { AuditService } from "../audit/audit.service";
@@ -56,7 +56,7 @@ describe("CmsService", () => {
       menuItem: { findUnique: jest.fn(), create: jest.fn(), update: jest.fn(), delete: jest.fn() },
     };
     audit = { log: jest.fn().mockResolvedValue(undefined) };
-    config = { get: jest.fn((_key: string, fallback: string) => fallback) };
+    config = { get: jest.fn() };
 
     service = new CmsService(
       prisma as unknown as PrismaService,
@@ -95,24 +95,21 @@ describe("CmsService", () => {
   });
 
   describe("getPreviewBySlug", () => {
-    it("throws ForbiddenError when the token does not match", async () => {
-      await expect(service.getPreviewBySlug("home", "wrong-token")).rejects.toThrow(ForbiddenError);
+    it("returns NotFoundError when the token does not match", async () => {
+      await expect(service.getPreviewBySlug("home", "wrong-token")).rejects.toThrow(NotFoundError);
       expect(prisma.page.findUnique).not.toHaveBeenCalled();
     });
 
-    it("returns the page regardless of status when the token matches", async () => {
-      prisma.page.findUnique.mockResolvedValue(basePage({ status: "draft" }));
-
-      const result = await service.getPreviewBySlug("home", "dev-preview-token");
-
-      expect(result.status).toBe("draft");
+    it("does not use a default preview token", async () => {
+      await expect(service.getPreviewBySlug("home", "dev-preview-token")).rejects.toThrow(NotFoundError);
+      expect(prisma.page.findUnique).not.toHaveBeenCalled();
     });
 
     it("uses the CMS_PREVIEW_TOKEN from config when set", async () => {
       config.get.mockReturnValue("custom-token");
       prisma.page.findUnique.mockResolvedValue(basePage({ status: "draft" }));
 
-      await expect(service.getPreviewBySlug("home", "dev-preview-token")).rejects.toThrow(ForbiddenError);
+      await expect(service.getPreviewBySlug("home", "dev-preview-token")).rejects.toThrow(NotFoundError);
 
       const result = await service.getPreviewBySlug("home", "custom-token");
       expect(result.status).toBe("draft");

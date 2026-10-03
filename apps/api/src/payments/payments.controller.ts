@@ -9,7 +9,6 @@ import {
   Req,
 } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { SkipThrottle } from "@nestjs/throttler";
 import { PERMISSIONS } from "@ecom/types";
 import { ValidationError } from "@ecom/shared";
 import { IsOptional, IsString, Length } from "class-validator";
@@ -49,7 +48,6 @@ class ConfirmRazorpayDto {
 }
 
 @ApiTags("payments")
-@SkipThrottle()
 @Controller()
 export class PaymentsController {
   constructor(private readonly paymentsService: PaymentsService) {}

@@ -9,7 +9,6 @@ import {
   Query,
 } from "@nestjs/common";
 import { ApiHeader, ApiTags } from "@nestjs/swagger";
-import { SkipThrottle } from "@nestjs/throttler";
 import { Type } from "class-transformer";
 import {
   IsEnum,
@@ -70,7 +69,6 @@ class UpdatePaymentMethodDto {
 }
 
 @ApiTags("checkout")
-@SkipThrottle()
 @Controller("checkout")
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService) {}

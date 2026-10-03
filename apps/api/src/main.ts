@@ -1,5 +1,6 @@
 import "reflect-metadata";
 
+import { validateApiEnv } from "@ecom/config";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
@@ -12,6 +13,7 @@ import { ResponseInterceptor } from "./common/interceptors/response.interceptor"
 import { AppLogger } from "./logger/logger.service";
 
 async function bootstrap() {
+  const env = validateApiEnv();
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 
   const logger = await app.resolve(AppLogger);
@@ -27,14 +29,18 @@ async function bootstrap() {
 
   // Development: reflect any Origin so localhost/127.0.0.1 never fail CORS.
   // Production: allow only configured storefront/admin URLs.
-  const isDev = (process.env.NODE_ENV ?? "development") !== "production";
+  const isDev = env.NODE_ENV !== "production";
   const configuredOrigins = [
-    process.env.STOREFRONT_URL,
-    process.env.ADMIN_URL,
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001",
+    env.STOREFRONT_URL,
+    env.ADMIN_URL,
+    ...(isDev
+      ? [
+          "http://localhost:3000",
+          "http://localhost:3001",
+          "http://127.0.0.1:3000",
+          "http://127.0.0.1:3001",
+        ]
+      : []),
   ].filter((value): value is string => Boolean(value));
 
   app.enableCors({
@@ -62,7 +68,7 @@ async function bootstrap() {
     exposedHeaders: ["X-Request-Id"],
   });
 
-  const apiPrefix = process.env.API_PREFIX ?? "api/v1";
+  const apiPrefix = env.API_PREFIX;
   app.setGlobalPrefix(apiPrefix, {
     exclude: ["health", "health/live", "health/ready", "robots.txt", "sitemap.xml"],
   });
@@ -78,19 +84,26 @@ async function bootstrap() {
   app.useGlobalFilters(new AllExceptionsFilter());
   app.useGlobalInterceptors(new CacheControlInterceptor(), new ResponseInterceptor());
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle("Ecom API")
-    .setDescription("Production commerce platform API")
-    .setVersion("0.1.0")
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
+  const swaggerEnabled = env.SWAGGER_ENABLED
+    ? env.SWAGGER_ENABLED === "true"
+    : env.NODE_ENV !== "production";
+  if (swaggerEnabled) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle("Ecom API")
+      .setDescription("Production commerce platform API")
+      .setVersion("0.1.0")
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
+  }
 
-  const port = Number(process.env.PORT ?? 4000);
+  const port = env.PORT;
   await app.listen(port);
   logger.log(`API listening on http://localhost:${port}/${apiPrefix}`);
-  logger.log(`Swagger docs at http://localhost:${port}/${apiPrefix}/docs`);
+  if (swaggerEnabled) {
+    logger.log(`Swagger docs at http://localhost:${port}/${apiPrefix}/docs`);
+  }
 }
 
 bootstrap();

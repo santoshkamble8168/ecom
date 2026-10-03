@@ -1,6 +1,4 @@
-import { mkdir, unlink, writeFile } from "fs/promises";
-import { join } from "path";
-
+import { ObjectStorage, objectStorageFromEnv } from "@ecom/shared";
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
@@ -19,6 +17,7 @@ const AUDIT_DELETE_BATCH = 2000;
 @Injectable()
 export class AdminJobsService {
   private readonly logger = new Logger(AdminJobsService.name);
+  private storage?: ObjectStorage;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -51,10 +50,8 @@ export class AdminJobsService {
 
         const { csv, rowCount } = await buildReportCsv(this.prisma, report.kind);
 
-        const dir = process.env.EXPORT_STORAGE_PATH ?? "./tmp/exports";
-        await mkdir(dir, { recursive: true });
-        const filePath = join(dir, `${job.id}.csv`);
-        await writeFile(filePath, csv, "utf8");
+        const objectKey = `exports/${job.id}.csv`;
+        await this.objectStorage().putObject(objectKey, csv, "text/csv; charset=utf-8");
 
         const completedAt = new Date();
         const retentionDays = Number(process.env.REPORT_RETENTION_DAYS) || DEFAULT_REPORT_RETENTION_DAYS;
@@ -64,7 +61,7 @@ export class AdminJobsService {
           where: { id: job.id },
           data: {
             status: "completed",
-            filePath,
+            filePath: objectKey,
             rowCount,
             completedAt,
             expiresAt,
@@ -158,9 +155,9 @@ export class AdminJobsService {
     for (const job of expired) {
       if (!job.filePath) continue;
       try {
-        await unlink(job.filePath);
+        await this.objectStorage().deleteObject(job.filePath);
       } catch (err) {
-        this.logger.warn(`Could not unlink export file ${job.filePath}: ${truncateError(err)}`);
+        this.logger.warn(`Could not delete export object ${job.filePath}: ${truncateError(err)}`);
       }
     }
 
@@ -181,6 +178,11 @@ export class AdminJobsService {
         err instanceof Error ? err.stack : undefined,
       );
     }
+  }
+
+  private objectStorage(): ObjectStorage {
+    this.storage ??= objectStorageFromEnv();
+    return this.storage;
   }
 }
 

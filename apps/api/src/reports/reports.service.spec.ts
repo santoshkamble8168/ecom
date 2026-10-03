@@ -3,6 +3,7 @@ import { NotFoundError } from "@ecom/shared";
 
 import type { AuditService } from "../audit/audit.service";
 import type { PrismaService } from "../prisma/prisma.service";
+import type { ObjectStorageService } from "../storage/object-storage.service";
 
 import { ReportsService } from "./reports.service";
 
@@ -46,6 +47,7 @@ describe("ReportsService", () => {
     exportJob: { create: jest.Mock; findUnique: jest.Mock };
   };
   let audit: { log: jest.Mock };
+  let storage: { signedDownloadUrl: jest.Mock };
 
   beforeEach(() => {
     prisma = {
@@ -59,10 +61,12 @@ describe("ReportsService", () => {
       },
     };
     audit = { log: jest.fn().mockResolvedValue(undefined) };
+    storage = { signedDownloadUrl: jest.fn() };
     service = new ReportsService(
       prisma as unknown as PrismaService,
       audit as unknown as AuditService,
       { REPORT_RETENTION_DAYS: 14 } as unknown as ApiEnv,
+      storage as unknown as ObjectStorageService,
     );
   });
 
@@ -105,7 +109,7 @@ describe("ReportsService", () => {
       );
       expect(result.status).toBe("queued");
       expect(result.reportSlug).toBe("sales");
-      expect(result.filePath).toBeNull();
+      expect(result.downloadAvailable).toBe(false);
       expect(result.rowCount).toBeNull();
       expect(audit.log).toHaveBeenCalledWith(
         expect.objectContaining({ action: "report.export_queued" }),

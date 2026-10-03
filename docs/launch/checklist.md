@@ -13,6 +13,9 @@ Related: [ADR 0017](../decisions/0017-health-first-observability.md)
 - [ ] Feature flags: `recommendations.ai` and `search.semantic` remain **off** until a provider exists.
 - [ ] Core Web Vitals and API p95 budgets from `docs/performance/budget.md` reviewed on a staging URL.
 - [ ] Backup restore tested once on a copy of production-shaped data.
+- [ ] `pnpm db:seed` has not been run against production; the seed command intentionally refuses `NODE_ENV=production`.
+- [ ] Deploy with `infrastructure/docker/docker-compose.prod.yml` (or a managed-platform equivalent), never the development compose file.
+- [ ] TLS certificate/key, authenticated Redis, private object storage, and the full API/worker env file are injected by the deployment platform.
 
 ## Day-0 operations
 

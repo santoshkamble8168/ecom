@@ -1,11 +1,13 @@
 import { Controller, Get, HttpCode, HttpStatus, ServiceUnavailableException } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
+import { SkipThrottle } from "@nestjs/throttler";
 
 import { Public } from "../common/decorators/public.decorator";
 import { PrismaService } from "../prisma/prisma.service";
 import { RedisService } from "../redis/redis.service";
 
 @ApiTags("health")
+@SkipThrottle()
 @Controller("health")
 export class HealthController {
   constructor(

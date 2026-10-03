@@ -11,6 +11,17 @@ const CLIENT_HEADERS = { "X-Ecom-Client": "admin" } as const;
 let accessToken: string | null = null;
 let refreshInFlight: Promise<string | null> | null = null;
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    readonly code?: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
 export function getToken(): string | null {
   return accessToken;
 }
@@ -79,12 +90,12 @@ function accessTokenExpired(token: string): boolean {
 /** Exchanges the httpOnly refresh cookie for a new access token (the API rotates the cookie). */
 export async function refreshAccessToken(): Promise<string | null> {
   if (refreshInFlight) return refreshInFlight;
-  if (!hasSession()) {
-    clearSession();
-    return null;
-  }
 
-  refreshInFlight = (async () => {
+  const refresh = async () => {
+    // Another same-tab request may have completed while this refresh waited
+    // for the cross-tab lock.
+    if (accessToken && !accessTokenExpired(accessToken)) return accessToken;
+
     // One-time migration: a pre-cookie session still has its refresh token in storage.
     const legacyRefreshToken = localStorage.getItem(LEGACY_REFRESH_KEY);
     try {
@@ -102,14 +113,32 @@ export async function refreshAccessToken(): Promise<string | null> {
       for (const key of LEGACY_KEYS) localStorage.removeItem(key);
       setSession(body.data.accessToken);
       return body.data.accessToken;
-    } catch {
-      return null;
-    } finally {
-      refreshInFlight = null;
+    } catch (error) {
+      // Preserve the session hint on network/HTML proxy failures so a
+      // temporary API outage does not destroy an otherwise valid session.
+      throw error instanceof Error ? error : new Error(API_UNREACHABLE);
     }
-  })();
+  };
 
-  return refreshInFlight;
+  // Refresh tokens rotate. Serializing refreshes across browser tabs prevents
+  // two tabs from submitting the same cookie and the loser clearing the newly
+  // rotated cookie.
+  const pending: Promise<string | null> =
+    typeof navigator !== "undefined" && navigator.locks
+      ? navigator.locks.request("ecom-admin-refresh", refresh).then((result) => result)
+      : refresh();
+  refreshInFlight = pending;
+
+  void pending.then(
+    () => {
+      refreshInFlight = null;
+    },
+    () => {
+      refreshInFlight = null;
+    },
+  );
+
+  return pending;
 }
 
 export async function ensureAccessToken(): Promise<string | null> {
@@ -166,9 +195,19 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 
   if (!body.success) {
     redirectToLoginIfUnauthorized(path, body);
-    throw new Error(body.error.message);
+    throw new ApiClientError(body.error.message, body.error.code, response.status);
   }
 
+  return body.data;
+}
+
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const response = await authorizedFetch(path, { method: "POST", body: formData });
+  const body = await readApiResponse<T>(response);
+  if (!body.success) {
+    redirectToLoginIfUnauthorized(path, body);
+    throw new ApiClientError(body.error.message, body.error.code, response.status);
+  }
   return body.data;
 }
 
@@ -184,7 +223,7 @@ export async function apiFetchWithMeta<T>(
 
   if (!body.success) {
     redirectToLoginIfUnauthorized(path, body);
-    throw new Error(body.error?.message ?? "Request failed");
+    throw new ApiClientError(body.error?.message ?? "Request failed", body.error?.code, response.status);
   }
 
   return { data: body.data, meta: body.meta };

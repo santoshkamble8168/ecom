@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -9,8 +10,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiBody, ApiConsumes, ApiTags } from "@nestjs/swagger";
 import { PERMISSIONS } from "@ecom/types";
 
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -21,7 +25,7 @@ import { CatalogService } from "./catalog.service";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { CreateCollectionDto } from "./dto/create-collection.dto";
 import { CreateProductDto } from "./dto/create-product.dto";
-import { AddProductMediaDto, CreateVariantDto, ProductListQueryDto, VariantSearchQueryDto } from "./dto/create-variant.dto";
+import { AddProductMediaDto, CreateVariantDto, ProductListQueryDto, UploadProductMediaDto, VariantSearchQueryDto } from "./dto/create-variant.dto";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
 import { UpdateCollectionDto } from "./dto/update-collection.dto";
 import { UpdateProductDto } from "./dto/update-product.dto";
@@ -91,6 +95,31 @@ export class CatalogAdminController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.catalogService.addMedia(slug, dto, user.id);
+  }
+
+  @Permissions(PERMISSIONS.CATALOG_WRITE)
+  @Post("products/:slug/media/upload")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 100 * 1024 * 1024, files: 1 } }))
+  @ApiConsumes("multipart/form-data")
+  @ApiBody({
+    schema: {
+      type: "object",
+      required: ["file"],
+      properties: {
+        file: { type: "string", format: "binary" },
+        altText: { type: "string" },
+        sortOrder: { type: "integer", minimum: 0 },
+      },
+    },
+  })
+  uploadMedia(
+    @Param("slug") slug: string,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+    @Body() dto: UploadProductMediaDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!file) throw new BadRequestException("A media file is required");
+    return this.catalogService.uploadMedia(slug, file, dto, user.id);
   }
 
   @Permissions(PERMISSIONS.CATALOG_WRITE)

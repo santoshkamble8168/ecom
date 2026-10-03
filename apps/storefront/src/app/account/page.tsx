@@ -98,7 +98,7 @@ function AccountPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next");
-  const [email, setEmail] = useState("customer@ecom.local");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"request" | "verify">("request");
   const [error, setError] = useState<string | null>(null);
@@ -405,10 +405,12 @@ function AccountPageContent() {
                 Sign in to place your order. Your bag will stay saved.
               </p>
             )}
-            <p className="text-sm text-neutral-500">
-              OTP login. In development, use <code className="rounded bg-neutral-100 px-1">123456</code> for{" "}
-              <code className="rounded bg-neutral-100 px-1">customer@ecom.local</code>.
-            </p>
+            {process.env.NODE_ENV === "development" ? (
+              <p className="text-sm text-neutral-500">
+                Development OTP: <code className="rounded bg-neutral-100 px-1">123456</code> for{" "}
+                <code className="rounded bg-neutral-100 px-1">customer@ecom.local</code>.
+              </p>
+            ) : null}
             <input
               type="email"
               value={email}

@@ -8,7 +8,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { AdminPageHeader } from "@/components/layout/page-header";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, apiUpload } from "@/lib/api";
 import { formatCurrency } from "@/lib/format";
 import { INPUT_CLASS } from "@/lib/form-styles";
 import { AdminPageSkeleton } from "@/components/layout/admin-skeleton";
@@ -27,7 +27,7 @@ export default function ProductEditorPage() {
   const [compareAtPrice, setCompareAtPrice] = useState("");
   const [categorySlugs, setCategorySlugs] = useState<string[]>([]);
   const [collectionSlugs, setCollectionSlugs] = useState<string[]>([]);
-  const [mediaUrl, setMediaUrl] = useState("");
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: product, isLoading, isError } = useQuery({
@@ -111,13 +111,15 @@ export default function ProductEditorPage() {
   });
 
   const mediaMutation = useMutation({
-    mutationFn: () =>
-      apiFetch(`/admin/products/${slug}/media`, {
-        method: "POST",
-        body: JSON.stringify({ url: mediaUrl, altText: title }),
-      }),
+    mutationFn: () => {
+      if (!mediaFile) throw new Error("Choose an image or video to upload");
+      const formData = new FormData();
+      formData.append("file", mediaFile);
+      formData.append("altText", title);
+      return apiUpload(`/admin/products/${slug}/media/upload`, formData);
+    },
     onSuccess: () => {
-      setMediaUrl("");
+      setMediaFile(null);
       void queryClient.invalidateQueries({ queryKey: ["admin-product", slug] });
     },
     onError: (err: Error) => setError(err.message),
@@ -283,22 +285,25 @@ export default function ProductEditorPage() {
           }}
         >
           <input
-            type="url"
+            type="file"
             required
-            placeholder="https://…"
-            value={mediaUrl}
-            onChange={(event) => setMediaUrl(event.target.value)}
+            accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm"
+            onChange={(event) => setMediaFile(event.target.files?.[0] ?? null)}
             className={`${INPUT_CLASS} min-w-[16rem] flex-1`}
           />
           <Button type="submit" variant="secondary" size="sm" disabled={mediaMutation.isPending}>
-            Add image URL
+            {mediaMutation.isPending ? "Uploading…" : "Upload media"}
           </Button>
         </form>
         <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {product.media.map((item) => (
             <li key={`${item.url}-${item.sortOrder}`} className="overflow-hidden rounded-md border border-neutral-200">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={item.url} alt={item.altText ?? ""} className="h-24 w-full object-cover" />
+              {item.type === "video" ? (
+                <video src={item.url} aria-label={item.altText ?? product.title} className="h-24 w-full object-cover" muted />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={item.url} alt={item.altText ?? ""} className="h-24 w-full object-cover" />
+              )}
             </li>
           ))}
         </ul>

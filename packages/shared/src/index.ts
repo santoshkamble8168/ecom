@@ -5,3 +5,4 @@ export * from "./notification-template";
 export * from "./analytics";
 export * from "./seo";
 export * from "./recommendation";
+export * from "./object-storage";

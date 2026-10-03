@@ -1,4 +1,4 @@
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError, buildPaginationMeta, paginationSkip } from "@ecom/shared";
+import { ConflictError, NotFoundError, ValidationError, buildPaginationMeta, paginationSkip } from "@ecom/shared";
 import type {
   BannerPlacement,
   BannerSummary,
@@ -29,8 +29,6 @@ import type { UpdateMenuItemDto } from "./dto/update-menu-item.dto";
 import type { UpdatePageDto } from "./dto/update-page.dto";
 import { validatePageFields } from "./policies/page-fields.policy";
 
-const DEFAULT_PREVIEW_TOKEN = "dev-preview-token";
-
 @Injectable()
 export class CmsService {
   constructor(
@@ -52,9 +50,9 @@ export class CmsService {
   }
 
   async getPreviewBySlug(slug: string, token: string): Promise<PageDetail> {
-    const expectedToken = this.config.get<string>("CMS_PREVIEW_TOKEN", DEFAULT_PREVIEW_TOKEN);
-    if (token !== expectedToken) {
-      throw new ForbiddenError("Invalid preview token");
+    const expectedToken = this.config.get<string>("CMS_PREVIEW_TOKEN");
+    if (!expectedToken || token !== expectedToken) {
+      throw new NotFoundError("Page not found");
     }
 
     const page = await this.prisma.page.findUnique({ where: { slug } });

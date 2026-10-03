@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsArray, IsInt, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from "class-validator";
+import { IsArray, IsEnum, IsInt, IsOptional, IsString, Matches, MaxLength, Min, MinLength } from "class-validator";
 
 export class CreateVariantDto {
   @ApiProperty()
@@ -31,6 +31,26 @@ export class AddProductMediaDto {
   @IsString()
   url!: string;
 
+  @ApiPropertyOptional({ enum: ["image", "video"], default: "image" })
+  @IsOptional()
+  @IsEnum(["image", "video"])
+  type?: "image" | "video";
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  altText?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
+}
+
+export class UploadProductMediaDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

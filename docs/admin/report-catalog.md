@@ -13,13 +13,15 @@ Sprint 14 owns deeper analytics. Format is CSV only — no Excel/PDF.
 | GET | `/admin/reports` | `report:read` |
 | POST | `/admin/reports/:id/export` | `report:export` |
 | GET | `/admin/exports/:id` | `report:read` |
+| GET | `/admin/exports/:id/download` | `report:export` |
 
 `POST` body: `{ "format": "csv", "params": {} }`. `format` other than
 `csv` is rejected. The handler inserts `ExportJob` (`queued`) and
 returns immediately. Worker `processQueuedExports` (every minute)
-writes a file under `EXPORT_STORAGE_PATH` and sets `completed` or
-`failed`. Poll `GET /admin/exports/:id` for `status`, `rowCount`,
-`errorMessage`, `expiresAt`.
+writes the CSV to private S3-compatible object storage and sets
+`completed` or `failed`. Poll `GET /admin/exports/:id` for `status`,
+`rowCount`, `errorMessage`, and `expiresAt`. The download endpoint
+returns a five-minute signed URL and never exposes a server path.
 
 Jobs expire after `REPORT_RETENTION_DAYS` (default 14). Queueing is
 audited (`ReportExportQueued`).
@@ -50,10 +52,9 @@ and `inventory_manager` have `report:read` only (no export).
 
 ## Operational notes
 
-- Files live on the API/worker disk, not MinIO. Do not serve
-  `EXPORT_STORAGE_PATH` as static assets.
-- `GET /admin/exports/:id` may include `filePath` (server path) —
-  treat as internal.
+- Files live under the private `exports/` object-storage prefix.
+- The API response exposes only `downloadAvailable`; storage keys
+  stay server-side.
 - Long-running means “queued + worker”, not a streaming HTTP
   download of the CSV from `POST`.
 - `SavedView` is schema-only; reports UI has no saved-filter picker.

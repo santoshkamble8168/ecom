@@ -111,9 +111,10 @@ UTC windows.
 
 Catalog and export flow: [report catalog](./report-catalog.md).
 `POST /admin/reports/:id/export` queues an `ExportJob` (CSV only);
-the worker writes files under `EXPORT_STORAGE_PATH` (default
-`./tmp/exports`). Poll `GET /admin/exports/:id`. Retention
-`REPORT_RETENTION_DAYS` (default 14).
+the worker writes files to private S3-compatible object storage.
+Poll `GET /admin/exports/:id`, then request
+`GET /admin/exports/:id/download` for a short-lived signed URL.
+Retention is `REPORT_RETENTION_DAYS` (default 14).
 
 `SavedView` exists in the database; there is no saved-views UI.
 
@@ -121,16 +122,16 @@ the worker writes files under `EXPORT_STORAGE_PATH` (default
 
 | Job | Schedule | Purpose |
 | --- | --- | --- |
-| `processQueuedExports` | every minute | Drain `ExportJob` status `queued` → CSV on disk |
+| `processQueuedExports` | every minute | Drain `ExportJob` status `queued` → CSV in object storage |
 | `archiveExpiredAuditLogs` | daily 03:00 | Drop audit rows past retention |
 
 | Variable | Default |
 | --- | --- |
-| `EXPORT_STORAGE_PATH` | `./tmp/exports` |
+| `MINIO_BUCKET` | `ecom-assets` |
 | `REPORT_RETENTION_DAYS` | `14` |
 | `DASHBOARD_CACHE_TTL_SECONDS` | `60` |
 | `AUDIT_RETENTION_DAYS` | `365` |
 | `FEATURE_FLAG_CACHE_TTL_SECONDS` | `30` |
 
-Keep `EXPORT_STORAGE_PATH` off the public web root. Files can contain
-order and customer fields.
+Keep the bucket private. Export objects can contain order and customer
+fields and are available only through short-lived signed URLs.

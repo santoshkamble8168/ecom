@@ -98,7 +98,11 @@ export function TrustStrip({
         {title && (
           <h2 className="mb-10 text-center text-2xl font-display font-semibold tracking-tight sm:text-3xl">{title}</h2>
         )}
-        <ul className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <ul
+          className={`grid grid-cols-1 gap-8 sm:grid-cols-2 ${
+            items.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"
+          }`}
+        >
           {items.map((item, index) => (
             <li key={item.label} className="flex gap-4 sm:flex-col sm:gap-3">
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200">

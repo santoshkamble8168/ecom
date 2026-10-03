@@ -17,6 +17,7 @@ const JOB_TONE: Record<ExportJobStatus, StatusPillTone> = {
 };
 
 function JobStatus({ jobId }: { jobId: string }) {
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const { data: job } = useQuery({
     queryKey: ["admin-export", jobId],
     queryFn: () => apiFetch<ExportJobSummary>(`/admin/exports/${jobId}`),
@@ -37,6 +38,20 @@ function JobStatus({ jobId }: { jobId: string }) {
         <span className="text-neutral-500">{job.format.toUpperCase()}</span>
       </div>
       {job.rowCount != null ? <p className="text-neutral-500">{job.rowCount} rows</p> : null}
+      {job.downloadAvailable ? (
+        <button
+          type="button"
+          className="w-fit font-medium text-brand-600 hover:underline"
+          onClick={() => {
+            void apiFetch<{ url: string }>(`/admin/exports/${job.id}/download`)
+              .then(({ url }) => window.location.assign(url))
+              .catch((error: Error) => setDownloadError(error.message));
+          }}
+        >
+          Download CSV
+        </button>
+      ) : null}
+      {downloadError ? <p className="text-danger-600">{downloadError}</p> : null}
       {job.errorMessage ? <p className="text-danger-600">{job.errorMessage}</p> : null}
       <p className="text-neutral-500">Queued {formatDateTime(job.createdAt)}</p>
       {job.completedAt ? <p className="text-neutral-500">Completed {formatDateTime(job.completedAt)}</p> : null}

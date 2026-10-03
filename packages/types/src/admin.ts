@@ -197,7 +197,7 @@ export interface ExportJobSummary {
   status: ExportJobStatus;
   format: string;
   rowCount: number | null;
-  filePath: string | null;
+  downloadAvailable: boolean;
   errorMessage: string | null;
   createdAt: string;
   completedAt: string | null;

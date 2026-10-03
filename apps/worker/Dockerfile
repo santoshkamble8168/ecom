@@ -14,8 +14,10 @@ RUN pnpm --filter @ecom/worker build
 FROM base AS runner
 ENV NODE_ENV=production
 WORKDIR /workspace
-COPY --from=build /workspace/apps/worker/dist ./apps/worker/dist
-COPY --from=build /workspace/apps/worker/package.json ./apps/worker/package.json
-COPY --from=build /workspace/node_modules ./node_modules
-COPY --from=build /workspace/apps/worker/node_modules ./apps/worker/node_modules
+COPY --chown=node:node --from=build /workspace/apps/worker/dist ./apps/worker/dist
+COPY --chown=node:node --from=build /workspace/apps/worker/package.json ./apps/worker/package.json
+COPY --chown=node:node --from=build /workspace/node_modules ./node_modules
+COPY --chown=node:node --from=build /workspace/apps/worker/node_modules ./apps/worker/node_modules
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 CMD node -e "try{process.kill(1,0)}catch{process.exit(1)}"
+USER node
 CMD ["node", "apps/worker/dist/main.js"]

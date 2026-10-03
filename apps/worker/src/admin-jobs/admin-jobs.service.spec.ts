@@ -1,20 +1,18 @@
-import { mkdir, unlink, writeFile } from "fs/promises";
-
 import type { PrismaService } from "../prisma/prisma.service";
 
 import { AdminJobsService } from "./admin-jobs.service";
 import { csvEscape, toCsv } from "./csv";
 import { buildReportCsv } from "./report-csv";
 
-jest.mock("fs/promises", () => ({
-  mkdir: jest.fn(),
-  writeFile: jest.fn(),
-  unlink: jest.fn(),
+const mockPutObject = jest.fn();
+const mockDeleteObject = jest.fn();
+jest.mock("@ecom/shared", () => ({
+  ...jest.requireActual("@ecom/shared"),
+  objectStorageFromEnv: () => ({
+    putObject: mockPutObject,
+    deleteObject: mockDeleteObject,
+  }),
 }));
-
-const mkdirMock = mkdir as jest.MockedFunction<typeof mkdir>;
-const writeFileMock = writeFile as jest.MockedFunction<typeof writeFile>;
-const unlinkMock = unlink as jest.MockedFunction<typeof unlink>;
 
 function mockPrisma() {
   return {
@@ -107,23 +105,19 @@ describe("buildReportCsv", () => {
 describe("AdminJobsService", () => {
   let prisma: MockPrisma;
   let service: AdminJobsService;
-  const originalExportPath = process.env.EXPORT_STORAGE_PATH;
   const originalRetention = process.env.REPORT_RETENTION_DAYS;
   const originalAuditRetention = process.env.AUDIT_RETENTION_DAYS;
 
   beforeEach(() => {
     prisma = mockPrisma();
     service = new AdminJobsService(prisma as unknown as PrismaService);
-    process.env.EXPORT_STORAGE_PATH = "/tmp/exports";
     process.env.REPORT_RETENTION_DAYS = "14";
     process.env.AUDIT_RETENTION_DAYS = "365";
-    mkdirMock.mockReset().mockResolvedValue(undefined);
-    writeFileMock.mockReset().mockResolvedValue(undefined);
-    unlinkMock.mockReset().mockResolvedValue(undefined);
+    mockPutObject.mockReset().mockResolvedValue(undefined);
+    mockDeleteObject.mockReset().mockResolvedValue(undefined);
   });
 
   afterEach(() => {
-    restoreEnv("EXPORT_STORAGE_PATH", originalExportPath);
     restoreEnv("REPORT_RETENTION_DAYS", originalRetention);
     restoreEnv("AUDIT_RETENTION_DAYS", originalAuditRetention);
   });
@@ -152,11 +146,10 @@ describe("AdminJobsService", () => {
         data: expect.objectContaining({ status: "running" }),
       }),
     );
-    expect(mkdirMock).toHaveBeenCalledWith("/tmp/exports", { recursive: true });
-    expect(writeFileMock).toHaveBeenCalledWith(
-      expect.stringMatching(/job-1\.csv$/),
+    expect(mockPutObject).toHaveBeenCalledWith(
+      "exports/job-1.csv",
       expect.stringContaining("ECO1"),
-      "utf8",
+      "text/csv; charset=utf-8",
     );
     expect(prisma.exportJob.update).toHaveBeenNthCalledWith(
       2,
@@ -165,7 +158,7 @@ describe("AdminJobsService", () => {
         data: expect.objectContaining({
           status: "completed",
           rowCount: 1,
-          filePath: expect.stringMatching(/job-1\.csv$/),
+          filePath: "exports/job-1.csv",
         }),
       }),
     );
@@ -210,13 +203,13 @@ describe("AdminJobsService", () => {
     expect(prisma.scheduledJobRun.create).not.toHaveBeenCalled();
   });
 
-  it("deletes expired audit logs and unlinks finished export files", async () => {
+  it("deletes expired audit logs and finished export objects", async () => {
     prisma.auditLog.findMany
       .mockResolvedValueOnce([{ id: "audit-1" }])
       .mockResolvedValueOnce([]);
     prisma.auditLog.deleteMany.mockResolvedValue({ count: 1 });
     prisma.exportJob.findMany.mockResolvedValue([
-      { id: "exp-1", filePath: "/tmp/exports/exp-1.csv" },
+      { id: "exp-1", filePath: "exports/exp-1.csv" },
     ]);
     prisma.exportJob.deleteMany.mockResolvedValue({ count: 1 });
 
@@ -225,7 +218,7 @@ describe("AdminJobsService", () => {
     expect(prisma.auditLog.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ["audit-1"] } },
     });
-    expect(unlinkMock).toHaveBeenCalledWith("/tmp/exports/exp-1.csv");
+    expect(mockDeleteObject).toHaveBeenCalledWith("exports/exp-1.csv");
     expect(prisma.exportJob.deleteMany).toHaveBeenCalledWith({
       where: { id: { in: ["exp-1"] } },
     });

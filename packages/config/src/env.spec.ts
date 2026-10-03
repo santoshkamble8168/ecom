@@ -16,7 +16,6 @@ describe("validateApiEnv", () => {
     expect(env.REDIS_HOST).toBe("127.0.0.1");
     expect(env.REDIS_PORT).toBe(6379);
     expect(env.LOG_LEVEL).toBe("info");
-    expect(env.EXPORT_STORAGE_PATH).toBe("./tmp/exports");
     expect(env.REPORT_RETENTION_DAYS).toBe(14);
     expect(env.DASHBOARD_CACHE_TTL_SECONDS).toBe(60);
     expect(env.AUDIT_RETENTION_DAYS).toBe(365);
@@ -86,6 +85,9 @@ describe("validateApiEnv", () => {
       RAZORPAY_KEY_ID: "rzp_test_key",
       RAZORPAY_KEY_SECRET: "test_key_secret",
       RAZORPAY_WEBHOOK_SECRET: "test_webhook_secret",
+      CMS_PREVIEW_TOKEN: "a".repeat(64),
+      MINIO_ACCESS_KEY: "production-storage-key",
+      MINIO_SECRET_KEY: "production-storage-secret",
     });
     expect(env.RAZORPAY_MODE).toBe("test");
   });

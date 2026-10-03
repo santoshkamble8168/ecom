@@ -26,8 +26,9 @@ paid = status not in `pending_payment` / `cancelled` / `failed`).
 
 **2. Async `ExportJob` for reports.** `POST /admin/reports/:id/export`
 inserts a `queued` row and returns. The worker’s minute cron writes
-CSV under `EXPORT_STORAGE_PATH`. `GET /admin/exports/:id` is the poll
-API. Audit CSV export stays synchronous (`GET /admin/audit-logs/export`)
+CSV to private S3-compatible object storage. `GET /admin/exports/:id`
+is the poll API and `/admin/exports/:id/download` issues a short-lived
+signed URL. Audit CSV export stays synchronous (`GET /admin/audit-logs/export`)
 because it is a filtered dump, not a catalog report. Format is CSV
 only.
 
@@ -63,7 +64,7 @@ seeded keys.
 - Redis down in development: the API still boots; dashboard/flag
   reads fall through to Postgres (or fail closed on flags if the
   cache layer errors — callers must not treat a cache miss as “on”).
-- Export files are local disk, not MinIO. Retention is
+- Export files use private object storage and expire after
   `REPORT_RETENTION_DAYS`. Audit rows older than
   `AUDIT_RETENTION_DAYS` are deleted (no archive store).
 - A percent-rolled flag can flip between requests for the same user.

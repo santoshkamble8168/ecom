@@ -39,6 +39,9 @@ export const apiEnvSchema = z.object({
   MINIO_ACCESS_KEY: z.string().optional(),
   MINIO_SECRET_KEY: z.string().optional(),
   MINIO_BUCKET: z.string().default("ecom-assets"),
+  MINIO_USE_SSL: z.enum(["true", "false"]).default("false"),
+  MEDIA_MAX_IMAGE_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
+  MEDIA_MAX_VIDEO_BYTES: z.coerce.number().int().positive().default(100 * 1024 * 1024),
 
   SMTP_HOST: z.string().default("localhost"),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
@@ -51,7 +54,6 @@ export const apiEnvSchema = z.object({
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace"]).default("info"),
 
   // Sprint 12 — admin dashboard, exports, audit, feature flags
-  EXPORT_STORAGE_PATH: z.string().default("./tmp/exports"),
   REPORT_RETENTION_DAYS: z.coerce.number().int().positive().default(14),
   DASHBOARD_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(60),
   AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
@@ -84,6 +86,9 @@ export const apiEnvSchema = z.object({
   PERSONALIZATION_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
   SEMANTIC_SEARCH_PROVIDER: z.enum(["none"]).default("none"),
 
+  CMS_PREVIEW_TOKEN: z.string().optional(),
+  SWAGGER_ENABLED: z.enum(["true", "false"]).optional(),
+
   // Payments — mock is local development only. Production must be test or live.
   RAZORPAY_MODE: z.enum(["mock", "test", "live"]).default("mock"),
   RAZORPAY_KEY_ID: z.string().optional(),
@@ -107,6 +112,24 @@ export const apiEnvSchema = z.object({
           code: z.ZodIssueCode.custom,
           path: [key],
           message: "Required in production and whenever RAZORPAY_MODE is test or live",
+        });
+      }
+    }
+  }
+  if (production && (env.CMS_PREVIEW_TOKEN?.trim().length ?? 0) < 32) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["CMS_PREVIEW_TOKEN"],
+      message: "A high-entropy CMS preview token is required in production",
+    });
+  }
+  if (production) {
+    for (const key of ["MINIO_ACCESS_KEY", "MINIO_SECRET_KEY"] as const) {
+      if ((env[key]?.trim().length ?? 0) < 8) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [key],
+          message: "Object storage credentials are required in production",
         });
       }
     }

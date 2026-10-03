@@ -1,6 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
-import { SkipThrottle } from "@nestjs/throttler";
 import { IsInt, IsOptional, IsString, Length, Max, Min } from "class-validator";
 import { Type } from "class-transformer";
 
@@ -66,7 +65,6 @@ class SaveForLaterDto {
 }
 
 @ApiTags("cart")
-@SkipThrottle()
 @Controller("cart")
 export class CartController {
   constructor(private readonly cartService: CartService) {}

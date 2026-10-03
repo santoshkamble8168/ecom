@@ -739,6 +739,10 @@ async function seedOrdersFulfillment() {
 }
 
 async function main() {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Refusing to seed a production database");
+  }
+
   for (const permission of PERMISSIONS) {
     await prisma.permission.upsert({
       where: { key: permission.key },

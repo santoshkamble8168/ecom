@@ -41,4 +41,10 @@ export class ReportsController {
   getExport(@Param("id") id: string) {
     return this.reportsService.getExport(id);
   }
+
+  @Get("exports/:id/download")
+  @Permissions(PERMISSIONS.REPORT_EXPORT)
+  downloadExport(@Param("id") id: string) {
+    return this.reportsService.getExportDownload(id);
+  }
 }

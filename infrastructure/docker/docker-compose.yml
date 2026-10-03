@@ -96,9 +96,17 @@ services:
       context: ../..
       dockerfile: apps/worker/Dockerfile
     restart: unless-stopped
+    env_file:
+      - ../../apps/api/.env
     environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ecom}:${POSTGRES_PASSWORD:-ecom}@postgres:5432/${POSTGRES_DB:-ecom}?schema=public
       REDIS_HOST: redis
+      MINIO_ENDPOINT: minio
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
 

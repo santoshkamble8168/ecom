@@ -35,6 +35,7 @@ import { HealthModule } from "./health/health.module";
 import { AppLoggerModule } from "./logger/logger.module";
 import { PrismaModule } from "./prisma/prisma.module";
 import { RedisModule } from "./redis/redis.module";
+import { StorageModule } from "./storage/storage.module";
 
 @Module({
   imports: [
@@ -42,10 +43,12 @@ import { RedisModule } from "./redis/redis.module";
     AppLoggerModule,
     PrismaModule,
     RedisModule,
+    StorageModule,
     BullModule.forRoot({
       connection: {
         host: process.env.REDIS_HOST ?? "127.0.0.1",
         port: Number(process.env.REDIS_PORT ?? 6379),
+        password: process.env.REDIS_PASSWORD || undefined,
       },
     }),
     // Global default: 60 requests/minute per IP in production. Auth OTP

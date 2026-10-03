@@ -13,7 +13,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
-  const [email, setEmail] = useState("customer@ecom.local");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [step, setStep] = useState<"request" | "verify">("request");
   const [error, setError] = useState<string | null>(null);
@@ -82,10 +82,12 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
           else void verifyOtp();
         }}
       >
-        <p className="text-sm text-neutral-500">
-          OTP login. In development, use <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">123456</code>{" "}
-          for <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">customer@ecom.local</code>.
-        </p>
+        {process.env.NODE_ENV === "development" ? (
+          <p className="text-sm text-neutral-500">
+            Development OTP: <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">123456</code>{" "}
+            for <code className="rounded bg-neutral-100 px-1 dark:bg-neutral-800">customer@ecom.local</code>.
+          </p>
+        ) : null}
         <input
           type="email"
           value={email}

@@ -1,17 +1,26 @@
-/**
- * Pragmatic HTML sanitizer for admin-authored CMS/blog rich text.
- * Strips executable vectors (`script`/`iframe`/event handlers/`javascript:`)
- * while leaving semantic markup (`p`, `h2`, `a`, `ul`, `strong`, etc.) intact.
- * Not a full HTML parser — a follow-up should switch to DOMPurify if authors
- * need a richer allowlist.
- */
+import sanitizeHtml from "sanitize-html";
+
+const RICH_TEXT_TAGS = [
+  "p", "br", "h1", "h2", "h3", "h4", "blockquote", "pre", "code",
+  "ul", "ol", "li", "strong", "em", "b", "i", "u", "s", "a", "img",
+] as const;
+
+/** Parser-backed allowlist sanitizer for admin-authored CMS and blog HTML. */
 export function sanitizeRichHtml(html: string): string {
-  return html
-    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
-    .replace(/<style\b[\s\S]*?<\/style>/gi, "")
-    .replace(/<\/?(iframe|object|embed|link|meta|form|input|textarea|button|svg)\b[^>]*>/gi, "")
-    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-    .replace(/(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, "$1=$2#$2");
+  return sanitizeHtml(html, {
+    allowedTags: [...RICH_TEXT_TAGS],
+    allowedAttributes: {
+      a: ["href", "title", "target", "rel"],
+      img: ["src", "alt", "title", "width", "height", "loading"],
+      code: ["class"],
+    },
+    allowedSchemes: ["http", "https", "mailto", "tel"],
+    allowedSchemesByTag: { img: ["http", "https"] },
+    allowProtocolRelative: false,
+    transformTags: {
+      a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }, true),
+    },
+  });
 }
 
 /** Recursively sanitizes string values in a CMS `fields` JSON blob. */

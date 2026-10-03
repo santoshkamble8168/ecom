@@ -545,16 +545,28 @@ export function PdpView({ product }: PdpViewProps) {
                 onClick={() => setActiveImage(i)}
                 className={`h-16 w-16 overflow-hidden rounded border transition-colors ${activeImage === i ? "border-brand-700 ring-1 ring-brand-700" : "border-neutral-200"}`}
               >
-                <img
-                  src={img.url}
-                  alt={`${product.title} view ${i + 1}`}
-                  className="h-full w-full object-cover"
-                />
+                {img.type === "video" ? (
+                  <video src={img.url} aria-label={`${product.title} video ${i + 1}`} className="h-full w-full object-cover" muted />
+                ) : (
+                  <img
+                    src={img.url}
+                    alt={`${product.title} view ${i + 1}`}
+                    className="h-full w-full object-cover"
+                  />
+                )}
               </button>
             ))}
           </div>
           <div className="relative aspect-square flex-1 overflow-hidden rounded-lg bg-neutral-100">
-            {images[activeImage] && (
+            {images[activeImage]?.type === "video" ? (
+              <video
+                src={images[activeImage].url}
+                aria-label={images[activeImage].altText ?? product.title}
+                className="h-full w-full object-contain"
+                controls
+                playsInline
+              />
+            ) : images[activeImage] ? (
               <StorefrontImage
                 src={images[activeImage].url}
                 alt={images[activeImage].altText ?? product.title}
@@ -562,7 +574,7 @@ export function PdpView({ product }: PdpViewProps) {
                 sizes="(max-width: 1024px) 100vw, 50vw"
                 priority
               />
-            )}
+            ) : null}
           </div>
         </div>
 

@@ -93,7 +93,7 @@ export async function payWithRazorpay(payment: PaymentSummary, prefill?: {
   }
 
   await loadRazorpayCheckout();
-  const Razorpay = (window as Window & {
+  const Razorpay = (window as unknown as Window & {
     Razorpay: new (options: Record<string, unknown>) => { open: () => void };
   }).Razorpay;
 

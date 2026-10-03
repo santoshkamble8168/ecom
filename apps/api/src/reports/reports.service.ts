@@ -1,5 +1,5 @@
 import type { ApiEnv } from "@ecom/config";
-import { NotFoundError } from "@ecom/shared";
+import { NotFoundError, ValidationError } from "@ecom/shared";
 import type { ExportJobStatus, ExportJobSummary, ReportDefinitionSummary, ReportKind } from "@ecom/types";
 import { Inject, Injectable } from "@nestjs/common";
 import type {
@@ -11,6 +11,7 @@ import type {
 import { AuditService } from "../audit/audit.service";
 import { APP_ENV } from "../config/config.module";
 import { PrismaService } from "../prisma/prisma.service";
+import { ObjectStorageService } from "../storage/object-storage.service";
 
 import type { ExportReportDto } from "./dto/export-report.dto";
 
@@ -22,6 +23,7 @@ export class ReportsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     @Inject(APP_ENV) private readonly env: ApiEnv,
+    private readonly storage: ObjectStorageService,
   ) {}
 
   async list(): Promise<ReportDefinitionSummary[]> {
@@ -76,6 +78,22 @@ export class ReportsService {
     return this.toExportSummary(job, job.report.slug);
   }
 
+  async getExportDownload(id: string): Promise<{ url: string; expiresAt: string }> {
+    const job = await this.prisma.exportJob.findUnique({ where: { id } });
+    if (!job) throw new NotFoundError("Export job not found");
+    if (job.status !== "completed" || !job.filePath) {
+      throw new ValidationError("Export is not ready for download");
+    }
+    if (job.expiresAt && job.expiresAt.getTime() <= Date.now()) {
+      throw new NotFoundError("Export has expired");
+    }
+    const expiresInSeconds = 300;
+    return {
+      url: await this.storage.signedDownloadUrl(job.filePath, expiresInSeconds),
+      expiresAt: new Date(Date.now() + expiresInSeconds * 1000).toISOString(),
+    };
+  }
+
   private async findReport(idOrSlug: string): Promise<ReportDefinitionModel | null> {
     const byId = await this.prisma.reportDefinition.findUnique({ where: { id: idOrSlug } });
     if (byId) return byId;
@@ -100,7 +118,7 @@ export class ReportsService {
       status: job.status as ExportJobStatus,
       format: job.format,
       rowCount: job.rowCount,
-      filePath: job.filePath,
+      downloadAvailable: job.status === "completed" && Boolean(job.filePath),
       errorMessage: job.errorMessage,
       createdAt: job.createdAt.toISOString(),
       completedAt: job.completedAt?.toISOString() ?? null,

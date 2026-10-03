@@ -1,9 +1,11 @@
-import { ConflictError, NotFoundError, buildPaginationMeta, paginationSkip } from "@ecom/shared";
+import { ConflictError, NotFoundError, ValidationError, buildPaginationMeta, paginationSkip } from "@ecom/shared";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 import { AppLogger } from "../logger/logger.service";
 import { PrismaService } from "../prisma/prisma.service";
+import { ObjectStorageService } from "../storage/object-storage.service";
 import { productInclude, toAttributeSummary, toCategorySummary, toCollectionSummary, toProductDetail, toProductSummary } from "./mappers/catalog.mapper";
 import { assertCanPublish, assertUniqueSku, assertUniqueSlug } from "./policies/publish.policy";
 import { slugify } from "./utils/catalog.utils";
@@ -16,11 +18,26 @@ import type { UpdateCategoryDto } from "./dto/update-category.dto";
 import type { UpdateCollectionDto } from "./dto/update-collection.dto";
 import type { UpdateProductDto } from "./dto/update-product.dto";
 
+function detectMediaMime(buffer: Buffer): string | null {
+  if (buffer.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff]))) return "image/jpeg";
+  if (buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+    return "image/png";
+  }
+  if (buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP") {
+    return "image/webp";
+  }
+  if (["GIF87a", "GIF89a"].includes(buffer.subarray(0, 6).toString("ascii"))) return "image/gif";
+  if (buffer.subarray(4, 8).toString("ascii") === "ftyp") return "video/mp4";
+  if (buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))) return "video/webm";
+  return null;
+}
+
 @Injectable()
 export class CatalogService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: AppLogger,
+    private readonly storage: ObjectStorageService,
   ) {
     this.logger.setContext("CatalogService");
   }
@@ -310,10 +327,68 @@ export class CatalogService {
         productId: product.id,
         url: dto.url,
         altText: dto.altText,
+        type: dto.type ?? "image",
         sortOrder: dto.sortOrder ?? product.media.length,
       },
     });
     this.logger.log(`Media added to ${slug} by user ${userId}`);
+    return this.adminGetProduct(slug);
+  }
+
+  async uploadMedia(
+    slug: string,
+    file: { buffer: Buffer; mimetype: string; size: number },
+    dto: { altText?: string; sortOrder?: number },
+    userId: string,
+  ) {
+    const product = await this.findProductOrThrow(slug);
+    const mediaType = file.mimetype.startsWith("image/")
+      ? "image"
+      : file.mimetype.startsWith("video/")
+        ? "video"
+        : null;
+    if (!mediaType) {
+      throw new ValidationError("Only image and video uploads are supported");
+    }
+
+    const allowedMimeTypes: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+      "image/gif": "gif",
+      "video/mp4": "mp4",
+      "video/webm": "webm",
+    };
+    const extension = allowedMimeTypes[file.mimetype];
+    if (!extension) {
+      throw new ValidationError("Unsupported media type");
+    }
+    if (detectMediaMime(file.buffer) !== file.mimetype) {
+      throw new ValidationError("File contents do not match the declared media type");
+    }
+    const maxBytes = mediaType === "image" ? this.storage.maxImageBytes : this.storage.maxVideoBytes;
+    if (file.size > maxBytes) {
+      throw new ValidationError(`${mediaType === "image" ? "Image" : "Video"} exceeds the upload size limit`);
+    }
+
+    const objectKey = `products/${product.id}/${randomUUID()}.${extension}`;
+    await this.storage.putObject(objectKey, file.buffer, file.mimetype);
+    try {
+      await this.prisma.productMedia.create({
+        data: {
+          productId: product.id,
+          url: this.storage.productMediaUrl(objectKey),
+          altText: dto.altText,
+          type: mediaType,
+          sortOrder: dto.sortOrder ?? product.media.length,
+        },
+      });
+    } catch (error) {
+      await this.storage.deleteObject(objectKey).catch(() => undefined);
+      throw error;
+    }
+
+    this.logger.log(`${mediaType} uploaded for ${slug} by user ${userId}`);
     return this.adminGetProduct(slug);
   }
 

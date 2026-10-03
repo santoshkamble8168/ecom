@@ -1,4 +1,20 @@
 /** @type {import('next').NextConfig} */
+const isProduction = process.env.NODE_ENV === "production";
+
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'self'",
+  "form-action 'self'",
+  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://checkout.razorpay.com`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: blob: https:${process.env.NODE_ENV === "production" ? "" : " http:"}`,
+  `media-src 'self' blob: https:${process.env.NODE_ENV === "production" ? "" : " http:"}`,
+  `connect-src 'self' https:${isProduction ? "" : " http: ws:"}`,
+  "frame-src https://api.razorpay.com https://checkout.razorpay.com",
+].join("; ");
+
 const nextConfig = {
   reactStrictMode: true,
   // Optional: set NEXT_DIST_DIR to a path outside OneDrive on Windows if .next/trace EPERM persists.
@@ -26,6 +42,7 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
+          { key: "Content-Security-Policy", value: contentSecurityPolicy },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
