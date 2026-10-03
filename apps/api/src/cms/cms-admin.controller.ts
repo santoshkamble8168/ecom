@@ -1,6 +1,7 @@
 import { PERMISSIONS } from "@ecom/types";
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { BadRequestException, Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { ApiConsumes, ApiTags } from "@nestjs/swagger";
 
 import type { AuthenticatedUser } from "../auth/types/authenticated-user";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
@@ -16,6 +17,10 @@ import { ListPagesQueryDto } from "./dto/list-pages-query.dto";
 import { SchedulePageDto } from "./dto/schedule-page.dto";
 import { UpdateBannerDto } from "./dto/update-banner.dto";
 import { UpdateMenuItemDto } from "./dto/update-menu-item.dto";
+import { ListMediaQueryDto, UpdateMediaDto } from "./dto/update-media.dto";
+import { ReorderMenuDto } from "./dto/reorder-menu.dto";
+import { CreateReusableSectionDto, UpdateReusableSectionDto } from "./dto/reusable-section.dto";
+import { UpdateMenuDto } from "./dto/update-menu.dto";
 import { UpdatePageDto } from "./dto/update-page.dto";
 
 @ApiTags("admin-cms")
@@ -73,6 +78,46 @@ export class CmsAdminController {
     return this.cmsService.listPageVersions(id);
   }
 
+  @Get("pages/:id/versions/:versionId")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  getPageVersion(@Param("id") id: string, @Param("versionId") versionId: string) {
+    return this.cmsService.getPageVersion(id, versionId);
+  }
+
+  @Post("pages/:id/versions/:versionId/restore")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  restorePageVersion(
+    @Param("id") id: string,
+    @Param("versionId") versionId: string,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    return this.cmsService.restorePageVersion(id, versionId, admin.id);
+  }
+
+  @Post("pages/:id/duplicate")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  duplicatePage(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.duplicatePage(id, admin.id);
+  }
+
+  @Post("pages/:id/unpublish")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  unpublishPage(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.unpublishPage(id, admin.id);
+  }
+
+  @Delete("pages/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  deletePage(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.deletePage(id, admin.id);
+  }
+
+  @Get("pages/:id/preview")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  previewPage(@Param("id") id: string) {
+    return this.cmsService.previewPage(id);
+  }
+
   // Banners
 
   @Get("banners")
@@ -113,6 +158,24 @@ export class CmsAdminController {
     return this.cmsService.adminCreateMenu(dto, admin.id);
   }
 
+  @Patch("menus/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  updateMenu(@Param("id") id: string, @Body() dto: UpdateMenuDto, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.updateMenu(id, dto, admin.id);
+  }
+
+  @Delete("menus/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  deleteMenu(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.deleteMenu(id, admin.id);
+  }
+
+  @Post("menus/:id/reorder")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  reorderMenu(@Param("id") id: string, @Body() dto: ReorderMenuDto, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.reorderMenu(id, dto, admin.id);
+  }
+
   @Post("menus/:id/items")
   @Permissions(PERMISSIONS.ADMIN_ACCESS)
   addMenuItem(@Param("id") id: string, @Body() dto: CreateMenuItemDto, @CurrentUser() admin: AuthenticatedUser) {
@@ -129,5 +192,70 @@ export class CmsAdminController {
   @Permissions(PERMISSIONS.ADMIN_ACCESS)
   deleteMenuItem(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
     return this.cmsService.deleteMenuItem(id, admin.id);
+  }
+
+  // Media
+
+  @Get("media")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  listMedia(@Query() query: ListMediaQueryDto) {
+    return this.cmsService.listMedia(query);
+  }
+
+  @Post("media")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  @ApiConsumes("multipart/form-data")
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: 100 * 1024 * 1024, files: 1 } }))
+  uploadMedia(
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; size: number; originalname?: string } | undefined,
+    @Body("altText") altText: string | undefined,
+    @CurrentUser() admin: AuthenticatedUser,
+  ) {
+    if (!file) throw new BadRequestException("A media file is required");
+    return this.cmsService.uploadMedia(file, altText, admin.id);
+  }
+
+  @Patch("media/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  updateMedia(@Param("id") id: string, @Body() dto: UpdateMediaDto, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.updateMedia(id, dto, admin.id);
+  }
+
+  @Delete("media/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  deleteMedia(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.deleteMedia(id, admin.id);
+  }
+
+  // Reusable sections
+
+  @Get("sections")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  listSections() {
+    return this.cmsService.listReusableSections();
+  }
+
+  @Post("sections")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  createSection(@Body() dto: CreateReusableSectionDto, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.createReusableSection(dto, admin.id);
+  }
+
+  @Get("sections/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  getSection(@Param("id") id: string) {
+    return this.cmsService.getReusableSection(id);
+  }
+
+  @Patch("sections/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  updateSection(@Param("id") id: string, @Body() dto: UpdateReusableSectionDto, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.updateReusableSection(id, dto, admin.id);
+  }
+
+  @Delete("sections/:id")
+  @Permissions(PERMISSIONS.ADMIN_ACCESS)
+  deleteSection(@Param("id") id: string, @CurrentUser() admin: AuthenticatedUser) {
+    return this.cmsService.deleteReusableSection(id, admin.id);
   }
 }

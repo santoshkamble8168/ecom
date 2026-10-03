@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsOptional, Max, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from "class-validator";
 
 import { CONTENT_STATUSES, PAGE_TYPES } from "../cms.constants";
 
@@ -14,6 +14,17 @@ export class ListPagesQueryDto {
   @IsOptional()
   @IsIn(CONTENT_STATUSES)
   status?: (typeof CONTENT_STATUSES)[number];
+
+  @ApiPropertyOptional({ enum: ["static", "dynamic"] })
+  @IsOptional()
+  @IsIn(["static", "dynamic"])
+  kind?: "static" | "dynamic";
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  search?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

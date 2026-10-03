@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import { IsIn, IsObject, IsOptional, IsString, Matches, MaxLength } from "class-validator";
+import { IsBoolean, IsIn, IsObject, IsOptional, IsString, Matches, MaxLength } from "class-validator";
 
 import { PAGE_TYPES, SLUG_PATTERN } from "../cms.constants";
 
@@ -47,4 +47,21 @@ export class CreatePageDto {
   @IsString()
   @MaxLength(500)
   seoOgImage?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  seoNoIndex?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  templateKey?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  featuredImageUrl?: string;
 }

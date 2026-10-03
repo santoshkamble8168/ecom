@@ -20,6 +20,7 @@ function Icon({ children }: { children: ReactNode }) {
 export function AdminNavIcon({ href }: { href: string }) {
   switch (href) {
     case "/":
+    case "/dashboard":
       return (
         <Icon>
           <rect x="3" y="3" width="7" height="7" rx="1" />
@@ -115,8 +116,11 @@ export function AdminNavIcon({ href }: { href: string }) {
         </Icon>
       );
     case "/pages":
-    case "/banners":
+    case "/dynamic-pages":
+    case "/media":
     case "/menus":
+    case "/sections":
+    case "/banners":
     case "/blog":
       return (
         <Icon>

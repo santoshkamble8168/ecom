@@ -47,6 +47,7 @@ export async function generateMetadata({
     openGraph: page.seoOgImage
       ? { title: page.seoTitle ?? page.title, images: [page.seoOgImage] }
       : { title: page.seoTitle ?? page.title },
+    robots: page.seoNoIndex ? { index: false, follow: false } : undefined,
   };
 }
 

@@ -19,7 +19,10 @@ export class MediaController {
     } catch {
       throw new NotFoundError("Media not found");
     }
-    if (!/^products\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+\.(jpg|png|webp|gif|mp4|webm)$/.test(objectKey)) {
+    const allowed =
+      /^products\/[a-zA-Z0-9-]+\/[a-zA-Z0-9-]+\.(jpg|png|webp|gif|mp4|webm)$/.test(objectKey) ||
+      /^cms\/[a-zA-Z0-9-]+\.(jpg|png|webp|gif|mp4|webm)$/.test(objectKey);
+    if (!allowed) {
       throw new NotFoundError("Media not found");
     }
     response.redirect(302, await this.storage.signedDownloadUrl(objectKey, 60));

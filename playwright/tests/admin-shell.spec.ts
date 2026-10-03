@@ -7,15 +7,16 @@ test.describe("Admin shell", () => {
 
     await expect(adminDashboard.heading).toBeVisible();
     await expect(adminDashboard.sidebarLink("Dashboard")).toBeVisible();
-    await expect(adminDashboard.sidebarLink("Products")).toBeVisible();
-    await expect(adminDashboard.sidebarLink("Orders")).toBeVisible();
+    await expect(adminDashboard.sidebarLink("Content")).toBeVisible();
+    await expect(adminDashboard.sidebarLink("Pages")).toBeVisible();
+    await expect(adminDashboard.sidebarLink("Media")).toBeVisible();
   });
 
   test("navigates between sidebar sections", async ({ adminDashboard, page }) => {
     await adminDashboard.goto();
 
-    await adminDashboard.sidebarLink("Products").click();
-    await expect(page).toHaveURL(/\/products$/);
+    await adminDashboard.sidebarLink("Pages").click();
+    await expect(page).toHaveURL(/\/pages$/);
   });
 
   test("has no automatically detectable accessibility violations", async ({

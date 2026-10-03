@@ -33,6 +33,8 @@ export function defaultFieldsFor(type: PageType): PageFieldsValue {
       return { bodyHtml: "" };
     case "faq":
       return { items: [] };
+    default:
+      return { sections: [] };
   }
 }
 

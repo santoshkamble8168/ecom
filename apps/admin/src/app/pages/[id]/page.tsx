@@ -2,9 +2,9 @@
 
 import { useParams } from "next/navigation";
 
-import { PageForm } from "@/components/cms/page-form";
+import { ContentEditor } from "@/components/cms/content-editor";
 
 export default function EditPagePage() {
   const params = useParams<{ id: string }>();
-  return <PageForm pageId={params.id} />;
+  return <ContentEditor mode="static" pageId={params.id} />;
 }

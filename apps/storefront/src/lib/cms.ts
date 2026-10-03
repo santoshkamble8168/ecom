@@ -17,6 +17,20 @@ async function getBannersByPlacement(placement: BannerPlacement): Promise<Banner
   }
 }
 
+export async function getPublishedDynamicPage(type: string, source: string): Promise<PageDetail | null> {
+  try {
+    const res = await fetch(`${API_URL}/cms/dynamic/${encodeURIComponent(type)}/${encodeURIComponent(source)}`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as ApiResponse<PageDetail | null>;
+    return body.success ? body.data : null;
+  } catch (err) {
+    console.error(`[CMS Page] Failed to load ${type} "${source}":`, err);
+    return null;
+  }
+}
+
 export async function getPublishedCmsPage(slug: string): Promise<PageDetail | null> {
   let res: Response;
   try {

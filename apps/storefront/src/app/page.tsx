@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 
+import { CmsPageView } from "@/components/cms/cms-page-view";
 import { StreetwearHomepage } from "@/components/home/streetwear-homepage";
+import { getPublishedCmsPage } from "@/lib/cms";
 import { metadataForCmsSlug } from "@/lib/cms-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,5 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  return <StreetwearHomepage />;
+  const page = await getPublishedCmsPage("home");
+  if (!page) return <StreetwearHomepage />;
+  return <CmsPageView page={page} />;
 }

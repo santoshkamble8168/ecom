@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { DynamicTemplateView } from "@/components/cms/dynamic-template-view";
 import { PlpView } from "@/components/discovery/plp-view";
+import { getPublishedDynamicPage } from "@/lib/cms";
 
 function titleFromSlug(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
@@ -25,9 +27,12 @@ export default async function CampaignLandingPage({ params }: { params: Promise<
   const { slug } = await params;
   const title = titleFromSlug(slug);
 
-  return (
+  const page = await getPublishedDynamicPage("campaign", slug);
+  const grid = (
     <Suspense fallback={<div className="p-8 text-neutral-500">Loading campaign…</div>}>
-      <PlpView title={title} apiPath={`/campaigns/${slug}/products`} />
+      <PlpView title={page?.title ?? title} apiPath={`/campaigns/${slug}/products`} />
     </Suspense>
   );
+  if (!page) return grid;
+  return <DynamicTemplateView page={page} grid={grid} />;
 }

@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BlogPostCard } from "@/components/blog/blog-post-card";
+import { DynamicTemplateView } from "@/components/cms/dynamic-template-view";
 import { apiFetch } from "@/lib/api";
+import { getPublishedDynamicPage } from "@/lib/cms";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -18,6 +20,7 @@ interface BlogPageProps {
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const { category, tag, page } = await searchParams;
+  const cmsPage = await getPublishedDynamicPage("blog", "blog");
   const currentPage = Math.max(1, Number(page) || 1);
 
   const query = new URLSearchParams();
@@ -61,6 +64,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   }
 
   return (
+    <div>
+      {cmsPage ? <DynamicTemplateView page={cmsPage} /> : null}
     <div className="mx-auto max-w-7xl px-4 py-10">
       <nav className="mb-3 text-xs text-neutral-500">
         <Link href="/" className="hover:underline">
@@ -148,6 +153,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
           </Link>
         </div>
       )}
+    </div>
     </div>
   );
 }

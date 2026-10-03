@@ -11,20 +11,16 @@ test.describe("Admin notifications", () => {
     await adminLogin.loginAsAdmin();
   });
 
-  test("sidebar navigates to templates and deliveries", async ({
-    adminDashboard,
+  test("notification routes still open directly", async ({
     adminNotificationTemplates,
     adminNotificationDeliveries,
     page,
   }) => {
-    await adminDashboard.goto();
-    await expect(adminDashboard.heading).toBeVisible({ timeout: 15_000 });
-
-    await adminDashboard.sidebarLink("Templates").click();
+    await page.goto("/notifications/templates");
     await expect(page).toHaveURL(/\/notifications\/templates$/);
     await expect(adminNotificationTemplates.heading).toBeVisible({ timeout: 15_000 });
 
-    await adminDashboard.sidebarLink("Deliveries").click();
+    await page.goto("/notifications/deliveries");
     await expect(page).toHaveURL(/\/notifications\/deliveries$/);
     await expect(adminNotificationDeliveries.heading).toBeVisible({ timeout: 15_000 });
   });

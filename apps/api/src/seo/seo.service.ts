@@ -2,6 +2,7 @@ import { absoluteUrl, buildRobotsTxt } from "@ecom/shared";
 import { Inject, Injectable } from "@nestjs/common";
 import type { ApiEnv } from "@ecom/config";
 
+import { publicPagePath } from "../cms/cms-paths";
 import { APP_ENV } from "../config/config.module";
 import { PrismaService } from "../prisma/prisma.service";
 
@@ -30,22 +31,27 @@ export class SeoService {
       this.prisma.product.findMany({ where: { status: "published" }, select: { slug: true } }),
       this.prisma.category.findMany({ where: { isActive: true }, select: { slug: true } }),
       this.prisma.collection.findMany({ where: { isActive: true }, select: { slug: true } }),
-      this.prisma.page.findMany({ where: { status: "published" }, select: { slug: true } }),
+      this.prisma.page.findMany({
+        where: { status: "published", deletedAt: null, seoNoIndex: false },
+        select: { slug: true, type: true },
+      }),
       this.prisma.blogPost.findMany({ where: { status: "published" }, select: { slug: true } }),
     ]);
 
     return [
-      "/",
-      "/t-shirts",
-      "/men",
-      "/women",
-      "/search",
-      "/blog",
-      ...products.map((row) => `/products/${row.slug}`),
-      ...categories.map((row) => `/categories/${row.slug}`),
-      ...collections.map((row) => `/collections/${row.slug}`),
-      ...pages.map((row) => `/pages/${row.slug}`),
-      ...posts.map((row) => `/blog/${row.slug}`),
+      ...new Set([
+        "/",
+        "/t-shirts",
+        "/men",
+        "/women",
+        "/search",
+        "/blog",
+        ...products.map((row) => `/products/${row.slug}`),
+        ...categories.map((row) => `/categories/${row.slug}`),
+        ...collections.map((row) => `/collections/${row.slug}`),
+        ...pages.map((row) => publicPagePath(row)).filter((path): path is string => Boolean(path)),
+        ...posts.map((row) => `/blog/${row.slug}`),
+      ]),
     ];
   }
 }

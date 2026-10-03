@@ -26,7 +26,12 @@ function useVisibleNav() {
       ADMIN_NAV_SECTIONS.map((section) => ({
         ...section,
         items: ready ? section.items.filter((item) => hasAnyPermission(granted, item.permissions)) : section.items,
-      })).filter((section) => section.items.length > 0),
+      })).filter((section) => {
+        if (section.href) {
+          return !ready || !section.permissions || hasAnyPermission(granted, section.permissions);
+        }
+        return section.items.length > 0;
+      }),
     [granted, ready],
   );
 }
@@ -96,6 +101,28 @@ function NavSections({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       {sections.map((section) => {
+        if (section.href) {
+          const active = isAdminNavActive(section.href, pathname, hrefs);
+          return (
+            <div key={section.title} className="mb-2">
+              <Link
+                href={section.href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={
+                  active
+                    ? "flex items-center gap-2.5 rounded-md bg-white/10 px-2 py-1.5 text-sm font-semibold text-white ring-1 ring-inset ring-white/15"
+                    : "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm font-medium text-neutral-300 hover:bg-white/5 hover:text-white"
+                }
+              >
+                <span className={active ? "text-accent-400" : "text-neutral-400"}>
+                  <AdminNavIcon href={section.href} />
+                </span>
+                <span className="min-w-0 flex-1 truncate">{section.title}</span>
+              </Link>
+            </div>
+          );
+        }
         const open = !collapsed.has(section.title);
         const panelId = `admin-nav-${section.title.toLowerCase().replace(/\s+/g, "-")}`;
         return (

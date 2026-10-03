@@ -1574,11 +1574,10 @@ model CampaignCollection {
 }
 
 // ---------------------------------------------------------------------------
-// CMS domain (Sprint 11) — fixed content-type templates, not a freeform
-// block/drag-drop builder. Each `PageType` has its own expected `fields` JSON
-// shape, documented in the CMS authoring guide, and validated by a per-type
-// DTO/schema in the API layer (Prisma stores it as `Json` since the shape
-// varies by type).
+// CMS domain — page lifecycle plus a block document stored in `fields`.
+// Legacy fixed templates remain valid. New static and dynamic pages use
+// `fields.editor = "blocks"`. Developer-defined dynamic templates live in
+// application code; this schema stores the content that fills them.
 // ---------------------------------------------------------------------------
 
 enum ContentStatus {
@@ -1594,6 +1593,10 @@ enum PageType {
   faq
   homepage
   campaign
+  static
+  collection
+  category
+  blog
 }
 
 model Page {
@@ -1608,6 +1611,11 @@ model Page {
   seoDescription  String?       @map("seo_description")
   seoCanonicalUrl String?       @map("seo_canonical_url")
   seoOgImage      String?       @map("seo_og_image")
+  seoNoIndex      Boolean       @default(false) @map("seo_no_index")
+  /// Developer-defined dynamic template key, when this page uses one.
+  templateKey     String?       @map("template_key")
+  featuredImageUrl String?      @map("featured_image_url")
+  deletedAt       DateTime?     @map("deleted_at")
   scheduledAt     DateTime?     @map("scheduled_at")
   publishedAt     DateTime?     @map("published_at")
   archivedAt      DateTime?     @map("archived_at")
@@ -1621,6 +1629,8 @@ model Page {
   @@index([type])
   @@index([status])
   @@index([slug])
+  @@index([templateKey])
+  @@index([deletedAt])
   @@map("pages")
 }
 
@@ -1766,6 +1776,41 @@ model MenuItem {
   @@index([menuId])
   @@index([parentId])
   @@map("menu_items")
+}
+
+/// Website media library. Assets are referenced by id from page blocks.
+model CmsMediaAsset {
+  id           String   @id @default(uuid())
+  filename     String
+  mimeType     String   @map("mime_type")
+  sizeBytes    Int      @map("size_bytes")
+  width        Int?
+  height       Int?
+  altText      String?  @map("alt_text")
+  storageKey   String   @unique @map("storage_key")
+  url          String
+  createdBy    String?  @map("created_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@map("cms_media_assets")
+}
+
+/// Named block groups that pages can embed. Synced embeds read this record
+/// live; a page can detach a copy into its own fields.
+model ReusableSection {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  blocks      Json
+  createdBy   String?  @map("created_by")
+  updatedBy   String?  @map("updated_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("reusable_sections")
 }
 
 // ---------------------------------------------------------------------------

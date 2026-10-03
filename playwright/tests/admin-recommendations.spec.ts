@@ -6,15 +6,8 @@ test.describe("Admin recommendations", () => {
     await adminLogin.loginAsAdmin();
   });
 
-  test("sidebar navigates to recommendations", async ({
-    adminDashboard,
-    adminRecommendations,
-    page,
-  }) => {
-    await adminDashboard.goto();
-    await expect(adminDashboard.heading).toBeVisible({ timeout: 15_000 });
-
-    await adminDashboard.sidebarLink("Recommendations").click();
+  test("recommendations route still opens directly", async ({ adminRecommendations, page }) => {
+    await page.goto("/recommendations");
     await expect(page).toHaveURL(/\/recommendations$/);
     await expect(adminRecommendations.heading).toBeVisible({ timeout: 15_000 });
   });

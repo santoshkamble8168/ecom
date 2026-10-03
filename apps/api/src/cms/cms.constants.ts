@@ -2,7 +2,20 @@
  * Fixed vocabularies for the CMS domain (Sprint 11). These mirror the union
  * types declared in `packages/types/src/cms.ts` — keep both in sync.
  */
-export const PAGE_TYPES = ["landing", "policy", "faq", "homepage", "campaign"] as const;
+export const PAGE_TYPES = [
+  "landing",
+  "policy",
+  "faq",
+  "homepage",
+  "campaign",
+  "static",
+  "collection",
+  "category",
+  "blog",
+] as const;
+export const STATIC_PAGE_TYPES = ["homepage", "policy", "faq", "static"] as const;
+export const DYNAMIC_PAGE_TYPES = ["landing", "campaign", "collection", "category", "blog"] as const;
+export const BLOCK_PAGE_TYPES = ["static", "collection", "category", "blog"] as const;
 export const CONTENT_STATUSES = ["draft", "scheduled", "published", "archived"] as const;
 export const BANNER_PLACEMENTS = ["homepage_hero", "homepage_strip", "category_top", "cart_strip"] as const;
 export const PAGE_SECTION_KINDS = [

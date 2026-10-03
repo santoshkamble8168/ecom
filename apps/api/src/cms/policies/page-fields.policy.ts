@@ -1,7 +1,9 @@
 import { ValidationError } from "@ecom/shared";
 import type { PageType } from "@ecom/types";
 
-import { PAGE_SECTION_KINDS } from "../cms.constants";
+import { BLOCK_PAGE_TYPES, PAGE_SECTION_KINDS } from "../cms.constants";
+
+import { validateBlockDocument } from "./block-fields.policy";
 
 type PageSectionKind = (typeof PAGE_SECTION_KINDS)[number];
 
@@ -179,6 +181,11 @@ function validateFaqItems(value: unknown, errors: string[]): void {
 export function validatePageFields(type: PageType, fields: unknown): void {
   if (!isRecord(fields)) {
     throw new ValidationError(`Invalid fields for page type "${type}": expected an object`);
+  }
+
+  if (fields.editor === "blocks" || (BLOCK_PAGE_TYPES as readonly string[]).includes(type)) {
+    validateBlockDocument(fields);
+    return;
   }
 
   const errors: string[] = [];

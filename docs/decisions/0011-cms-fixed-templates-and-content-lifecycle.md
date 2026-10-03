@@ -13,6 +13,10 @@ block/drag-drop builder would let authors produce inconsistent UI and
 would not match the "fixed page templates with editable fields" choice
 made for this sprint.
 
+## Update — content studio
+
+The admin navigation is now content-only. New pages store a validated block document (`fields.editor = "blocks"`) with reusable sections and a media library. Dynamic templates (collection, category, campaign, landing, blog) stay in application code; pages store slot content and may override it. Legacy fixed `fields` shapes remain valid when `editor` is not `blocks`. Scheduled publishes write the same `PageVersion` snapshot as a manual publish, and a version can be restored.
+
 ## Decision
 
 **1. Fixed `PageType` templates, not a block builder.** Each type has a

@@ -12,46 +12,33 @@ test.describe("Admin dashboard operations", () => {
     await adminLogin.loginAsAdmin();
   });
 
-  test("dashboard shows the heading and at least one revenue KPI", async ({
+  test("content home shows pages and media entry points", async ({
     adminDashboard,
   }) => {
     await adminDashboard.goto();
     await expect(adminDashboard.heading).toBeVisible({ timeout: 15_000 });
-    await expect(adminDashboard.page.getByText(/Dashboard/)).toBeVisible();
-    await expect(adminDashboard.kpiMatching(/Revenue/i)).toBeVisible({ timeout: 15_000 });
+    await expect(adminDashboard.sidebarLink("Pages")).toBeVisible();
+    await expect(adminDashboard.sidebarLink("Media")).toBeVisible();
   });
 
-  test("sidebar navigates to customers, audit logs, feature flags, settings, and reports", async ({
+  test("sidebar navigates across the content sections", async ({
     adminDashboard,
-    adminCustomers,
-    adminAuditLogs,
-    adminFeatureFlags,
-    adminSettings,
-    adminReports,
     page,
   }) => {
     await adminDashboard.goto();
     await expect(adminDashboard.heading).toBeVisible({ timeout: 15_000 });
 
-    await adminDashboard.sidebarLink("Customers").click();
-    await expect(page).toHaveURL(/\/customers$/);
-    await expect(adminCustomers.heading).toBeVisible({ timeout: 15_000 });
+    await adminDashboard.sidebarLink("Pages").click();
+    await expect(page).toHaveURL(/\/pages$/);
 
-    await adminDashboard.sidebarLink("Audit logs").click();
-    await expect(page).toHaveURL(/\/audit-logs$/);
-    await expect(adminAuditLogs.heading).toBeVisible({ timeout: 15_000 });
+    await adminDashboard.sidebarLink("Dynamic Pages").click();
+    await expect(page).toHaveURL(/\/dynamic-pages$/);
 
-    await adminDashboard.sidebarLink("Feature flags").click();
-    await expect(page).toHaveURL(/\/feature-flags$/);
-    await expect(adminFeatureFlags.heading).toBeVisible({ timeout: 15_000 });
+    await adminDashboard.sidebarLink("Menus").click();
+    await expect(page).toHaveURL(/\/menus$/);
 
-    await adminDashboard.sidebarLink("Settings").click();
-    await expect(page).toHaveURL(/\/settings$/);
-    await expect(adminSettings.heading).toBeVisible({ timeout: 15_000 });
-
-    await adminDashboard.sidebarLink("Reports").click();
-    await expect(page).toHaveURL(/\/reports$/);
-    await expect(adminReports.heading).toBeVisible({ timeout: 15_000 });
+    await adminDashboard.sidebarLink("Reusable Sections").click();
+    await expect(page).toHaveURL(/\/sections$/);
   });
 
   test("dashboard has no automatically detectable accessibility violations", async ({

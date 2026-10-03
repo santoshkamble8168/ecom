@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     default: "Ecom Admin",
     template: "%s | Ecom Admin",
   },
-  description: "Admin control center for the Ecom commerce platform.",
+  description: "Content management for the website.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

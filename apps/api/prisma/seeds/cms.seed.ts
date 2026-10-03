@@ -374,6 +374,68 @@ export async function seedCms(prisma: PrismaClient): Promise<void> {
     });
   }
 
+  await prisma.reusableSection.upsert({
+    where: { slug: "shipping-promise" },
+    update: {
+      name: "Shipping promise",
+      description: "Reusable shipping and returns note",
+    },
+    create: {
+      id: "cms-section-shipping",
+      name: "Shipping promise",
+      slug: "shipping-promise",
+      description: "Reusable shipping and returns note",
+      blocks: [
+        { id: "ship-heading", type: "heading", text: "Shipping and returns", level: 2 },
+        {
+          id: "ship-copy",
+          type: "paragraph",
+          html: "<p>Free shipping on orders above ₹999. Unused items can be returned within 7 days of delivery.</p>",
+        },
+      ],
+    },
+  });
+
+  await prisma.page.upsert({
+    where: { slug: "best-sellers" },
+    update: {},
+    create: {
+      type: "collection",
+      slug: "best-sellers",
+      title: "Best Sellers",
+      status: "published",
+      templateKey: "collection",
+      publishedAt: now,
+      seoTitle: "Best Sellers",
+      seoDescription: "The tees people reorder.",
+      fields: {
+        editor: "blocks",
+        description: "Our most-loved tees.",
+        sourceSlug: "best-sellers",
+        blocks: [],
+        slots: {
+          hero: [
+            {
+              id: "bs-hero",
+              type: "banner",
+              title: "Best Sellers",
+              subtitle: "The tees people reorder.",
+              ctaLabel: "Shop the collection",
+              ctaHref: "/collections/best-sellers",
+            },
+          ],
+          description: [
+            {
+              id: "bs-copy",
+              type: "paragraph",
+              html: "<p>A short list of the styles that earn repeat orders.</p>",
+            },
+          ],
+        },
+      },
+    },
+  });
+
   // eslint-disable-next-line no-console
-  console.log("Seed complete: CMS pages, banners, and menus are ready.");
+  console.log("Seed complete: CMS pages, banners, menus, and reusable sections are ready.");
 }

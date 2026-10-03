@@ -1,7 +1,7 @@
 "use client";
 
-import { PageForm } from "@/components/cms/page-form";
+import { ContentEditor } from "@/components/cms/content-editor";
 
 export default function NewPagePage() {
-  return <PageForm />;
+  return <ContentEditor mode="static" />;
 }

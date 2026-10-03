@@ -10,13 +10,31 @@ export interface AdminNavItem {
 export interface AdminNavSection {
   title: string;
   items: AdminNavItem[];
+  /** Direct link with no submenu. */
+  href?: string;
+  permissions?: readonly Permission[];
 }
 
 export const POST_LOGIN_PATH = "/";
 export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
-    title: "Home",
-    items: [{ href: "/", label: "Dashboard", permissions: [PERMISSIONS.DASHBOARD_READ] }],
+    title: "Dashboard",
+    href: "/",
+    permissions: [PERMISSIONS.DASHBOARD_READ],
+    items: [],
+  },
+  {
+    title: "Content",
+    items: [
+      { href: "/content", label: "Content", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/pages", label: "Pages", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/dynamic-pages", label: "Dynamic Pages", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/media", label: "Media", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/menus", label: "Menus", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/sections", label: "Reusable Sections", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/banners", label: "Banners", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+      { href: "/blog", label: "Blog Posts", permissions: [PERMISSIONS.ADMIN_ACCESS] },
+    ],
   },
   {
     title: "Catalog",
@@ -65,15 +83,6 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
     ],
   },
   {
-    title: "Content",
-    items: [
-      { href: "/pages", label: "Pages", permissions: [PERMISSIONS.ADMIN_ACCESS] },
-      { href: "/banners", label: "Banners", permissions: [PERMISSIONS.ADMIN_ACCESS] },
-      { href: "/menus", label: "Menus", permissions: [PERMISSIONS.ADMIN_ACCESS] },
-      { href: "/blog", label: "Blog Posts", permissions: [PERMISSIONS.ADMIN_ACCESS] },
-    ],
-  },
-  {
     title: "Insights",
     items: [
       { href: "/analytics", label: "Analytics", permissions: [PERMISSIONS.ANALYTICS_READ] },
@@ -95,7 +104,10 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
 ];
 
 export function allAdminNavHrefs(): string[] {
-  return ADMIN_NAV_SECTIONS.flatMap((section) => section.items.map((item) => item.href));
+  return ADMIN_NAV_SECTIONS.flatMap((section) => [
+    ...(section.href ? [section.href] : []),
+    ...section.items.map((item) => item.href),
+  ]);
 }
 
 /** Longest matching href wins so /inventory/movements does not highlight Stock. */

@@ -52,12 +52,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     productPaths(),
   ]);
 
+  const cmsPaths = await apiFetch<string[]>("/cms/sitemap").catch(() => [] as string[]);
+
   const paths = [
+    ...new Set([
     ...STATIC_PATHS,
     ...flattenCategories(categories).map((slug) => `/categories/${slug}`),
     ...collections.map((collection) => `/collections/${collection.slug}`),
     ...(blog?.posts ?? []).map((post) => `/blog/${post.slug}`),
     ...products,
+    ...cmsPaths,
+    ]),
   ];
 
   return paths.map((path) => ({

@@ -13,10 +13,14 @@ function MenuItemRow({
   item,
   depth,
   menuId,
+  siblings,
+  onMove,
 }: {
   item: MenuItemSummary;
   depth: number;
   menuId: string;
+  siblings: MenuItemSummary[];
+  onMove: (siblings: MenuItemSummary[], fromId: string, toId: string) => void;
 }) {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<"view" | "edit" | "add-child">("view");
@@ -63,7 +67,17 @@ function MenuItemRow({
   return (
     <li>
       <div
-        className="flex items-center justify-between gap-3 rounded-md py-1.5"
+        draggable
+        onDragStart={() => {
+          draggedMenuItemId = item.id;
+        }}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={() => {
+          if (!draggedMenuItemId || draggedMenuItemId === item.id) return;
+          if (siblings.some((sibling) => sibling.id === draggedMenuItemId)) onMove(siblings, draggedMenuItemId, item.id);
+          draggedMenuItemId = null;
+        }}
+        className="flex cursor-grab items-center justify-between gap-3 rounded-md py-1.5"
         style={{ paddingLeft: depth * 20 }}
       >
         <div className="flex flex-1 items-center gap-2 text-sm">
@@ -155,7 +169,14 @@ function MenuItemRow({
       {item.children.length > 0 && (
         <ul className="flex flex-col">
           {item.children.map((child) => (
-            <MenuItemRow key={child.id} item={child} depth={depth + 1} menuId={menuId} />
+            <MenuItemRow
+              key={child.id}
+              item={child}
+              depth={depth + 1}
+              menuId={menuId}
+              siblings={item.children}
+              onMove={onMove}
+            />
           ))}
         </ul>
       )}
@@ -163,10 +184,51 @@ function MenuItemRow({
   );
 }
 
+let draggedMenuItemId: string | null = null;
+
+function moveWithinSiblings(items: MenuItemSummary[], fromId: string, toId: string): MenuItemSummary[] {
+  const fromIndex = items.findIndex((item) => item.id === fromId);
+  const toIndex = items.findIndex((item) => item.id === toId);
+  if (fromIndex < 0 || toIndex < 0) return items;
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved) return items;
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+function replaceSiblings(items: MenuItemSummary[], siblings: MenuItemSummary[], nextSiblings: MenuItemSummary[]): MenuItemSummary[] {
+  if (items === siblings) return nextSiblings;
+  return items.map((item) => ({ ...item, children: replaceSiblings(item.children, siblings, nextSiblings) }));
+}
+
+function flattenMenu(items: MenuItemSummary[], parentId: string | null, into: Array<{ id: string; parentId: string | null; sortOrder: number }>) {
+  items.forEach((item, index) => {
+    into.push({ id: item.id, parentId, sortOrder: index });
+    flattenMenu(item.children, item.id, into);
+  });
+}
+
 export function MenuItemTree({ menuId, items }: { menuId: string; items: MenuItemSummary[] }) {
   const queryClient = useQueryClient();
   const [showAddTopLevel, setShowAddTopLevel] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const reorderMutation = useMutation({
+    mutationFn: (nextItems: MenuItemSummary[]) => {
+      const payload: Array<{ id: string; parentId: string | null; sortOrder: number }> = [];
+      flattenMenu(nextItems, null, payload);
+      return apiFetch(`/admin/cms/menus/${menuId}/reorder`, { method: "POST", body: JSON.stringify({ items: payload }) });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-menus"] });
+    },
+  });
+
+  function onMove(siblings: MenuItemSummary[], fromId: string, toId: string) {
+    const nextRoot = replaceSiblings(items, siblings, moveWithinSiblings(siblings, fromId, toId));
+    reorderMutation.mutate(nextRoot);
+  }
 
   const addTopLevelMutation = useMutation({
     mutationFn: (payload: UpsertMenuItemInput) =>
@@ -191,7 +253,7 @@ export function MenuItemTree({ menuId, items }: { menuId: string; items: MenuIte
       {items.length > 0 && (
         <ul className="flex flex-col divide-y divide-neutral-100 dark:divide-neutral-800">
           {items.map((item) => (
-            <MenuItemRow key={item.id} item={item} depth={0} menuId={menuId} />
+            <MenuItemRow key={item.id} item={item} depth={0} menuId={menuId} siblings={items} onMove={onMove} />
           ))}
         </ul>
       )}

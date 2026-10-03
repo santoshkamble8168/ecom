@@ -18,10 +18,31 @@ export class CmsJobsService {
   async publishScheduledContent(): Promise<void> {
     const now = new Date();
 
-    const pages = await this.prisma.page.updateMany({
-      where: { status: "scheduled", scheduledAt: { lte: now } },
-      data: { status: "published", publishedAt: now },
+    const duePages = await this.prisma.page.findMany({
+      where: { status: "scheduled", scheduledAt: { lte: now }, deletedAt: null },
     });
+    for (const page of duePages) {
+      const updated = await this.prisma.page.update({
+        where: { id: page.id },
+        data: { status: "published", publishedAt: now, scheduledAt: null },
+      });
+      await this.prisma.pageVersion.create({
+        data: {
+          pageId: updated.id,
+          title: updated.title,
+          fields: updated.fields as object,
+          seoSnapshot: {
+            seoTitle: updated.seoTitle,
+            seoDescription: updated.seoDescription,
+            seoCanonicalUrl: updated.seoCanonicalUrl,
+            seoOgImage: updated.seoOgImage,
+            seoNoIndex: updated.seoNoIndex,
+          },
+          publishedBy: null,
+        },
+      });
+    }
+    const pages = { count: duePages.length };
     const posts = await this.prisma.blogPost.updateMany({
       where: { status: "scheduled", scheduledAt: { lte: now } },
       data: { status: "published", publishedAt: now },

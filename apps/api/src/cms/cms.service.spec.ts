@@ -3,6 +3,7 @@ import type { ConfigService } from "@nestjs/config";
 
 import type { AuditService } from "../audit/audit.service";
 import type { PrismaService } from "../prisma/prisma.service";
+import type { ObjectStorageService } from "../storage/object-storage.service";
 
 import { CmsService } from "./cms.service";
 
@@ -62,6 +63,7 @@ describe("CmsService", () => {
       prisma as unknown as PrismaService,
       audit as unknown as AuditService,
       config as unknown as ConfigService,
+      { maxImageBytes: 5_000_000, maxVideoBytes: 50_000_000 } as ObjectStorageService,
     );
   });
 
@@ -231,6 +233,21 @@ describe("CmsService", () => {
 
       await expect(service.adminUpdatePage("page-1", { fields: {} }, "admin-1")).rejects.toThrow(ValidationError);
       expect(prisma.page.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("duplicatePage", () => {
+    it("creates a draft copy with a new slug", async () => {
+      prisma.page.findUnique.mockResolvedValueOnce(basePage()).mockResolvedValueOnce(null);
+      prisma.page.create.mockResolvedValue(basePage({ id: "page-2", slug: "home-copy", status: "draft", title: "Copy of Homepage" }));
+
+      const result = await service.duplicatePage("page-1", "admin-1");
+
+      expect(result.slug).toBe("home-copy");
+      expect(result.status).toBe("draft");
+      expect(prisma.page.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ status: "draft", slug: "home-copy" }) }),
+      );
     });
   });
 

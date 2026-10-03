@@ -6,11 +6,14 @@ import type {
   PageDetail,
   PolicyPageFields,
 } from "@ecom/types";
+import { isBlockPageFields, pageKindForType } from "@ecom/types";
 import { jsonLdFaq } from "@ecom/shared";
 import { FaqAccordion } from "@ecom/ui";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ContentBlocks } from "@/components/cms/content-blocks";
+import { DynamicTemplateView } from "@/components/cms/dynamic-template-view";
 import { CmsPageSections } from "@/components/cms/page-sections";
 import { RichHtml } from "@/components/cms/rich-html";
 import { StorefrontImage } from "@/components/media/storefront-image";
@@ -70,6 +73,20 @@ function FaqPageView({ title, fields }: { title: string; fields: FaqPageFields }
 }
 
 export function CmsPageView({ page }: { page: PageDetail }) {
+  if (isBlockPageFields(page.fields)) {
+    if (pageKindForType(page.type) === "dynamic") return <DynamicTemplateView page={page} />;
+    return (
+      <article>
+        {page.type !== "homepage" ? (
+          <header className="mx-auto max-w-3xl px-4 pt-12">
+            <h1 className="text-4xl font-display font-bold">{page.title}</h1>
+          </header>
+        ) : null}
+        <ContentBlocks blocks={page.fields.blocks} sections={page.reusableSections} />
+      </article>
+    );
+  }
+
   switch (page.type) {
     case "landing":
     case "campaign":

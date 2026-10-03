@@ -11,11 +11,8 @@ test.describe("Admin analytics", () => {
     await adminLogin.loginAsAdmin();
   });
 
-  test("sidebar navigates to analytics", async ({ adminDashboard, adminAnalytics, page }) => {
-    await adminDashboard.goto();
-    await expect(adminDashboard.heading).toBeVisible({ timeout: 15_000 });
-
-    await adminDashboard.sidebarLink("Analytics").click();
+  test("analytics route still opens directly", async ({ adminAnalytics, page }) => {
+    await page.goto("/analytics");
     await expect(page).toHaveURL(/\/analytics$/);
     await expect(adminAnalytics.heading).toBeVisible({ timeout: 15_000 });
   });

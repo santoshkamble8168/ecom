@@ -1,7 +1,7 @@
 "use client";
 
 import type { MenuSummary } from "@ecom/types";
-import { Button, Card, CardContent, CardHeader, CardTitle } from "@ecom/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, ConfirmDialog } from "@ecom/ui";
 import { createMenuFormSchema, type CreateMenuFormValues } from "@ecom/validation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -96,6 +96,35 @@ function CreateMenuForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+function DeleteMenuButton({ menuId, name }: { menuId: string; name: string }) {
+  const queryClient = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const mutation = useMutation({
+    mutationFn: () => apiFetch(`/admin/cms/menus/${menuId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      setOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ["admin-menus"] });
+    },
+  });
+  return (
+    <>
+      <Button type="button" variant="outline" onClick={() => setOpen(true)}>
+        Delete {name}
+      </Button>
+      <ConfirmDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        onConfirm={() => mutation.mutate()}
+        title="Delete menu"
+        description={`Delete “${name}” and its links? The storefront falls back when main-nav or footer is missing.`}
+        confirmLabel="Delete menu"
+        destructive
+        loading={mutation.isPending}
+      />
+    </>
+  );
+}
+
 export default function MenusPage() {
   const [showCreate, setShowCreate] = useState(false);
 
@@ -140,8 +169,9 @@ export default function MenusPage() {
                 </span>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
               <MenuItemTree menuId={menu.id} items={menu.items} />
+              <DeleteMenuButton menuId={menu.id} name={menu.name} />
             </CardContent>
           </Card>
         ))}

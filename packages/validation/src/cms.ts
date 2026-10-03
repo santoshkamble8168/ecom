@@ -9,7 +9,17 @@ import {
   seoFormSchema,
 } from "./form-helpers";
 
-export const PAGE_TYPE_VALUES = ["homepage", "landing", "campaign", "policy", "faq"] as const;
+export const PAGE_TYPE_VALUES = [
+  "homepage",
+  "landing",
+  "campaign",
+  "policy",
+  "faq",
+  "static",
+  "collection",
+  "category",
+  "blog",
+] as const;
 export const BANNER_PLACEMENT_VALUES = [
   "homepage_hero",
   "homepage_strip",

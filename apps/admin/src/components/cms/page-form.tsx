@@ -28,8 +28,8 @@ import { AdminFormSkeleton } from "@/components/layout/admin-skeleton";
 const INPUT_CLASS =
   "w-full rounded-md border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
 
-function asFieldsRecord(fields: PageFieldsValue): Record<string, unknown> {
-  return fields as unknown as Record<string, unknown>;
+function asFieldsRecord(fields: unknown): Record<string, unknown> {
+  return fields as Record<string, unknown>;
 }
 
 export function PageForm({ pageId }: { pageId?: string }) {
